@@ -1,5 +1,42 @@
-import { Objective, ProductType } from "@prisma/client";
+import { Objective } from "@prisma/client";
 import { z } from "zod";
+import { isStoredUploadUrl } from "@/lib/uploads";
+
+const optionalText = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed.length > 0 ? trimmed : undefined;
+}, z.string().optional());
+
+const optionalNumber = z.preprocess((value) => {
+  if (value === "" || value === null || value === undefined) {
+    return undefined;
+  }
+
+  return value;
+}, z.coerce.number().optional());
+
+const imageSourceSchema = z
+  .string()
+  .trim()
+  .min(1, "Agregá al menos una imagen")
+  .refine((value) => {
+    if (isStoredUploadUrl(value)) {
+      return true;
+    }
+
+    try {
+      const parsed = new URL(value);
+      return ["http:", "https:"].includes(parsed.protocol);
+    } catch {
+      return false;
+    }
+  }, "La imagen debe ser una URL pública válida o un archivo subido.")
+  .transform((value) => value.trim());
 
 export const productSchema = z.object({
   sku: z.string().min(3, "SKU inválido"),
@@ -11,22 +48,22 @@ export const productSchema = z.object({
   benefits: z.array(z.string().min(2)).min(1, "Agregá al menos un beneficio"),
   price: z.coerce.number().positive("Precio inválido"),
   stock: z.coerce.number().int().min(0, "Stock inválido"),
-  type: z.nativeEnum(ProductType),
   objective: z.nativeEnum(Objective),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
   weight: z.string().optional(),
   flavor: z.string().optional(),
-  images: z.array(z.string().url("URL de imagen inválida")).min(1)
+  images: z.array(imageSourceSchema).min(1, "Agregá al menos una imagen")
 });
 
 export const productFiltersSchema = z.object({
-  q: z.string().optional(),
-  category: z.string().optional(),
-  brand: z.string().optional(),
-  type: z.nativeEnum(ProductType).optional(),
-  objective: z.nativeEnum(Objective).optional(),
-  minPrice: z.coerce.number().optional(),
-  maxPrice: z.coerce.number().optional()
+  q: optionalText,
+  category: optionalText,
+  brand: optionalText,
+  objective: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.nativeEnum(Objective).optional()
+  ),
+  minPrice: optionalNumber,
+  maxPrice: optionalNumber
 });
-

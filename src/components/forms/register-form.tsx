@@ -36,7 +36,13 @@ export function RegisterForm() {
 
           if (!response.ok) {
             const payload = await response.json().catch(() => null);
-            setError(payload?.error ?? "No se pudo crear la cuenta.");
+            const validationError = Object.values(payload?.details?.fieldErrors ?? {})
+              .flat()
+              .find((message): message is string => Boolean(message));
+
+            setError(
+              validationError ?? payload?.error ?? "No se pudo crear la cuenta."
+            );
             return;
           }
 
@@ -67,6 +73,9 @@ export function RegisterForm() {
         <div className="space-y-2">
           <label className="text-sm font-medium text-mist">Contraseña</label>
           <Input type="password" name="password" placeholder="Mínimo 8 caracteres" required />
+          <p className="text-xs text-mist">
+            Debe tener al menos 8 caracteres, 1 mayúscula, 1 minúscula y 1 número.
+          </p>
         </div>
       </div>
 
@@ -78,4 +87,3 @@ export function RegisterForm() {
     </form>
   );
 }
-

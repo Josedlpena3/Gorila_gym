@@ -5,6 +5,7 @@ import {
   PaymentStatus,
   Prisma
 } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -72,6 +73,13 @@ type TransferMetadata = {
   accountHolder: string;
   bankName?: string | null;
   instructions?: string | null;
+  receipt?: {
+    url: string;
+    fileName: string;
+    mimeType: string;
+    size: number;
+    uploadedAt: string;
+  } | null;
 };
 
 type PaymentMetadata = {
@@ -118,8 +126,15 @@ function mapOrder(order: OrderRecord): OrderSummaryDto {
     discountTotal: decimalToNumber(order.discountTotal) ?? 0,
     total: decimalToNumber(order.total) ?? 0,
     createdAt: order.createdAt.toISOString(),
+    recipientName: order.recipientName,
+    contactPhone: order.contactPhone,
+    street: order.street,
+    number: order.number,
+    floor: order.floor,
+    apartment: order.apartment,
     province: order.province,
     city: order.city,
+    postalCode: order.postalCode,
     paymentStatus: order.payment?.status ?? PaymentStatus.PENDING,
     payment: {
       provider: order.payment?.provider ?? order.paymentMethod,
@@ -138,7 +153,16 @@ function mapOrder(order: OrderRecord): OrderSummaryDto {
             instructions: paymentMetadata.transfer.instructions ?? null,
             reference: order.payment?.externalReference ?? order.code,
             amount: decimalToNumber(order.payment?.amount) ?? decimalToNumber(order.total) ?? 0,
-            expiresAt: order.paymentDueAt?.toISOString() ?? null
+            expiresAt: order.paymentDueAt?.toISOString() ?? null,
+            receipt: paymentMetadata.transfer.receipt
+              ? {
+                  url: paymentMetadata.transfer.receipt.url,
+                  fileName: paymentMetadata.transfer.receipt.fileName,
+                  mimeType: paymentMetadata.transfer.receipt.mimeType,
+                  size: paymentMetadata.transfer.receipt.size,
+                  uploadedAt: paymentMetadata.transfer.receipt.uploadedAt
+                }
+              : null
           }
         : null
     },
@@ -498,6 +522,13 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     );
   }
 
+  if (data.paymentMethod === PaymentMethod.BANK_TRANSFER && !data.transferReceipt) {
+    throw new AppError(
+      "Debes adjuntar el comprobante antes de confirmar una transferencia.",
+      400
+    );
+  }
+
   const createdOrder = await prisma.$transaction(async (tx) => {
     const productIds = cart.items.map((item) => item.productId);
     const products = await tx.product.findMany({
@@ -599,7 +630,10 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
             metadata:
               data.paymentMethod === PaymentMethod.BANK_TRANSFER
                 ? {
-                    transfer: bankTransfer
+                    transfer: {
+                      ...bankTransfer,
+                      receipt: data.transferReceipt ?? null
+                    }
                   }
                 : Prisma.JsonNull
           }
@@ -690,6 +724,9 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
   }).catch((error) => {
     console.error("No se pudo enviar la notificación de pedido creado", error);
   });
+
+  revalidatePath("/mis-pedidos");
+  revalidatePath("/admin/pedidos");
 
   return {
     order: mappedOrder,
@@ -807,6 +844,9 @@ export async function confirmTransferPayment(orderId: string, adminUserId: strin
     console.error("No se pudo enviar la notificación de pago aprobado", error);
   });
 
+  revalidatePath("/mis-pedidos");
+  revalidatePath("/admin/pedidos");
+
   return mappedOrder;
 }
 
@@ -899,6 +939,9 @@ export async function updateOrderStatus(
       console.error("No se pudo enviar la notificación de estado", error);
     });
   }
+
+  revalidatePath("/mis-pedidos");
+  revalidatePath("/admin/pedidos");
 
   return mappedOrder;
 }

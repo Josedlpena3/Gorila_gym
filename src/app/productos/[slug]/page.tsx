@@ -1,7 +1,8 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/catalog/add-to-cart-button";
+import { ProductGallery } from "@/components/products/product-gallery";
 import { Badge } from "@/components/ui/badge";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import { formatCurrency } from "@/lib/utils";
 import { getProductBySlug } from "@/modules/products/product.service";
 import { getCurrentUser } from "@/modules/users/user.service";
@@ -23,26 +24,13 @@ export default async function ProductPage({
   return (
     <div className="page-shell">
       <div className="grid gap-8 lg:grid-cols-[1fr,0.9fr]">
-        <div className="space-y-4">
-          <div className="relative h-[420px] overflow-hidden rounded-[34px] border border-line bg-steel">
-            <Image
-              src={product.images[0]?.url ?? product.image}
-              alt={product.images[0]?.alt ?? product.name}
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {product.images.slice(0, 3).map((image) => (
-              <div
-                key={image.id}
-                className="relative h-32 overflow-hidden rounded-3xl border border-line bg-steel"
-              >
-                <Image src={image.url} alt={image.alt} fill className="object-cover" />
-              </div>
-            ))}
-          </div>
-        </div>
+        <ProductGallery
+          images={product.images}
+          fallback={{
+            url: product.image,
+            alt: product.name
+          }}
+        />
 
         <div className="section-card p-8">
           <div className="flex flex-wrap gap-2">
@@ -55,7 +43,9 @@ export default async function ProductPage({
           <h1 className="mt-4 text-4xl font-black uppercase tracking-[0.08em] text-sand">
             {product.name}
           </h1>
-          <p className="mt-5 text-base text-mist">{product.description}</p>
+          <div className="mt-5 text-base text-mist">
+            <ExpandableText text={product.description} collapsedLength={220} />
+          </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <div className="rounded-3xl border border-line bg-ink/70 p-4">
@@ -98,4 +88,3 @@ export default async function ProductPage({
     </div>
   );
 }
-

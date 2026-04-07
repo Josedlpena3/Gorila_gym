@@ -1,7 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/catalog/add-to-cart-button";
+import { ProductGallery } from "@/components/products/product-gallery";
+import { ExpandableText } from "@/components/ui/expandable-text";
+import { OBJECTIVE_LABELS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import type { ProductCardDto } from "@/types";
 
@@ -14,12 +16,14 @@ export function ProductCard({
 }) {
   return (
     <article className="section-card group overflow-hidden">
-      <div className="relative h-64 overflow-hidden">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          className="object-cover transition duration-500 group-hover:scale-105"
+      <div className="relative overflow-hidden">
+        <ProductGallery
+          mode="card"
+          images={product.images}
+          fallback={{
+            url: product.image,
+            alt: product.name
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
         <div className="absolute left-4 top-4 flex gap-2">
@@ -35,8 +39,14 @@ export function ProductCard({
             {product.name}
           </Link>
           <p className="mt-2 text-sm text-mist">
-            Objetivo: <span className="text-sand">{product.objective}</span>
+            Objetivo:{" "}
+            <span className="text-sand">
+              {OBJECTIVE_LABELS[product.objective] ?? product.objective}
+            </span>
           </p>
+          <div className="mt-3 text-sm text-mist">
+            <ExpandableText text={product.description} collapsedLength={110} />
+          </div>
         </div>
 
         <div className="flex items-end justify-between">

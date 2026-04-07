@@ -6,6 +6,7 @@ import {
   PaymentMethod,
   PaymentStatus
 } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -397,6 +398,9 @@ export async function syncMercadoPagoPayment(paymentId: string) {
       console.error("No se pudo enviar la notificación de pago aprobado", error);
     });
 
+    revalidatePath("/mis-pedidos");
+    revalidatePath("/admin/pedidos");
+
     return { approved: true, orderId: payment.orderId };
   }
 
@@ -422,6 +426,9 @@ export async function syncMercadoPagoPayment(paymentId: string) {
   ) {
     await cancelOrderAfterRejectedMercadoPago(payment.orderId);
   }
+
+  revalidatePath("/mis-pedidos");
+  revalidatePath("/admin/pedidos");
 
   return { approved: false, orderId: payment.orderId };
 }

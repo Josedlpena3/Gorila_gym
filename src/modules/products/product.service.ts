@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { importRemoteImage, isStoredUploadUrl } from "@/lib/uploads";
 import { decimalToNumber, slugify } from "@/lib/utils";
 import {
   productFiltersSchema,
@@ -18,6 +19,21 @@ const productInclude = {
   }
 };
 
+async function normalizeProductImages(urls: string[]) {
+  const normalized = await Promise.all(
+    urls.map(async (url) => {
+      if (isStoredUploadUrl(url)) {
+        return url;
+      }
+
+      const storedImage = await importRemoteImage(url, "products");
+      return storedImage.url;
+    })
+  );
+
+  return Array.from(new Set(normalized));
+}
+
 function mapProductCard(product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): ProductCardDto {
   const primaryImage = product.images.find((image) => image.isPrimary) ?? product.images[0];
 
@@ -32,7 +48,12 @@ function mapProductCard(product: Prisma.ProductGetPayload<{ include: typeof prod
     image:
       primaryImage?.url ??
       "https://images.unsplash.com/photo-1622484212850-eb596d769edc?auto=format&fit=crop&w=1200&q=80",
-    type: product.type,
+    images: product.images.map((image) => ({
+      id: image.id,
+      url: image.url,
+      alt: image.alt
+    })),
+    description: product.description,
     objective: product.objective,
     featured: product.featured
   };
@@ -96,11 +117,6 @@ export async function listCatalogProducts(filters: unknown = {}) {
     ...(data.brand
       ? {
           brand: data.brand
-        }
-      : {}),
-    ...(data.type
-      ? {
-          type: data.type
         }
       : {}),
     ...(data.objective
@@ -257,6 +273,7 @@ export async function createProduct(input: unknown, adminUserId: string) {
   }
 
   const slug = slugify(data.slug || data.name);
+  const images = await normalizeProductImages(data.images);
 
   const product = await prisma.product.create({
     data: {
@@ -269,14 +286,13 @@ export async function createProduct(input: unknown, adminUserId: string) {
       benefits: data.benefits,
       price: data.price,
       stock: data.stock,
-      type: data.type,
       objective: data.objective,
       active: data.active,
       featured: data.featured,
       weight: data.weight,
       flavor: data.flavor,
       images: {
-        create: data.images.map((url, index) => ({
+        create: images.map((url, index) => ({
           url,
           alt: `${data.name} imagen ${index + 1}`,
           position: index,
@@ -316,6 +332,7 @@ export async function updateProduct(
   }
 
   const slug = slugify(data.slug || data.name);
+  const images = await normalizeProductImages(data.images);
 
   const product = await prisma.$transaction(async (tx) => {
     await tx.productImage.deleteMany({
@@ -336,14 +353,13 @@ export async function updateProduct(
         benefits: data.benefits,
         price: data.price,
         stock: data.stock,
-        type: data.type,
         objective: data.objective,
         active: data.active,
         featured: data.featured,
         weight: data.weight,
         flavor: data.flavor,
         images: {
-          create: data.images.map((url, index) => ({
+          create: images.map((url, index) => ({
             url,
             alt: `${data.name} imagen ${index + 1}`,
             position: index,

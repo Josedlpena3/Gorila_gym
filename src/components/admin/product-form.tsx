@@ -1,13 +1,30 @@
 "use client";
 
-import { Objective, ProductType } from "@prisma/client";
+import { Objective } from "@prisma/client";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { OBJECTIVE_LABELS, PRODUCT_TYPE_LABELS } from "@/lib/constants";
+import { OBJECTIVE_LABELS } from "@/lib/constants";
+
+type ProductImageItem =
+  | {
+      id: string;
+      source: "stored";
+      value: string;
+      label: string;
+      previewUrl: string;
+    }
+  | {
+      id: string;
+      source: "file";
+      file: File;
+      label: string;
+      previewUrl: string;
+    };
 
 type ProductFormProps = {
   categories: Array<{ id: string; name: string }>;
@@ -21,25 +38,130 @@ type ProductFormProps = {
     benefits: string[];
     price: number;
     stock: number;
-    type: ProductType;
     objective: string;
     active: boolean;
     featured: boolean;
     weight?: string | null;
     flavor?: string | null;
-    images: Array<{ url: string }>;
+    images: Array<{ id: string; url: string; alt: string }>;
   } | null;
 };
+
+function createStoredImageItem(id: string, value: string): ProductImageItem {
+  return {
+    id,
+    source: "stored",
+    value,
+    label: value,
+    previewUrl: value
+  };
+}
+
+function moveItem<T>(items: T[], from: number, to: number) {
+  const nextItems = [...items];
+  const [item] = nextItems.splice(from, 1);
+  nextItems.splice(to, 0, item);
+  return nextItems;
+}
 
 export function ProductForm({ categories, product }: ProductFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [imageItems, setImageItems] = useState<ProductImageItem[]>(
+    product?.images.map((image) => createStoredImageItem(image.id, image.url)) ?? []
+  );
   const [isPending, startTransition] = useTransition();
+  const imageItemsRef = useRef(imageItems);
 
   const title = useMemo(
     () => (product ? "Editar producto" : "Nuevo producto"),
     [product]
   );
+
+  useEffect(() => {
+    imageItemsRef.current = imageItems;
+  }, [imageItems]);
+
+  useEffect(() => {
+    return () => {
+      imageItemsRef.current.forEach((item) => {
+        if (item.source === "file") {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      });
+    };
+  }, []);
+
+  function addUrlImages() {
+    const urls = urlInput
+      .split("\n")
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    if (urls.length === 0) {
+      return;
+    }
+
+    const existingValues = new Set(
+      imageItems.flatMap((item) => (item.source === "stored" ? [item.value] : []))
+    );
+
+    const nextItems = [...imageItems];
+
+    urls.forEach((url) => {
+      if (existingValues.has(url)) {
+        return;
+      }
+
+      nextItems.push(createStoredImageItem(`url-${crypto.randomUUID()}`, url));
+      existingValues.add(url);
+    });
+
+    setImageItems(nextItems);
+    setUrlInput("");
+  }
+
+  function addFiles(files: FileList | null) {
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    setImageItems((current) => [
+      ...current,
+      ...Array.from(files).map((file) => ({
+        id: `file-${crypto.randomUUID()}`,
+        source: "file" as const,
+        file,
+        label: file.name,
+        previewUrl: URL.createObjectURL(file)
+      }))
+    ]);
+  }
+
+  function moveImageItem(index: number, direction: "up" | "down") {
+    setImageItems((current) => {
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+      if (targetIndex < 0 || targetIndex >= current.length) {
+        return current;
+      }
+
+      return moveItem(current, index, targetIndex);
+    });
+  }
+
+  function removeImageItem(id: string) {
+    setImageItems((current) => {
+      const item = current.find((entry) => entry.id === id);
+
+      if (item?.source === "file") {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+
+      return current.filter((entry) => entry.id !== id);
+    });
+  }
 
   return (
     <form
@@ -51,10 +173,55 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         startTransition(async () => {
           setError(null);
 
-          const images = String(formData.get("images") ?? "")
-            .split("\n")
-            .map((value) => value.trim())
-            .filter(Boolean);
+          let uploadedImages: string[] = [];
+          const pendingFiles = imageItems.filter(
+            (item): item is Extract<ProductImageItem, { source: "file" }> =>
+              item.source === "file"
+          );
+
+          if (pendingFiles.length > 0) {
+            const uploadFormData = new FormData();
+
+            pendingFiles.forEach((item) => {
+              uploadFormData.append("files", item.file);
+            });
+
+            const uploadResponse = await fetch("/api/admin/uploads", {
+              method: "POST",
+              body: uploadFormData
+            });
+
+            const uploadPayload = await uploadResponse.json().catch(() => null);
+
+            if (!uploadResponse.ok) {
+              setError(uploadPayload?.error ?? "No se pudieron subir las imágenes.");
+              return;
+            }
+
+            uploadedImages = Array.isArray(uploadPayload?.files)
+              ? uploadPayload.files
+                  .map((entry: { url?: string }) => entry.url)
+                  .filter((value: unknown): value is string => typeof value === "string")
+              : [];
+          }
+
+          let uploadedIndex = 0;
+          const images = imageItems
+            .map((item) => {
+              if (item.source === "file") {
+                const url = uploadedImages[uploadedIndex];
+                uploadedIndex += 1;
+                return url;
+              }
+
+              return item.value;
+            })
+            .filter((value): value is string => Boolean(value));
+
+          if (images.length === 0) {
+            setError("Debes cargar al menos una imagen por URL o archivo.");
+            return;
+          }
 
           const benefits = String(formData.get("benefits") ?? "")
             .split("\n")
@@ -70,7 +237,6 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             benefits,
             price: Number(formData.get("price")),
             stock: Number(formData.get("stock")),
-            type: formData.get("type"),
             objective: formData.get("objective"),
             active: formData.get("active") === "on",
             featured: formData.get("featured") === "on",
@@ -134,16 +300,6 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           </Select>
         </div>
         <div className="space-y-2">
-          <label className="text-sm text-mist">Tipo</label>
-          <Select name="type" defaultValue={product?.type ?? ProductType.PROTEIN}>
-            {Object.entries(PRODUCT_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="space-y-2">
           <label className="text-sm text-mist">Objetivo</label>
           <Select
             name="objective"
@@ -178,6 +334,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         <label className="text-sm text-mist">Descripción</label>
         <Textarea name="description" defaultValue={product?.description ?? ""} required />
       </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm text-mist">Beneficios (uno por línea)</label>
@@ -187,14 +344,123 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             required
           />
         </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Imágenes (una URL por línea)</label>
-          <Textarea
-            name="images"
-            defaultValue={product ? product.images.map((image) => image.url).join("\n") : ""}
-            required
-          />
+
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <label className="text-sm text-mist">Agregar imágenes por URL</label>
+            <Textarea
+              value={urlInput}
+              onChange={(event) => setUrlInput(event.target.value)}
+              placeholder="Pegá una o varias URLs públicas, una por línea."
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={addUrlImages}
+              disabled={urlInput.trim().length === 0}
+            >
+              Agregar URLs
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm text-mist">Subir archivos</label>
+            <Input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={(event) => {
+                addFiles(event.target.files);
+                event.currentTarget.value = "";
+              }}
+            />
+            <p className="text-xs text-mist">
+              Cargá varias imágenes y ordenalas manualmente antes de guardar.
+            </p>
+          </div>
         </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="text-sm text-mist">Orden de imágenes</label>
+          <p className="text-xs text-mist">
+            La primera imagen queda como principal en catálogo y detalle.
+          </p>
+        </div>
+
+        {imageItems.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-line bg-ink/40 p-4 text-sm text-mist">
+            Todavía no agregaste imágenes.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {imageItems.map((item, index) => (
+              <div
+                key={item.id}
+                className="rounded-3xl border border-line bg-ink/60 p-4"
+              >
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 flex-1 gap-4">
+                    <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-line bg-steel">
+                      {item.source === "file" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.previewUrl}
+                          alt={`Vista previa ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Image
+                          src={item.previewUrl}
+                          alt={`Vista previa ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                        Imagen {index + 1} {index === 0 ? "· Principal" : ""}
+                      </p>
+                      <p className="mt-2 truncate text-sm font-semibold text-sand">
+                        {item.label}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="px-4 py-2"
+                      onClick={() => moveImageItem(index, "up")}
+                      disabled={index === 0}
+                    >
+                      Subir
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="px-4 py-2"
+                      onClick={() => moveImageItem(index, "down")}
+                      disabled={index === imageItems.length - 1}
+                    >
+                      Bajar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      className="px-4 py-2"
+                      onClick={() => removeImageItem(item.id)}
+                    >
+                      Quitar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-6">

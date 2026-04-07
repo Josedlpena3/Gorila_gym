@@ -1,10 +1,23 @@
-const allowedImageHosts = (
-  process.env.NEXT_PUBLIC_ALLOWED_IMAGE_HOSTS ??
-  "images.unsplash.com,plus.unsplash.com"
-)
-  .split(",")
-  .map((host) => host.trim())
-  .filter(Boolean);
+const defaultImageHosts = [
+  "images.unsplash.com",
+  "plus.unsplash.com",
+  "starnutrition.com.ar",
+  "www.starnutrition.com.ar",
+  "titannutrition.net",
+  "www.titannutrition.net"
+];
+
+const allowedImageHosts = Array.from(
+  new Set(
+    [
+      ...defaultImageHosts,
+      ...(process.env.NEXT_PUBLIC_ALLOWED_IMAGE_HOSTS ?? "")
+        .split(",")
+        .map((host) => host.trim())
+        .filter(Boolean)
+    ]
+  )
+);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

@@ -3,6 +3,7 @@
 import { DeliveryMethod, PaymentMethod } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { TransferPaymentCard } from "@/components/payments/transfer-payment-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -67,6 +68,7 @@ export function CheckoutForm({
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [transferProofFileName, setTransferProofFileName] = useState("");
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -179,6 +181,43 @@ export function CheckoutForm({
                 }
               : undefined;
 
+          let transferReceipt: {
+            url: string;
+            fileName: string;
+            mimeType: string;
+            size: number;
+            uploadedAt: string;
+          } | undefined;
+
+          if (paymentMethod === PaymentMethod.BANK_TRANSFER) {
+            const proof = formData.get("transferProof");
+
+            if (!(proof instanceof File) || proof.size <= 0) {
+              setError(
+                "Debes adjuntar el comprobante antes de confirmar una transferencia."
+              );
+              return;
+            }
+
+            const uploadFormData = new FormData();
+            uploadFormData.append("proof", proof);
+
+            const proofResponse = await fetch("/api/checkout/transfer-proof", {
+              method: "POST",
+              body: uploadFormData
+            });
+            const proofPayload = await proofResponse.json().catch(() => null);
+
+            if (!proofResponse.ok || !proofPayload?.receipt) {
+              setError(
+                proofPayload?.error ?? "No se pudo subir el comprobante de transferencia."
+              );
+              return;
+            }
+
+            transferReceipt = proofPayload.receipt;
+          }
+
           const response = await fetch("/api/orders", {
             method: "POST",
             headers: {
@@ -189,6 +228,7 @@ export function CheckoutForm({
               paymentMethod,
               addressId: selectedAddressId || undefined,
               address,
+              transferReceipt,
               saveAddress: !selectedAddressId,
               notes: formData.get("notes")
             })
@@ -342,26 +382,49 @@ export function CheckoutForm({
           </div>
 
           {paymentMethod === PaymentMethod.BANK_TRANSFER && quote?.transferPreview ? (
-            <div className="mt-4 rounded-3xl border border-line bg-ink/60 p-5 text-sm text-mist">
-              <p className="font-semibold text-sand">Datos de transferencia</p>
-              <p className="mt-3">
-                Alias: <span className="text-sand">{quote.transferPreview.alias}</span>
-              </p>
-              <p>
-                CBU: <span className="text-sand">{quote.transferPreview.cbu}</span>
-              </p>
-              <p>
-                Titular:{" "}
-                <span className="text-sand">{quote.transferPreview.accountHolder}</span>
-              </p>
-              {quote.transferPreview.bankName ? (
-                <p>
-                  Banco: <span className="text-sand">{quote.transferPreview.bankName}</span>
+            <div className="mt-4 space-y-4">
+              <TransferPaymentCard
+                className="border-neon/50"
+                transfer={{
+                  ...quote.transferPreview,
+                  reference: "Se genera al confirmar el pedido",
+                  amount: total,
+                  expiresAt: null,
+                  receipt: null
+                }}
+              />
+              <div className="rounded-3xl border border-line bg-ink/60 p-4">
+                <label className="text-sm font-semibold text-sand">
+                  Comprobante de transferencia
+                </label>
+                <Input
+                  type="file"
+                  name="transferProof"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="mt-3"
+                  onChange={(event) =>
+                    setTransferProofFileName(event.target.files?.[0]?.name ?? "")
+                  }
+                />
+                <p className="mt-2 text-xs text-mist">
+                  Es obligatorio para confirmar el pedido por transferencia.
                 </p>
-              ) : null}
-              {quote.transferPreview.instructions ? (
-                <p className="mt-3">{quote.transferPreview.instructions}</p>
-              ) : null}
+                {transferProofFileName ? (
+                  <p className="mt-2 text-xs text-mist">
+                    Archivo seleccionado: {transferProofFileName}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {paymentMethod === PaymentMethod.CASH ? (
+            <div className="mt-4 rounded-3xl border border-line bg-ink/60 p-5 text-sm text-mist">
+              <p className="font-semibold text-sand">Pago en efectivo</p>
+              <p className="mt-2">
+                Disponible sólo para Córdoba. No requiere transferencia ni comprobante
+                bancario.
+              </p>
             </div>
           ) : null}
 

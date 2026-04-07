@@ -5,6 +5,8 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentUser } from "@/modules/users/user.service";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Gorila Strong",
   description:

@@ -4,7 +4,6 @@ import {
   OrderStatus,
   PaymentMethod,
   PaymentStatus,
-  ProductType,
   RoleKey
 } from "@prisma/client";
 
@@ -17,6 +16,12 @@ export type SessionUser = {
   role: RoleKey;
 };
 
+export type ProductImageDto = {
+  id: string;
+  url: string;
+  alt: string;
+};
+
 export type ProductCardDto = {
   id: string;
   slug: string;
@@ -26,17 +31,16 @@ export type ProductCardDto = {
   price: number;
   stock: number;
   image: string;
-  type: ProductType;
+  images: ProductImageDto[];
+  description: string;
   objective: string;
   featured: boolean;
 };
 
 export type ProductDetailDto = ProductCardDto & {
-  description: string;
   benefits: string[];
   weight?: string | null;
   flavor?: string | null;
-  images: Array<{ id: string; url: string; alt: string }>;
 };
 
 export type CartItemDto = {
@@ -86,6 +90,13 @@ export type BankTransferDetailsDto = {
   reference: string;
   amount: number;
   expiresAt: string | null;
+  receipt: {
+    url: string;
+    fileName: string;
+    mimeType: string;
+    size: number;
+    uploadedAt: string;
+  } | null;
 };
 
 export type OrderPaymentDto = {
@@ -110,8 +121,15 @@ export type OrderSummaryDto = {
   discountTotal: number;
   total: number;
   createdAt: string;
+  recipientName: string;
+  contactPhone: string;
+  street: string | null;
+  number: string | null;
+  floor: string | null;
+  apartment: string | null;
   province: string;
   city: string;
+  postalCode: string | null;
   items: OrderItemDto[];
   paymentStatus: PaymentStatus;
   payment: OrderPaymentDto;
@@ -134,7 +152,7 @@ export type CheckoutQuoteDto = {
   appliedDiscount: DiscountSummaryDto | null;
   transferPreview: Omit<
     BankTransferDetailsDto,
-    "reference" | "amount" | "expiresAt"
+    "reference" | "amount" | "expiresAt" | "receipt"
   > | null;
 };
 

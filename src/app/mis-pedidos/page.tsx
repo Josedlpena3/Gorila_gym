@@ -1,9 +1,16 @@
 import { redirect } from "next/navigation";
+import { TransferPaymentCard } from "@/components/payments/transfer-payment-card";
 import { Badge } from "@/components/ui/badge";
-import { ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS } from "@/lib/constants";
+import {
+  ORDER_STATUS_LABELS,
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_STATUS_LABELS
+} from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { listOrdersByUser } from "@/modules/orders/order.service";
 import { getCurrentUser } from "@/modules/users/user.service";
+
+export const dynamic = "force-dynamic";
 
 export default async function OrdersPage({
   searchParams
@@ -63,8 +70,10 @@ export default async function OrdersPage({
                   </p>
                 </div>
                 <div className="text-left lg:text-right">
-                  <p className="text-sm text-mist">Pago</p>
-                  <p className="text-sm font-semibold text-sand">{order.paymentStatus}</p>
+                  <p className="text-sm text-mist">Estado del pago</p>
+                  <p className="text-sm font-semibold text-sand">
+                    {PAYMENT_STATUS_LABELS[order.paymentStatus]}
+                  </p>
                   <p className="mt-3 text-3xl font-black text-sand">
                     {formatCurrency(order.total)}
                   </p>
@@ -87,68 +96,10 @@ export default async function OrdersPage({
               </div>
 
               {order.payment.transfer ? (
-                <div className="mt-6 rounded-[28px] border border-line bg-ink/60 p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.24em] text-mist">
-                        Transferencia bancaria
-                      </p>
-                      <p className="mt-2 text-xl font-semibold text-sand">
-                        Referencia {order.payment.transfer.reference}
-                      </p>
-                    </div>
-                    <Badge variant="warning">
-                      {ORDER_STATUS_LABELS[order.status]}
-                    </Badge>
-                  </div>
-                  <div className="mt-5 grid gap-3 text-sm text-mist md:grid-cols-2">
-                    <p>
-                      Alias:{" "}
-                      <span className="font-semibold text-sand">
-                        {order.payment.transfer.alias}
-                      </span>
-                    </p>
-                    <p>
-                      CBU:{" "}
-                      <span className="font-semibold text-sand">
-                        {order.payment.transfer.cbu}
-                      </span>
-                    </p>
-                    <p>
-                      Titular:{" "}
-                      <span className="font-semibold text-sand">
-                        {order.payment.transfer.accountHolder}
-                      </span>
-                    </p>
-                    <p>
-                      Monto:{" "}
-                      <span className="font-semibold text-sand">
-                        {formatCurrency(order.payment.transfer.amount)}
-                      </span>
-                    </p>
-                    {order.payment.transfer.bankName ? (
-                      <p>
-                        Banco:{" "}
-                        <span className="font-semibold text-sand">
-                          {order.payment.transfer.bankName}
-                        </span>
-                      </p>
-                    ) : null}
-                    {order.payment.transfer.expiresAt ? (
-                      <p>
-                        Vence:{" "}
-                        <span className="font-semibold text-sand">
-                          {formatDate(order.payment.transfer.expiresAt)}
-                        </span>
-                      </p>
-                    ) : null}
-                  </div>
-                  {order.payment.transfer.instructions ? (
-                    <p className="mt-4 text-sm text-mist">
-                      {order.payment.transfer.instructions}
-                    </p>
-                  ) : null}
-                </div>
+                <TransferPaymentCard
+                  className="mt-6"
+                  transfer={order.payment.transfer}
+                />
               ) : null}
 
               {order.payment.checkoutUrl &&

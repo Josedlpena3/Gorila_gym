@@ -1,7 +1,7 @@
 import { ProductCard } from "@/components/catalog/product-card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { OBJECTIVE_LABELS, PRODUCT_TYPE_LABELS } from "@/lib/constants";
+import { OBJECTIVE_LABELS } from "@/lib/constants";
 import { listCatalogProducts } from "@/modules/products/product.service";
 import { getCurrentUser } from "@/modules/users/user.service";
 
@@ -18,7 +18,6 @@ export default async function CatalogPage({
       category:
         typeof searchParams.category === "string" ? searchParams.category : undefined,
       brand: typeof searchParams.brand === "string" ? searchParams.brand : undefined,
-      type: typeof searchParams.type === "string" ? searchParams.type : undefined,
       objective:
         typeof searchParams.objective === "string" ? searchParams.objective : undefined,
       minPrice:
@@ -38,7 +37,11 @@ export default async function CatalogPage({
         </h1>
       </div>
 
-      <form className="section-card grid gap-4 p-5 lg:grid-cols-6">
+      <form
+        method="GET"
+        action="/catalogo"
+        className="section-card grid gap-4 p-5 lg:grid-cols-6"
+      >
         <Input
           name="q"
           defaultValue={typeof searchParams.q === "string" ? searchParams.q : ""}
@@ -70,23 +73,12 @@ export default async function CatalogPage({
           ))}
         </Select>
         <Select
-          name="type"
-          defaultValue={typeof searchParams.type === "string" ? searchParams.type : ""}
-        >
-          <option value="">Todos los tipos</option>
-          {Object.entries(PRODUCT_TYPE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </Select>
-        <Select
           name="objective"
           defaultValue={
             typeof searchParams.objective === "string" ? searchParams.objective : ""
           }
         >
-          <option value="">Todos los objetivos</option>
+          <option value="">Objetivo</option>
           {Object.entries(OBJECTIVE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -109,7 +101,10 @@ export default async function CatalogPage({
           }
           placeholder="Precio máximo"
         />
-        <button className="rounded-2xl bg-neon px-5 py-3 text-sm font-semibold text-ink">
+        <button
+          type="submit"
+          className="rounded-2xl bg-neon px-5 py-3 text-sm font-semibold text-ink"
+        >
           Filtrar
         </button>
       </form>

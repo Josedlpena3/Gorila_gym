@@ -7,7 +7,6 @@ import {
   PaymentMethod,
   PaymentStatus,
   PrismaClient,
-  ProductType,
   RoleKey
 } from "@prisma/client";
 
@@ -44,7 +43,7 @@ async function main() {
     })
   ]);
 
-  const [proteins, performance, wellness] = await Promise.all([
+  const categories = await Promise.all([
     prisma.category.create({
       data: {
         name: "Proteínas",
@@ -54,48 +53,86 @@ async function main() {
     }),
     prisma.category.create({
       data: {
-        name: "Performance",
-        slug: "performance",
-        description: "Energía, fuerza y enfoque para rendir más."
+        name: "Creatinas",
+        slug: "creatinas",
+        description: "Creatina micronizada para fuerza, potencia y volumen."
       }
     }),
     prisma.category.create({
       data: {
-        name: "Wellness",
-        slug: "wellness",
-        description: "Vitaminas, recuperación y salud integral."
+        name: "Pre entrenos",
+        slug: "pre-entrenos",
+        description: "Fórmulas para empuje, foco y energía."
+      }
+    }),
+    prisma.category.create({
+      data: {
+        name: "Aminoácidos",
+        slug: "aminoacidos",
+        description: "BCAA y fórmulas de recuperación muscular."
+      }
+    }),
+    prisma.category.create({
+      data: {
+        name: "Vitaminas y bienestar",
+        slug: "vitaminas-bienestar",
+        description: "Soporte diario para salud, recuperación e inmunidad."
+      }
+    }),
+    prisma.category.create({
+      data: {
+        name: "Ganadores de peso",
+        slug: "ganadores-de-peso",
+        description: "Calorías y nutrientes para subir masa muscular."
+      }
+    }),
+    prisma.category.create({
+      data: {
+        name: "Quemadores",
+        slug: "quemadores",
+        description: "Apoyo para definición y rendimiento metabólico."
+      }
+    }),
+    prisma.category.create({
+      data: {
+        name: "Accesorios",
+        slug: "accesorios",
+        description: "Shakers y accesorios de entrenamiento."
       }
     })
   ]);
 
+  const categoryBySlug = Object.fromEntries(
+    categories.map((category) => [category.slug, category])
+  );
+
   const products = await Promise.all([
     prisma.product.create({
       data: {
-        sku: "GS-WHEY-001",
-        name: "Titan Whey Isolate",
-        slug: "titan-whey-isolate",
-        brand: "Gorila Strong",
-        type: ProductType.PROTEIN,
+        sku: "STAR-WHEY-001",
+        name: "Star Whey Premium",
+        slug: "star-whey-premium",
+        brand: "Star Nutrition",
         objective: Objective.MUSCLE_GAIN,
-        categoryId: proteins.id,
+        categoryId: categoryBySlug["proteinas"].id,
         description:
-          "Proteína aislada ultrafiltrada de rápida absorción con perfil alto de leucina y textura cremosa.",
+          "Proteína whey premium para desarrollo muscular, recuperación rápida y mejor cobertura proteica diaria.",
         benefits: [
-          "27 g de proteína por scoop",
-          "Baja en lactosa",
-          "Ideal para post-entreno"
+          "24 g de proteína por porción",
+          "Ideal para post entreno",
+          "Excelente solubilidad"
         ],
-        price: 48990,
-        stock: 18,
+        price: 52990,
+        stock: 20,
         active: true,
         featured: true,
         weight: "2 lb",
-        flavor: "Chocolate intenso",
+        flavor: "Chocolate",
         images: {
           create: [
             {
-              url: "https://images.unsplash.com/photo-1579722821273-0f6c0f1cf5d9?auto=format&fit=crop&w=1200&q=80",
-              alt: "Whey isolate premium",
+              url: "https://starnutrition.com.ar/cdn/shop/files/CreatineM-300g.png?v=1718218487",
+              alt: "Suplemento Star Nutrition",
               position: 0,
               isPrimary: true
             }
@@ -105,22 +142,21 @@ async function main() {
     }),
     prisma.product.create({
       data: {
-        sku: "GS-CREA-002",
-        name: "Creatina Monohidrato Pro",
-        slug: "creatina-monohidrato-pro",
-        brand: "Gorila Strong",
-        type: ProductType.CREATINE,
+        sku: "ENA-CREA-002",
+        name: "ENA Creatina Micronizada",
+        slug: "ena-creatina-micronizada",
+        brand: "ENA",
         objective: Objective.PERFORMANCE,
-        categoryId: performance.id,
+        categoryId: categoryBySlug["creatinas"].id,
         description:
-          "Creatina micronizada de alta pureza para maximizar fuerza, potencia y recuperación entre sesiones.",
+          "Creatina micronizada de alta pureza para mejorar la fuerza, la potencia y el rendimiento en series intensas.",
         benefits: [
           "5 g por porción",
-          "Micronizada para mejor mezcla",
-          "Apoya la fuerza explosiva"
+          "Mayor fuerza y volumen",
+          "Mezcla fácil"
         ],
-        price: 22990,
-        stock: 26,
+        price: 24990,
+        stock: 28,
         active: true,
         featured: true,
         weight: "300 g",
@@ -139,22 +175,21 @@ async function main() {
     }),
     prisma.product.create({
       data: {
-        sku: "GS-PRE-003",
-        name: "Rage Pre Workout",
-        slug: "rage-pre-workout",
-        brand: "Gorila Strong",
-        type: ProductType.PRE_WORKOUT,
+        sku: "XTR-PRE-003",
+        name: "Xtrenght Pre Extreme",
+        slug: "xtrenght-pre-extreme",
+        brand: "Xtrenght",
         objective: Objective.PERFORMANCE,
-        categoryId: performance.id,
+        categoryId: categoryBySlug["pre-entrenos"].id,
         description:
-          "Pre entreno de alta intensidad con cafeína, citrulina y beta alanina para sesiones de máxima exigencia.",
+          "Pre entreno con cafeína y citrulina para más energía, congestión y enfoque antes de las rutinas exigentes.",
         benefits: [
           "Energía sostenida",
-          "Mejora el enfoque",
-          "Mayor congestión muscular"
+          "Mayor foco mental",
+          "Ayuda a la congestión"
         ],
-        price: 28990,
-        stock: 11,
+        price: 31990,
+        stock: 15,
         active: true,
         featured: false,
         weight: "420 g",
@@ -163,7 +198,7 @@ async function main() {
           create: [
             {
               url: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=1200&q=80",
-              alt: "Pre workout para alto rendimiento",
+              alt: "Pre entreno de alto rendimiento",
               position: 0,
               isPrimary: true
             }
@@ -173,31 +208,261 @@ async function main() {
     }),
     prisma.product.create({
       data: {
-        sku: "GS-VITA-004",
-        name: "Daily Multi Pack",
-        slug: "daily-multi-pack",
-        brand: "Gorila Strong",
-        type: ProductType.VITAMINS,
-        objective: Objective.WELLNESS,
-        categoryId: wellness.id,
+        sku: "ULT-BCAA-004",
+        name: "Ultra Tech BCAA Recovery",
+        slug: "ultra-tech-bcaa-recovery",
+        brand: "Ultra Tech",
+        objective: Objective.RECOVERY,
+        categoryId: categoryBySlug["aminoacidos"].id,
         description:
-          "Complejo multivitamínico para sostener energía, sistema inmune y recuperación diaria.",
+          "BCAA con glutamina para mejorar la recuperación muscular y bajar la fatiga luego de sesiones intensas.",
         benefits: [
-          "12 vitaminas esenciales",
-          "Minerales quelados",
-          "Uso diario simple"
+          "Recuperación más rápida",
+          "Menor fatiga muscular",
+          "Fácil de tomar"
         ],
-        price: 15990,
-        stock: 32,
+        price: 21990,
+        stock: 24,
         active: true,
         featured: false,
-        weight: "60 cápsulas",
+        weight: "300 g",
+        flavor: "Lima limón",
+        images: {
+          create: [
+            {
+              url: "https://images.unsplash.com/photo-1622484212850-eb596d769edc?auto=format&fit=crop&w=1200&q=80",
+              alt: "BCAA para recuperación",
+              position: 0,
+              isPrimary: true
+            }
+          ]
+        }
+      }
+    }),
+    prisma.product.create({
+      data: {
+        sku: "GLD-GAIN-005",
+        name: "Gold Nutrition Mass Builder",
+        slug: "gold-nutrition-mass-builder",
+        brand: "Gold Nutrition",
+        objective: Objective.MUSCLE_GAIN,
+        categoryId: categoryBySlug["ganadores-de-peso"].id,
+        description:
+          "Ganador de peso con carbohidratos y proteína para etapas de volumen con alta demanda calórica.",
+        benefits: [
+          "Aporta calorías extra",
+          "Con proteína de rápida absorción",
+          "Ideal para volumen"
+        ],
+        price: 46990,
+        stock: 14,
+        active: true,
+        featured: false,
+        weight: "3 kg",
+        flavor: "Vainilla",
+        images: {
+          create: [
+            {
+              url: "https://images.unsplash.com/photo-1579722820308-d74e571900a9?auto=format&fit=crop&w=1200&q=80",
+              alt: "Mass gainer",
+              position: 0,
+              isPrimary: true
+            }
+          ]
+        }
+      }
+    }),
+    prisma.product.create({
+      data: {
+        sku: "ON-WHEY-006",
+        name: "Gold Standard Whey",
+        slug: "gold-standard-whey",
+        brand: "Optimum Nutrition",
+        objective: Objective.MUSCLE_GAIN,
+        categoryId: categoryBySlug["proteinas"].id,
+        description:
+          "Proteína whey blend para recuperación y construcción muscular con perfil aminoacídico completo.",
+        benefits: [
+          "Proteína de alta calidad",
+          "Blend versátil para todo el día",
+          "Sabor premium"
+        ],
+        price: 64990,
+        stock: 12,
+        active: true,
+        featured: true,
+        weight: "2.27 kg",
+        flavor: "Doble chocolate",
+        images: {
+          create: [
+            {
+              url: "https://images.unsplash.com/photo-1579722821273-0f6c0f1cf5d9?auto=format&fit=crop&w=1200&q=80",
+              alt: "Proteína whey premium",
+              position: 0,
+              isPrimary: true
+            }
+          ]
+        }
+      }
+    }),
+    prisma.product.create({
+      data: {
+        sku: "BSN-SYN-007",
+        name: "BSN Syntha-6",
+        slug: "bsn-syntha-6",
+        brand: "BSN",
+        objective: Objective.RECOVERY,
+        categoryId: categoryBySlug["proteinas"].id,
+        description:
+          "Blend proteico pensado para colaciones y recuperación con textura cremosa y liberación sostenida.",
+        benefits: [
+          "Perfil proteico mixto",
+          "Ideal para meriendas",
+          "Textura cremosa"
+        ],
+        price: 58990,
+        stock: 16,
+        active: true,
+        featured: false,
+        weight: "2.01 kg",
+        flavor: "Cookies & cream",
+        images: {
+          create: [
+            {
+              url: "https://images.unsplash.com/photo-1622484212373-58d24f8d6c8d?auto=format&fit=crop&w=1200&q=80",
+              alt: "Proteína en polvo",
+              position: 0,
+              isPrimary: true
+            }
+          ]
+        }
+      }
+    }),
+    prisma.product.create({
+      data: {
+        sku: "MT-NITRO-008",
+        name: "Muscletech Nitro Tech",
+        slug: "muscletech-nitro-tech",
+        brand: "Muscletech",
+        objective: Objective.MUSCLE_GAIN,
+        categoryId: categoryBySlug["proteinas"].id,
+        description:
+          "Proteína avanzada orientada a fuerza y volumen con aminoácidos agregados y gran digestibilidad.",
+        benefits: [
+          "Apoyo para masa muscular",
+          "Con aminoácidos agregados",
+          "Ideal para post entreno"
+        ],
+        price: 69990,
+        stock: 10,
+        active: true,
+        featured: false,
+        weight: "4 lb",
+        flavor: "Milk chocolate",
+        images: {
+          create: [
+            {
+              url: "https://images.unsplash.com/photo-1585238342024-78d387f4a707?auto=format&fit=crop&w=1200&q=80",
+              alt: "Proteína para masa muscular",
+              position: 0,
+              isPrimary: true
+            }
+          ]
+        }
+      }
+    }),
+    prisma.product.create({
+      data: {
+        sku: "UNI-PAK-009",
+        name: "Universal Animal Pak",
+        slug: "universal-animal-pak",
+        brand: "Universal",
+        objective: Objective.WELLNESS,
+        categoryId: categoryBySlug["vitaminas-bienestar"].id,
+        description:
+          "Pack multivitamínico y mineral para sostener salud general, recuperación y rendimiento deportivo.",
+        benefits: [
+          "Cobertura diaria completa",
+          "Soporte inmune",
+          "Pensado para atletas"
+        ],
+        price: 37990,
+        stock: 18,
+        active: true,
+        featured: false,
+        weight: "44 packs",
         flavor: "Sin sabor",
         images: {
           create: [
             {
               url: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=1200&q=80",
-              alt: "Complejo multivitamínico",
+              alt: "Multivitamínico deportivo",
+              position: 0,
+              isPrimary: true
+            }
+          ]
+        }
+      }
+    }),
+    prisma.product.create({
+      data: {
+        sku: "CELL-C4-010",
+        name: "Cellucor C4 Original",
+        slug: "cellucor-c4-original",
+        brand: "Cellucor",
+        objective: Objective.PERFORMANCE,
+        categoryId: categoryBySlug["pre-entrenos"].id,
+        description:
+          "Pre entreno clásico para mejorar energía, foco y explosividad antes de entrenar.",
+        benefits: [
+          "Energía inmediata",
+          "Más intensidad",
+          "Muy buena solubilidad"
+        ],
+        price: 45990,
+        stock: 13,
+        active: true,
+        featured: true,
+        weight: "390 g",
+        flavor: "Fruit punch",
+        images: {
+          create: [
+            {
+              url: "https://images.unsplash.com/photo-1615486363974-1d2dce59f6f4?auto=format&fit=crop&w=1200&q=80",
+              alt: "Pre entreno premium",
+              position: 0,
+              isPrimary: true
+            }
+          ]
+        }
+      }
+    }),
+    prisma.product.create({
+      data: {
+        sku: "GS-SHK-011",
+        name: "Shaker Premium Gorila",
+        slug: "shaker-premium-gorila",
+        brand: "Gorila Strong",
+        objective: Objective.WELLNESS,
+        categoryId: categoryBySlug["accesorios"].id,
+        description:
+          "Shaker reforzado con cierre hermético para preparar proteína, creatina o intra entrenos sin pérdidas.",
+        benefits: [
+          "Mezcla práctica",
+          "Material resistente",
+          "Tapa hermética"
+        ],
+        price: 8990,
+        stock: 30,
+        active: true,
+        featured: false,
+        weight: "700 ml",
+        flavor: "Negro mate",
+        images: {
+          create: [
+            {
+              url: "https://images.unsplash.com/photo-1600180758890-6b94519a8ba4?auto=format&fit=crop&w=1200&q=80",
+              alt: "Shaker para suplementos",
               position: 0,
               isPrimary: true
             }

@@ -77,10 +77,13 @@ export function CartItemControls({
           +
         </button>
       </div>
-      <Button variant="ghost" className="px-0 text-red-300" onClick={removeItem}>
+      <Button
+        variant="danger"
+        className="px-4 py-2 text-red-100"
+        onClick={removeItem}
+      >
         Quitar
       </Button>
     </div>
   );
 }
-

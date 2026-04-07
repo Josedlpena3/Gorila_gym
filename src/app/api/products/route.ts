@@ -10,7 +10,6 @@ export async function GET(request: Request) {
       q: searchParams.get("q") ?? undefined,
       category: searchParams.get("category") ?? undefined,
       brand: searchParams.get("brand") ?? undefined,
-      type: searchParams.get("type") ?? undefined,
       objective: searchParams.get("objective") ?? undefined,
       minPrice: searchParams.get("minPrice") ?? undefined,
       maxPrice: searchParams.get("maxPrice") ?? undefined
@@ -21,4 +20,3 @@ export async function GET(request: Request) {
     return handleRouteError(error);
   }
 }
-

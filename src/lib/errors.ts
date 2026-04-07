@@ -25,10 +25,16 @@ export function handleRouteError(error: unknown) {
   }
 
   if (error instanceof ZodError) {
+    const details = error.flatten();
+    const firstFieldError = Object.values(details.fieldErrors)
+      .flat()
+      .find((message): message is string => Boolean(message));
+    const firstFormError = details.formErrors.find(Boolean);
+
     return NextResponse.json(
       {
-        error: "Datos inválidos",
-        details: error.flatten()
+        error: firstFieldError ?? firstFormError ?? "Datos inválidos",
+        details
       },
       { status: 400 }
     );
