@@ -1,7 +1,5 @@
 import { Objective } from "@prisma/client";
 import { z } from "zod";
-import { isStoredUploadUrl } from "@/lib/uploads";
-
 const optionalText = z.preprocess((value) => {
   if (typeof value !== "string") {
     return value;
@@ -24,18 +22,6 @@ const imageSourceSchema = z
   .string()
   .trim()
   .min(1, "Agregá al menos una imagen")
-  .refine((value) => {
-    if (isStoredUploadUrl(value)) {
-      return true;
-    }
-
-    try {
-      const parsed = new URL(value);
-      return ["http:", "https:"].includes(parsed.protocol);
-    } catch {
-      return false;
-    }
-  }, "La imagen debe ser una URL pública válida o un archivo subido.")
   .transform((value) => value.trim());
 
 export const productSchema = z.object({
@@ -45,7 +31,7 @@ export const productSchema = z.object({
   brand: z.string().min(2, "Marca inválida"),
   categoryId: z.string().min(1, "Categoría requerida"),
   description: z.string().min(20, "Descripción demasiado corta"),
-  benefits: z.array(z.string().min(2)).min(1, "Agregá al menos un beneficio"),
+  benefits: z.array(z.string().min(2)).default([]),
   price: z.coerce.number().positive("Precio inválido"),
   stock: z.coerce.number().int().min(0, "Stock inválido"),
   objective: z.nativeEnum(Objective),

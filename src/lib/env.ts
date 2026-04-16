@@ -56,6 +56,9 @@ export const env = {
   bankTransferBankName: readText(process.env.BANK_TRANSFER_BANK_NAME),
   bankTransferInstructions: readText(process.env.BANK_TRANSFER_INSTRUCTIONS),
   notificationProvider: readText(process.env.NOTIFICATION_PROVIDER),
+  orderNotificationEmails: readCsv(
+    process.env.ORDER_NOTIFICATION_EMAILS || process.env.MAIL_FROM_ADDRESS
+  ),
   mailFromName: readText(process.env.MAIL_FROM_NAME),
   mailFromAddress: readText(process.env.MAIL_FROM_ADDRESS),
   smtpHost: readText(process.env.SMTP_HOST),

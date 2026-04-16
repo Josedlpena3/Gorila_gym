@@ -1,0 +1,22 @@
+ALTER TYPE "OrderStatus" RENAME TO "OrderStatus_old";
+
+CREATE TYPE "OrderStatus" AS ENUM (
+  'PENDING_CONFIRMATION',
+  'CONTACTED',
+  'DELIVERED',
+  'CANCELLED'
+);
+
+ALTER TABLE "orders"
+ALTER COLUMN "status" TYPE "OrderStatus"
+USING (
+  CASE
+    WHEN "status"::text IN ('PENDING_PAYMENT', 'PENDING_VERIFICATION') THEN 'PENDING_CONFIRMATION'
+    WHEN "status"::text IN ('PAID', 'PREPARING', 'SHIPPED') THEN 'CONTACTED'
+    WHEN "status"::text = 'DELIVERED' THEN 'DELIVERED'
+    WHEN "status"::text = 'CANCELED' THEN 'CANCELLED'
+    ELSE 'PENDING_CONFIRMATION'
+  END
+)::"OrderStatus";
+
+DROP TYPE "OrderStatus_old";

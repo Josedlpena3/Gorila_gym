@@ -16,6 +16,10 @@ type MailPayload = {
   text: string;
 };
 
+function getAdminNotificationRecipients() {
+  return env.orderNotificationEmails;
+}
+
 function isSmtpConfigured() {
   return Boolean(
     env.notificationProvider.toLowerCase() === "smtp" &&
@@ -75,13 +79,10 @@ function buildOrdersUrl(orderId: string) {
 
 function orderStatusLabel(status: OrderStatus) {
   const labels: Record<OrderStatus, string> = {
-    PENDING_PAYMENT: "pendiente de pago",
-    PENDING_VERIFICATION: "pendiente de verificación",
-    PAID: "pagado",
-    PREPARING: "preparando",
-    SHIPPED: "enviado",
+    PENDING_CONFIRMATION: "pendiente de confirmación",
+    CONTACTED: "ya coordinado por WhatsApp",
     DELIVERED: "entregado",
-    CANCELED: "cancelado"
+    CANCELLED: "cancelado"
   };
 
   return labels[status];
@@ -121,12 +122,69 @@ export async function sendOrderCreatedEmail(input: {
     subject: `Pedido ${input.order.code} recibido`,
     text: `Hola ${input.firstName}, registramos tu pedido ${input.order.code} por ${totalLabel}. ${
       orderUrl ? `Podés seguirlo en ${orderUrl}.` : ""
-    }`,
+    } Te vamos a contactar por WhatsApp para coordinar la entrega.`,
     html: `<p>Hola ${input.firstName},</p><p>Registramos tu pedido <strong>${
       input.order.code
-    }</strong> por <strong>${totalLabel}</strong>.</p>${
+    }</strong> por <strong>${totalLabel}</strong>.</p><p>Te vamos a contactar por WhatsApp para coordinar la entrega.</p>${
       orderUrl ? `<p><a href="${orderUrl}">Ver pedido</a></p>` : ""
     }`
+  });
+}
+
+export async function sendAdminOrderNotificationEmail(input: {
+  order: NotificationOrder;
+  customer: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
+  address: {
+    street: string;
+    number: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
+  items: Array<{
+    name: string;
+    quantity: number;
+  }>;
+}) {
+  const recipients = getAdminNotificationRecipients();
+
+  if (recipients.length === 0) {
+    return false;
+  }
+
+  const customerName = `${input.customer.firstName} ${input.customer.lastName}`;
+  const itemsText = input.items.map((item) => `- ${item.name} x${item.quantity}`).join("\n");
+  const itemsHtml = input.items
+    .map((item) => `<li>${item.name} x${item.quantity}</li>`)
+    .join("");
+
+  return sendMail({
+    to: recipients.join(", "),
+    subject: `Nuevo pedido ${input.order.code}`,
+    text: `Nuevo pedido ${input.order.code}.
+
+Cliente: ${customerName}
+Email: ${input.customer.email}
+Celular: ${input.customer.phone}
+Dirección: ${input.address.street} ${input.address.number}, ${input.address.city}, ${input.address.province}, CP ${input.address.postalCode}
+
+Productos:
+${itemsText}
+
+Contactar al cliente por WhatsApp para coordinar.`,
+    html: `<p>Nuevo pedido <strong>${input.order.code}</strong>.</p>
+<p><strong>Cliente:</strong> ${customerName}<br />
+<strong>Email:</strong> ${input.customer.email}<br />
+<strong>Celular:</strong> ${input.customer.phone}</p>
+<p><strong>Dirección:</strong> ${input.address.street} ${input.address.number}, ${input.address.city}, ${input.address.province}, CP ${input.address.postalCode}</p>
+<p><strong>Productos:</strong></p>
+<ul>${itemsHtml}</ul>
+<p>Contactar al cliente por WhatsApp para coordinar.</p>`
   });
 }
 

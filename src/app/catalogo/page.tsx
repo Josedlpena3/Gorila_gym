@@ -1,120 +1,82 @@
+import { CatalogToolbar } from "@/components/catalog/catalog-toolbar";
 import { ProductCard } from "@/components/catalog/product-card";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { OBJECTIVE_LABELS } from "@/lib/constants";
 import { listCatalogProducts } from "@/modules/products/product.service";
 import { getCurrentUser } from "@/modules/users/user.service";
 
 type SearchParams = Record<string, string | string[] | undefined>;
+
+const QUICK_CATALOG_LINKS: ReadonlyArray<{
+  label: string;
+  q?: string;
+  showsAll?: boolean;
+}> = [
+  { label: "Todo", showsAll: true },
+  { label: "Creatinas", q: "creatina" },
+  { label: "Proteinas", q: "proteina" },
+  { label: "Combos", q: "combo" },
+  { label: "Barritas", q: "barrita" },
+  { label: "Panqueques", q: "panqueque" },
+  { label: "Shakers", q: "shaker" }
+];
+
+function getSearchParam(
+  searchParams: SearchParams,
+  key: "q"
+) {
+  const value = searchParams[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function buildCatalogHref(
+  searchParams: SearchParams,
+  overrides: Partial<Record<"q", string | undefined>>
+) {
+  const keys = ["q"] as const;
+  const params = new URLSearchParams();
+
+  keys.forEach((key) => {
+    const value = Object.prototype.hasOwnProperty.call(overrides, key)
+      ? overrides[key]
+      : getSearchParam(searchParams, key);
+
+    if (typeof value === "string" && value.trim().length > 0) {
+      params.set(key, value);
+    }
+  });
+
+  const query = params.toString();
+  return query.length > 0 ? `/catalogo?${query}` : "/catalogo";
+}
 
 export default async function CatalogPage({
   searchParams
 }: {
   searchParams: SearchParams;
 }) {
+  const currentQuery = getSearchParam(searchParams, "q");
   const [data, user] = await Promise.all([
     listCatalogProducts({
-      q: typeof searchParams.q === "string" ? searchParams.q : undefined,
-      category:
-        typeof searchParams.category === "string" ? searchParams.category : undefined,
-      brand: typeof searchParams.brand === "string" ? searchParams.brand : undefined,
-      objective:
-        typeof searchParams.objective === "string" ? searchParams.objective : undefined,
-      minPrice:
-        typeof searchParams.minPrice === "string" ? searchParams.minPrice : undefined,
-      maxPrice:
-        typeof searchParams.maxPrice === "string" ? searchParams.maxPrice : undefined
+      q: currentQuery
     }),
     getCurrentUser()
   ]);
 
   return (
-    <div className="page-shell space-y-8">
-      <div>
-        <p className="text-sm uppercase tracking-[0.28em] text-mist">Catálogo</p>
-        <h1 className="text-4xl font-black uppercase tracking-[0.08em] text-sand">
-          Suplementos para rendimiento real
-        </h1>
-      </div>
+    <div className="page-shell space-y-6 sm:space-y-8">
+      <CatalogToolbar
+        currentQuery={currentQuery}
+        quickLinks={QUICK_CATALOG_LINKS.map((item) => ({
+          label: item.label,
+          href: buildCatalogHref(searchParams, { q: item.q }),
+          isActive: item.showsAll
+            ? !currentQuery
+            : item.q
+              ? currentQuery?.toLowerCase() === item.q
+              : false
+        }))}
+      />
 
-      <form
-        method="GET"
-        action="/catalogo"
-        className="section-card grid gap-4 p-5 lg:grid-cols-6"
-      >
-        <Input
-          name="q"
-          defaultValue={typeof searchParams.q === "string" ? searchParams.q : ""}
-          placeholder="Buscar por nombre, marca o categoría"
-          className="lg:col-span-2"
-        />
-        <Select
-          name="category"
-          defaultValue={
-            typeof searchParams.category === "string" ? searchParams.category : ""
-          }
-        >
-          <option value="">Todas las categorías</option>
-          {data.categories.map((category) => (
-            <option key={category.id} value={category.slug}>
-              {category.name}
-            </option>
-          ))}
-        </Select>
-        <Select
-          name="brand"
-          defaultValue={typeof searchParams.brand === "string" ? searchParams.brand : ""}
-        >
-          <option value="">Todas las marcas</option>
-          {data.brands.map((brand) => (
-            <option key={brand} value={brand}>
-              {brand}
-            </option>
-          ))}
-        </Select>
-        <Select
-          name="objective"
-          defaultValue={
-            typeof searchParams.objective === "string" ? searchParams.objective : ""
-          }
-        >
-          <option value="">Objetivo</option>
-          {Object.entries(OBJECTIVE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </Select>
-        <Input
-          type="number"
-          name="minPrice"
-          defaultValue={
-            typeof searchParams.minPrice === "string" ? searchParams.minPrice : ""
-          }
-          placeholder="Precio mínimo"
-        />
-        <Input
-          type="number"
-          name="maxPrice"
-          defaultValue={
-            typeof searchParams.maxPrice === "string" ? searchParams.maxPrice : ""
-          }
-          placeholder="Precio máximo"
-        />
-        <button
-          type="submit"
-          className="rounded-2xl bg-neon px-5 py-3 text-sm font-semibold text-ink"
-        >
-          Filtrar
-        </button>
-      </form>
-
-      <div className="flex items-center justify-between text-sm text-mist">
-        <p>{data.products.length} productos encontrados</p>
-        <p>{data.brands.length} marcas disponibles</p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 sm:gap-6 xl:grid-cols-3">
         {data.products.map((product) => (
           <ProductCard
             key={product.id}

@@ -35,10 +35,9 @@ export default async function AccountPage() {
           <p className="text-lg font-semibold text-sand">{user.addresses.length}</p>
         </div>
         <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-          Tus datos quedan listos para acelerar el checkout y limitar errores de entrega.
+          Tus datos quedan listos para agilizar la coordinación y limitar errores de entrega.
         </div>
       </aside>
     </div>
   );
 }
-

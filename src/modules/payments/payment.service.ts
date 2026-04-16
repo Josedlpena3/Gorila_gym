@@ -15,7 +15,6 @@ import {
   isMercadoPagoConfigured
 } from "@/lib/store-config";
 import { decimalToNumber, formatCurrency, isCordobaProvince } from "@/lib/utils";
-import { sendPaymentApprovedEmail } from "@/modules/notifications/notification.service";
 import type { DiscountSummaryDto, PaymentMethodOptionDto } from "@/types";
 
 function mapDiscount(discount: Discount, subtotal: number): DiscountSummaryDto {
@@ -281,7 +280,7 @@ async function cancelOrderAfterRejectedMercadoPago(orderId: string) {
       }
     });
 
-    if (!order || order.status === OrderStatus.CANCELED) {
+    if (!order || order.status === OrderStatus.CANCELLED) {
       return;
     }
 
@@ -303,7 +302,7 @@ async function cancelOrderAfterRejectedMercadoPago(orderId: string) {
     await tx.order.update({
       where: { id: orderId },
       data: {
-        status: OrderStatus.CANCELED
+        status: OrderStatus.CANCELLED
       }
     });
   });
@@ -380,22 +379,12 @@ export async function syncMercadoPagoPayment(paymentId: string) {
       await tx.order.update({
         where: { id: payment.orderId },
         data: {
-          status: OrderStatus.PAID
+          status:
+            payment.order.status === OrderStatus.CANCELLED
+              ? OrderStatus.CANCELLED
+              : payment.order.status
         }
       });
-    });
-
-    void sendPaymentApprovedEmail({
-      email: payment.order.user.email,
-      firstName: payment.order.user.firstName,
-      order: {
-        id: payment.order.id,
-        code: payment.order.code,
-        total: decimalToNumber(payment.order.total) ?? 0,
-        status: OrderStatus.PAID
-      }
-    }).catch((error) => {
-      console.error("No se pudo enviar la notificación de pago aprobado", error);
     });
 
     revalidatePath("/mis-pedidos");

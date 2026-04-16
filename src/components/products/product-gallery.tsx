@@ -163,12 +163,12 @@ export function ProductGallery({
 
   return (
     <>
-      <div className="space-y-4">
+      <div>
         <div className="relative overflow-hidden rounded-[34px] border border-line bg-steel">
           <button
             type="button"
             onClick={() => setIsLightboxOpen(true)}
-            className="relative block h-[420px] w-full cursor-zoom-in"
+            className="relative block h-[300px] w-full cursor-zoom-in sm:h-[360px] lg:h-[420px]"
             aria-label="Abrir imagen en visor"
           >
             <Image
@@ -176,6 +176,7 @@ export function ProductGallery({
               alt={activeImage.alt}
               fill
               className="object-cover"
+              sizes="(min-width: 1024px) 42vw, 100vw"
             />
           </button>
 
@@ -201,23 +202,6 @@ export function ProductGallery({
             </>
           ) : null}
         </div>
-
-        {items.length > 1 ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {items.map((image, index) => (
-              <button
-                key={image.id}
-                type="button"
-                onClick={() => setActiveIndex(index)}
-                className={`relative h-32 overflow-hidden rounded-3xl border bg-steel ${
-                  activeIndex === index ? "border-neon" : "border-line"
-                }`}
-              >
-                <Image src={image.url} alt={image.alt} fill className="object-cover" />
-              </button>
-            ))}
-          </div>
-        ) : null}
       </div>
 
       {isLightboxOpen ? (

@@ -10,9 +10,9 @@ export default function LoginPage({
 
   return (
     <div className="page-shell">
-      <div className="section-card mx-auto max-w-lg p-8">
+      <div className="section-card mx-auto max-w-lg p-6 sm:p-8">
         <p className="text-sm uppercase tracking-[0.3em] text-mist">Acceso</p>
-        <h1 className="mt-3 text-4xl font-black uppercase tracking-[0.08em] text-sand">
+        <h1 className="mt-3 text-3xl font-black uppercase tracking-[0.08em] text-sand sm:text-4xl">
           Iniciar sesión
         </h1>
         <p className="mt-3 text-mist">
@@ -25,4 +25,3 @@ export default function LoginPage({
     </div>
   );
 }
-

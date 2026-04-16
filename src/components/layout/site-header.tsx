@@ -1,8 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Dumbbell, ShieldCheck, ShoppingBag } from "lucide-react";
+import { ShieldCheck, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LogoutButton } from "@/components/forms/logout-button";
+import { MobileNavMenu } from "@/components/layout/mobile-nav-menu";
 
 type SiteHeaderProps = {
   user: {
@@ -14,15 +16,24 @@ type SiteHeaderProps = {
 export function SiteHeader({ user }: SiteHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-ink/80 backdrop-blur">
-      <div className="page-shell flex h-20 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neon text-ink">
-            <Dumbbell className="h-6 w-6" />
+      <div className="page-shell flex h-16 items-center justify-between gap-3 sm:h-20 sm:gap-4">
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 sm:h-12 sm:w-12">
+            <Image
+              src="/branding/logo-gorila.png"
+              alt="Gorila Strong"
+              width={1024}
+              height={1024}
+              priority
+              className="h-full w-full object-cover"
+            />
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-[0.32em] text-mist">Premium Fuel</p>
-            <p className="text-xl font-black uppercase tracking-[0.12em] text-sand">
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-sand sm:text-xs sm:tracking-[0.24em]">
               Gorila Strong
+            </p>
+            <p className="truncate text-[9px] uppercase tracking-[0.24em] text-mist sm:text-[10px] sm:tracking-[0.3em]">
+              Suplementacion premium
             </p>
           </div>
         </Link>
@@ -44,47 +55,50 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           ) : null}
         </nav>
 
-        <div className="flex items-center gap-3">
-          <Link href="/carrito" className="hidden sm:block">
-            <Button variant="secondary" className="gap-2 px-4 py-2">
-              <ShoppingBag className="h-4 w-4" />
-              Carrito
-            </Button>
-          </Link>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <MobileNavMenu user={user} />
 
-          {user ? (
-            <div className="flex items-center gap-3">
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-sand">{user.firstName}</p>
-                <Badge variant={user.role === "ADMIN" ? "success" : "default"}>
-                  {user.role === "ADMIN" ? "Administrador" : "Cliente"}
-                </Badge>
+          <div className="hidden items-center gap-3 lg:flex">
+            <Link href="/carrito">
+              <Button variant="secondary" className="gap-2 px-4 py-2">
+                <ShoppingBag className="h-4 w-4" />
+                Carrito
+              </Button>
+            </Link>
+
+            {user ? (
+              <div className="flex items-center gap-3">
+                <div className="hidden text-right sm:block">
+                  <p className="text-sm font-semibold text-sand">{user.firstName}</p>
+                  <Badge variant={user.role === "ADMIN" ? "success" : "info"}>
+                    {user.role === "ADMIN" ? "Administrador" : "Cliente"}
+                  </Badge>
+                </div>
+                {user.role === "ADMIN" ? (
+                  <Link href="/admin">
+                    <Button variant="secondary" className="gap-2 px-4 py-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      Panel
+                    </Button>
+                  </Link>
+                ) : null}
+                <LogoutButton />
               </div>
-              {user.role === "ADMIN" ? (
-                <Link href="/admin">
-                  <Button variant="secondary" className="gap-2 px-4 py-2">
-                    <ShieldCheck className="h-4 w-4" />
-                    Panel
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link href="/login">
+                  <Button variant="ghost" className="px-4 py-2">
+                    Ingresar
                   </Button>
                 </Link>
-              ) : null}
-              <LogoutButton />
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/login">
-                <Button variant="ghost" className="px-4 py-2">
-                  Ingresar
-                </Button>
-              </Link>
-              <Link href="/registro">
-                <Button className="px-4 py-2">Crear cuenta</Button>
-              </Link>
-            </div>
-          )}
+                <Link href="/registro">
+                  <Button className="px-4 py-2">Crear cuenta</Button>
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
   );
 }
-

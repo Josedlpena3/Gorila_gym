@@ -26,7 +26,6 @@ export default async function AdminPromotionsPage() {
                     <Badge variant={discount.active ? "success" : "warning"}>
                       {discount.active ? "Activa" : "Inactiva"}
                     </Badge>
-                    {discount.paymentMethod ? <Badge>{discount.paymentMethod}</Badge> : null}
                     {discount.province ? <Badge>{discount.province}</Badge> : null}
                   </div>
                   <h2 className="mt-4 text-2xl font-black uppercase tracking-[0.08em] text-sand">

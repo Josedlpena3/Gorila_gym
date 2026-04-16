@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { ORDER_STATUS_LABELS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { getAdminDashboard } from "@/modules/dashboard/dashboard.service";
 
@@ -10,7 +11,7 @@ export default async function AdminDashboardPage() {
     { label: "Pedidos", value: String(dashboard.totalOrders) },
     { label: "Productos activos", value: String(dashboard.activeProducts) },
     { label: "Clientes", value: String(dashboard.customers) },
-    { label: "Pendientes verificación", value: String(dashboard.pendingVerification) },
+    { label: "Pendientes de confirmación", value: String(dashboard.pendingVerification) },
     { label: "Stock crítico", value: String(dashboard.lowStockProducts) }
   ];
 
@@ -56,7 +57,7 @@ export default async function AdminDashboardPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-mist">{order.status}</p>
+                  <p className="text-sm text-mist">{ORDER_STATUS_LABELS[order.status]}</p>
                   <p className="text-lg font-black text-sand">
                     {formatCurrency(order.total)}
                   </p>
@@ -69,4 +70,3 @@ export default async function AdminDashboardPage() {
     </div>
   );
 }
-

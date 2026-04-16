@@ -1,3 +1,5 @@
+import { OrderStatus } from "@prisma/client";
+
 export const AUTH_COOKIE_NAME = "gorila_strong_session";
 
 export const OBJECTIVE_LABELS: Record<string, string> = {
@@ -8,14 +10,21 @@ export const OBJECTIVE_LABELS: Record<string, string> = {
   WELLNESS: "Salud y bienestar"
 };
 
-export const ORDER_STATUS_LABELS: Record<string, string> = {
-  PENDING_PAYMENT: "Pendiente de pago",
-  PENDING_VERIFICATION: "Pendiente de verificación",
-  PAID: "Pagado",
-  PREPARING: "Preparando",
-  SHIPPED: "Enviado",
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  PENDING_CONFIRMATION: "Pendiente de confirmación",
+  CONTACTED: "Nos comunicamos con vos",
   DELIVERED: "Entregado",
-  CANCELED: "Cancelado"
+  CANCELLED: "Cancelado"
+};
+
+export const ORDER_STATUS_BADGE_VARIANTS: Record<
+  OrderStatus,
+  "warning" | "info" | "success" | "danger"
+> = {
+  PENDING_CONFIRMATION: "warning",
+  CONTACTED: "info",
+  DELIVERED: "success",
+  CANCELLED: "danger"
 };
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {

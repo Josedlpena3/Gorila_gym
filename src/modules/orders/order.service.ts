@@ -12,11 +12,10 @@ import { prisma } from "@/lib/prisma";
 import {
   getAvailableDeliveryMethods,
   getBankTransferConfig,
-  getReservationWindowMinutes,
   getShippingCost,
   getStorePickupAddress
 } from "@/lib/store-config";
-import { decimalToNumber, generateOrderCode, isCordobaProvince } from "@/lib/utils";
+import { decimalToNumber, generateOrderCode } from "@/lib/utils";
 import { getCartByUserId } from "@/modules/cart/cart.service";
 import {
   createOrderSchema,
@@ -25,14 +24,13 @@ import {
   quoteCheckoutSchema
 } from "@/modules/orders/order.schemas";
 import {
+  sendAdminOrderNotificationEmail,
   sendOrderCreatedEmail,
-  sendOrderStatusChangedEmail,
-  sendPaymentApprovedEmail
+  sendOrderStatusChangedEmail
 } from "@/modules/notifications/notification.service";
 import {
   buildCheckoutPricing,
   buildPaymentMethodOptions,
-  createMercadoPagoPreference,
   getAvailablePaymentMethods
 } from "@/modules/payments/payment.service";
 import type { CheckoutQuoteDto, OrderSummaryDto } from "@/types";
@@ -205,11 +203,48 @@ async function restockOrderItems(tx: Prisma.TransactionClient, orderId: string) 
   }
 }
 
-async function markOrderCanceled(tx: Prisma.TransactionClient, orderId: string) {
+async function reserveOrderItems(tx: Prisma.TransactionClient, orderId: string) {
+  const items = await tx.orderItem.findMany({
+    where: { orderId }
+  });
+
+  for (const item of items) {
+    if (!item.productId) {
+      continue;
+    }
+
+    const product = await tx.product.findUnique({
+      where: { id: item.productId },
+      select: {
+        stock: true,
+        active: true,
+        name: true
+      }
+    });
+
+    if (!product || !product.active || product.stock < item.quantity) {
+      throw new AppError(
+        `No hay stock suficiente para reactivar ${product?.name ?? "el pedido"}`,
+        409
+      );
+    }
+
+    await tx.product.update({
+      where: { id: item.productId },
+      data: {
+        stock: {
+          decrement: item.quantity
+        }
+      }
+    });
+  }
+}
+
+async function markOrderCancelled(tx: Prisma.TransactionClient, orderId: string) {
   await tx.order.update({
     where: { id: orderId },
     data: {
-      status: OrderStatus.CANCELED
+      status: OrderStatus.CANCELLED
     }
   });
 
@@ -283,7 +318,7 @@ async function rollbackMercadoPagoOrder(input: {
     await tx.order.update({
       where: { id: input.orderId },
       data: {
-        status: OrderStatus.CANCELED
+        status: OrderStatus.CANCELLED
       }
     });
   });
@@ -443,25 +478,7 @@ export async function getCheckoutQuote(
 }
 
 export async function releaseExpiredOrders() {
-  const expiredOrders = await prisma.order.findMany({
-    where: {
-      status: {
-        in: [OrderStatus.PENDING_PAYMENT, OrderStatus.PENDING_VERIFICATION]
-      },
-      reservedUntil: {
-        lt: new Date()
-      }
-    }
-  });
-
-  for (const order of expiredOrders) {
-    await prisma.$transaction(async (tx) => {
-      await restockOrderItems(tx, order.id);
-      await markOrderCanceled(tx, order.id);
-    });
-  }
-
-  return expiredOrders.length;
+  return 0;
 }
 
 export async function createOrderFromCart(user: UserContext, input: unknown) {
@@ -474,60 +491,25 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     throw new AppError("Tu carrito está vacío");
   }
 
-  ensureDeliveryConfig(data.deliveryMethod);
-  const { selectedAddress, inlineAddress, snapshot } = resolveOrderAddress(user, data);
-
-  if (data.deliveryMethod === DeliveryMethod.SHIPMENT && !snapshot) {
-    throw new AppError("Debes indicar una dirección para el envío");
-  }
-
-  const province = snapshot?.province ?? null;
-  const availablePaymentMethods = getAvailablePaymentMethods(province);
-
-  if (!availablePaymentMethods.includes(data.paymentMethod)) {
-    throw new AppError("Ese medio de pago no está disponible para tu ubicación");
-  }
-
-  if (
-    data.paymentMethod === PaymentMethod.CASH &&
-    !isCordobaProvince(snapshot?.province)
-  ) {
-    throw new AppError("El pago en efectivo sólo está disponible en Córdoba");
-  }
-
-  const pricing = await buildOrderPricing({
-    subtotal: cart.subtotal,
-    province,
-    deliveryMethod: data.deliveryMethod,
-    paymentMethod: data.paymentMethod
-  });
-
-  const reservationMinutes = getReservationWindowMinutes(data.paymentMethod);
-
-  if (reservationMinutes === null) {
-    throw new AppError(
-      "No está configurado el vencimiento de reserva. Revisá *_RESERVATION_MINUTES.",
-      503
-    );
-  }
-
-  const reservedUntil = new Date(Date.now() + reservationMinutes * 60 * 1000);
+  const deliveryMethod = DeliveryMethod.SHIPMENT;
+  const recipientName = `${data.firstName} ${data.lastName}`.trim();
+  const snapshot = {
+    recipientName,
+    street: data.address.street,
+    number: data.address.number,
+    floor: null,
+    apartment: null,
+    city: data.address.city,
+    province: data.address.province,
+    postalCode: data.address.postalCode,
+    country: "Argentina"
+  };
   const orderCode = generateOrderCode();
-  const bankTransfer = getBankTransferConfig();
-
-  if (data.paymentMethod === PaymentMethod.BANK_TRANSFER && !bankTransfer) {
-    throw new AppError(
-      "La transferencia bancaria no está configurada. Faltan BANK_TRANSFER_*.",
-      503
-    );
-  }
-
-  if (data.paymentMethod === PaymentMethod.BANK_TRANSFER && !data.transferReceipt) {
-    throw new AppError(
-      "Debes adjuntar el comprobante antes de confirmar una transferencia.",
-      400
-    );
-  }
+  const pricing = {
+    shippingCost: 0,
+    discountAmount: 0,
+    total: cart.subtotal
+  };
 
   const createdOrder = await prisma.$transaction(async (tx) => {
     const productIds = cart.items.map((item) => item.productId);
@@ -547,63 +529,73 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
       }
     }
 
-    let addressId: string | undefined = selectedAddress?.id;
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone
+      }
+    });
 
-    if (
-      data.deliveryMethod === DeliveryMethod.SHIPMENT &&
-      !addressId &&
-      inlineAddress &&
-      data.saveAddress
-    ) {
-      const createdAddress = await tx.address.create({
-        data: {
-          userId: user.id,
-          label: inlineAddress.label ?? "Envío",
-          recipientName: inlineAddress.recipientName ?? `${user.firstName} ${user.lastName}`,
-          street: inlineAddress.street ?? "",
-          number: inlineAddress.number ?? "",
-          floor: inlineAddress.floor,
-          apartment: inlineAddress.apartment,
-          city: inlineAddress.city ?? "",
-          province: inlineAddress.province ?? "",
-          postalCode: inlineAddress.postalCode ?? "",
-          country: inlineAddress.country ?? "Argentina",
-          notes: inlineAddress.notes,
-          isDefault: user.addresses.length === 0
-        }
-      });
+    const existingDefaultAddress = await tx.address.findFirst({
+      where: {
+        userId: user.id,
+        isDefault: true
+      }
+    });
 
-      addressId = createdAddress.id;
-    }
+    const savedAddress = existingDefaultAddress
+      ? await tx.address.update({
+          where: { id: existingDefaultAddress.id },
+          data: {
+            recipientName,
+            street: snapshot.street,
+            number: snapshot.number,
+            city: snapshot.city,
+            province: snapshot.province,
+            postalCode: snapshot.postalCode,
+            country: snapshot.country,
+            isDefault: true
+          }
+        })
+      : await tx.address.create({
+          data: {
+            userId: user.id,
+            label: "Principal",
+            recipientName,
+            street: snapshot.street,
+            number: snapshot.number,
+            city: snapshot.city,
+            province: snapshot.province,
+            postalCode: snapshot.postalCode,
+            country: snapshot.country,
+            isDefault: true
+          }
+        });
 
     const order = await tx.order.create({
       data: {
         code: orderCode,
         userId: user.id,
-        addressId,
-        deliveryMethod: data.deliveryMethod,
-        paymentMethod: data.paymentMethod,
-        status:
-          data.paymentMethod === PaymentMethod.BANK_TRANSFER
-            ? OrderStatus.PENDING_VERIFICATION
-            : OrderStatus.PENDING_PAYMENT,
+        addressId: savedAddress.id,
+        deliveryMethod,
+        paymentMethod: PaymentMethod.CASH,
+        status: OrderStatus.PENDING_CONFIRMATION,
         subtotal: cart.subtotal,
         discountTotal: pricing.discountAmount,
         shippingCost: pricing.shippingCost,
         total: pricing.total,
-        notes: data.notes,
-        paymentDueAt: reservedUntil,
-        reservedUntil,
-        recipientName:
-          snapshot?.recipientName ?? `${user.firstName} ${user.lastName}`,
-        contactPhone: user.phone,
-        street: snapshot?.street,
-        number: snapshot?.number,
-        floor: snapshot?.floor,
-        apartment: snapshot?.apartment,
-        city: snapshot?.city ?? "",
-        province: snapshot?.province ?? "",
-        postalCode: snapshot?.postalCode,
+        notes: data.notes?.trim() || undefined,
+        recipientName,
+        contactPhone: data.phone,
+        street: snapshot.street,
+        number: snapshot.number,
+        floor: snapshot.floor,
+        apartment: snapshot.apartment,
+        city: snapshot.city,
+        province: snapshot.province,
+        postalCode: snapshot.postalCode,
         items: {
           create: cart.items.map((item) => ({
             productId: item.productId,
@@ -616,26 +608,13 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
         },
         payment: {
           create: {
-            provider: data.paymentMethod,
-            status:
-              data.paymentMethod === PaymentMethod.BANK_TRANSFER
-                ? PaymentStatus.UNDER_REVIEW
-                : PaymentStatus.PENDING,
+            provider: PaymentMethod.CASH,
+            status: PaymentStatus.PENDING,
             amount: pricing.total,
             externalReference: orderCode,
-            aliasSnapshot:
-              data.paymentMethod === PaymentMethod.BANK_TRANSFER
-                ? bankTransfer?.alias ?? null
-                : null,
-            metadata:
-              data.paymentMethod === PaymentMethod.BANK_TRANSFER
-                ? {
-                    transfer: {
-                      ...bankTransfer,
-                      receipt: data.transferReceipt ?? null
-                    }
-                  }
-                : Prisma.JsonNull
+            metadata: {
+              mode: "manual_contact_whatsapp"
+            }
           }
         }
       },
@@ -662,48 +641,6 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     return order;
   });
 
-  if (data.paymentMethod === PaymentMethod.MERCADO_PAGO) {
-    try {
-      const preference = await createMercadoPagoPreference({
-        orderId: createdOrder.id,
-        orderCode: createdOrder.code,
-        total: pricing.total,
-        customerName: `${user.firstName} ${user.lastName}`,
-        customerEmail: user.email,
-        items: cart.items.map((item) => ({
-          title: item.name,
-          quantity: item.quantity,
-          unit_price: item.unitPrice
-        }))
-      });
-
-      await prisma.payment.update({
-        where: {
-          orderId: createdOrder.id
-        },
-        data: {
-          metadata: {
-            preferenceId: preference.preferenceId,
-            checkoutUrl: preference.checkoutUrl,
-            mode: preference.mode
-          }
-        }
-      });
-    } catch (error) {
-      await rollbackMercadoPagoOrder({
-        orderId: createdOrder.id,
-        cartId: cart.id,
-        items: cart.items.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice
-        }))
-      });
-
-      throw error;
-    }
-  }
-
   const finalizedOrder = await getOrderRecord(createdOrder.id);
 
   if (!finalizedOrder) {
@@ -714,7 +651,7 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
 
   void sendOrderCreatedEmail({
     email: user.email,
-    firstName: user.firstName,
+    firstName: data.firstName,
     order: {
       id: mappedOrder.id,
       code: mappedOrder.code,
@@ -723,6 +660,34 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     }
   }).catch((error) => {
     console.error("No se pudo enviar la notificación de pedido creado", error);
+  });
+
+  void sendAdminOrderNotificationEmail({
+    order: {
+      id: mappedOrder.id,
+      code: mappedOrder.code,
+      total: mappedOrder.total,
+      status: mappedOrder.status
+    },
+    customer: {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: user.email,
+      phone: data.phone
+    },
+    address: {
+      street: snapshot.street,
+      number: snapshot.number,
+      city: snapshot.city,
+      province: snapshot.province,
+      postalCode: snapshot.postalCode
+    },
+    items: cart.items.map((item) => ({
+      name: item.name,
+      quantity: item.quantity
+    }))
+  }).catch((error) => {
+    console.error("No se pudo enviar la notificación interna del pedido", error);
   });
 
   revalidatePath("/mis-pedidos");
@@ -782,80 +747,19 @@ export async function listAllOrders() {
   }));
 }
 
-export async function confirmTransferPayment(orderId: string, adminUserId: string) {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: {
-      payment: true,
-      user: {
-        select: {
-          firstName: true,
-          email: true
-        }
-      }
-    }
-  });
-
-  if (!order || !order.payment) {
-    throw new AppError("Pedido no encontrado", 404);
-  }
-
-  if (order.payment.provider !== PaymentMethod.BANK_TRANSFER) {
-    throw new AppError("El pedido no corresponde a una transferencia");
-  }
-
-  const updatedOrder = await prisma.$transaction(async (tx) => {
-    await tx.payment.update({
-      where: { orderId },
-      data: {
-        status: PaymentStatus.APPROVED,
-        paidAt: new Date()
-      }
-    });
-
-    return tx.order.update({
-      where: { id: orderId },
-      data: {
-        status: OrderStatus.PAID
-      },
-      include: orderInclude
-    });
-  });
-
-  await logAdminAction({
-    adminUserId,
-    action: "TRANSFER_CONFIRMED",
-    entity: "order",
-    entityId: orderId
-  });
-
-  const mappedOrder = mapOrder(updatedOrder);
-
-  void sendPaymentApprovedEmail({
-    email: order.user.email,
-    firstName: order.user.firstName,
-    order: {
-      id: mappedOrder.id,
-      code: mappedOrder.code,
-      total: mappedOrder.total,
-      status: mappedOrder.status
-    }
-  }).catch((error) => {
-    console.error("No se pudo enviar la notificación de pago aprobado", error);
-  });
-
-  revalidatePath("/mis-pedidos");
-  revalidatePath("/admin/pedidos");
-
-  return mappedOrder;
-}
-
 export async function updateOrderStatus(
   orderId: string,
-  statusInput: unknown,
+  input: {
+    status?: unknown;
+  },
   adminUserId: string
 ) {
-  const status = orderStatusSchema.parse(statusInput);
+  const status = input.status !== undefined ? orderStatusSchema.parse(input.status) : undefined;
+
+  if (status === undefined) {
+    throw new AppError("Acción inválida", 400);
+  }
+
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: {
@@ -873,27 +777,28 @@ export async function updateOrderStatus(
     throw new AppError("Pedido no encontrado", 404);
   }
 
+  const nextOrderStatus = status;
+  const shouldRestock =
+    nextOrderStatus === OrderStatus.CANCELLED &&
+    order.status !== OrderStatus.CANCELLED;
+  const shouldReserve =
+    order.status === OrderStatus.CANCELLED &&
+    nextOrderStatus !== OrderStatus.CANCELLED;
+
   const updatedOrder = await prisma.$transaction(async (tx) => {
-    if (status === OrderStatus.CANCELED && order.status !== OrderStatus.CANCELED) {
+    if (shouldRestock) {
       await restockOrderItems(tx, orderId);
-      await markOrderCanceled(tx, orderId);
     }
 
-    if (status === OrderStatus.PAID) {
-      await tx.payment.updateMany({
-        where: {
-          orderId
-        },
-        data: {
-          status: PaymentStatus.APPROVED,
-          paidAt: new Date()
-        }
-      });
+    if (shouldReserve) {
+      await reserveOrderItems(tx, orderId);
     }
 
     return tx.order.update({
       where: { id: orderId },
-      data: { status },
+      data: {
+        status: nextOrderStatus
+      },
       include: orderInclude
     });
   });
@@ -904,36 +809,25 @@ export async function updateOrderStatus(
     entity: "order",
     entityId: orderId,
     metadata: {
-      status
+      previousStatus: order.status,
+      status: nextOrderStatus
     }
   });
 
   const mappedOrder = mapOrder(updatedOrder);
 
   if (order.status !== mappedOrder.status) {
-    const notify =
-      mappedOrder.status === OrderStatus.PAID
-        ? sendPaymentApprovedEmail({
-            email: order.user.email,
-            firstName: order.user.firstName,
-            order: {
-              id: mappedOrder.id,
-              code: mappedOrder.code,
-              total: mappedOrder.total,
-              status: mappedOrder.status
-            }
-          })
-        : sendOrderStatusChangedEmail({
-            email: order.user.email,
-            firstName: order.user.firstName,
-            previousStatus: order.status,
-            order: {
-              id: mappedOrder.id,
-              code: mappedOrder.code,
-              total: mappedOrder.total,
-              status: mappedOrder.status
-            }
-          });
+    const notify = sendOrderStatusChangedEmail({
+      email: order.user.email,
+      firstName: order.user.firstName,
+      previousStatus: order.status,
+      order: {
+        id: mappedOrder.id,
+        code: mappedOrder.code,
+        total: mappedOrder.total,
+        status: mappedOrder.status
+      }
+    });
 
     void notify.catch((error) => {
       console.error("No se pudo enviar la notificación de estado", error);

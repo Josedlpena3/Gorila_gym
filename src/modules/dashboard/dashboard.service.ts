@@ -17,7 +17,7 @@ export async function getAdminDashboard(): Promise<AdminDashboardDto> {
       prisma.order.aggregate({
         where: {
           status: {
-            in: [OrderStatus.PAID, OrderStatus.PREPARING, OrderStatus.SHIPPED, OrderStatus.DELIVERED]
+            in: [OrderStatus.CONTACTED, OrderStatus.DELIVERED]
           }
         },
         _sum: {
@@ -52,7 +52,7 @@ export async function getAdminDashboard(): Promise<AdminDashboardDto> {
       }),
       prisma.order.count({
         where: {
-          status: OrderStatus.PENDING_VERIFICATION
+          status: OrderStatus.PENDING_CONFIRMATION
         }
       }),
       listAllOrders()

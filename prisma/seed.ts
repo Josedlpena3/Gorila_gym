@@ -530,8 +530,8 @@ async function main() {
 
   await prisma.discount.create({
     data: {
-      name: "10% Transferencia",
-      description: "Descuento automático pagando por transferencia bancaria.",
+      name: "10% Córdoba",
+      description: "Beneficio especial para pedidos con entrega en Córdoba.",
       code: "TRANSFER10",
       type: DiscountType.PERCENTAGE,
       value: 10,

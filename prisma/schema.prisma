@@ -32,13 +32,10 @@ enum PaymentMethod {
 }
 
 enum OrderStatus {
-  PENDING_PAYMENT
-  PENDING_VERIFICATION
-  PAID
-  PREPARING
-  SHIPPED
+  PENDING_CONFIRMATION
+  CONTACTED
   DELIVERED
-  CANCELED
+  CANCELLED
 }
 
 enum PaymentStatus {

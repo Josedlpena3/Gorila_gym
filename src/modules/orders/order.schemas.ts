@@ -1,25 +1,28 @@
 import { DeliveryMethod, OrderStatus, PaymentMethod } from "@prisma/client";
 import { z } from "zod";
-import { addressSchema } from "@/modules/users/user.schemas";
+import { isValidWhatsAppPhone, normalizeWhatsAppPhone } from "@/lib/phone";
 
-const transferReceiptSchema = z.object({
-  url: z.string().trim().min(1, "Falta la URL del comprobante"),
-  fileName: z.string().trim().min(1, "Falta el nombre del comprobante"),
-  mimeType: z.string().trim().min(1, "Falta el tipo del comprobante"),
-  size: z.coerce.number().positive("Tamaño de comprobante inválido"),
-  uploadedAt: z.string().datetime("Fecha de comprobante inválida")
-});
+const whatsappPhoneSchema = z
+  .string()
+  .trim()
+  .refine(
+    isValidWhatsAppPhone,
+    "Ingresá un celular válido de WhatsApp con código de área. Ej.: +54 9 351 555 0000"
+  )
+  .transform(normalizeWhatsAppPhone);
 
 export const createOrderSchema = z.object({
-  deliveryMethod: z.nativeEnum(DeliveryMethod),
-  paymentMethod: z.nativeEnum(PaymentMethod),
+  firstName: z.string().trim().min(2, "Nombre inválido"),
+  lastName: z.string().trim().min(2, "Apellido inválido"),
+  phone: whatsappPhoneSchema,
   notes: z.string().max(300).optional(),
-  saveAddress: z.boolean().optional(),
-  addressId: z.string().optional(),
-  transferReceipt: transferReceiptSchema.optional(),
-  address: addressSchema.partial({
-    isDefault: true
-  }).optional()
+  address: z.object({
+    street: z.string().trim().min(2, "Calle inválida"),
+    number: z.string().trim().min(1, "Número requerido"),
+    city: z.string().trim().min(2, "Ciudad inválida"),
+    province: z.string().trim().min(2, "Provincia inválida"),
+    postalCode: z.string().trim().min(3, "Código postal inválido")
+  })
 });
 
 export const quoteCheckoutSchema = z.object({
@@ -30,11 +33,6 @@ export const quoteCheckoutSchema = z.object({
 
 export const orderStatusSchema = z.nativeEnum(OrderStatus);
 
-export const orderAdminActionSchema = z.union([
-  z.object({
-    action: z.literal("confirm-transfer")
-  }),
-  z.object({
-    status: orderStatusSchema
-  })
-]);
+export const orderAdminActionSchema = z.object({
+  status: orderStatusSchema
+});

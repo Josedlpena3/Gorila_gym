@@ -19,11 +19,21 @@ const productInclude = {
   }
 };
 
-async function normalizeProductImages(urls: string[]) {
+async function normalizeProductImages(
+  urls: string[],
+  options?: { allowedRemoteUrls?: Set<string> }
+) {
   const normalized = await Promise.all(
     urls.map(async (url) => {
       if (isStoredUploadUrl(url)) {
         return url;
+      }
+
+      if (!options?.allowedRemoteUrls?.has(url)) {
+        throw new AppError(
+          "Las imágenes del producto deben subirse desde tu equipo antes de guardar.",
+          400
+        );
       }
 
       const storedImage = await importRemoteImage(url, "products");
@@ -324,7 +334,10 @@ export async function updateProduct(
   const data = productSchema.parse(input);
 
   const existingProduct = await prisma.product.findUnique({
-    where: { id }
+    where: { id },
+    include: {
+      images: true
+    }
   });
 
   if (!existingProduct) {
@@ -332,7 +345,9 @@ export async function updateProduct(
   }
 
   const slug = slugify(data.slug || data.name);
-  const images = await normalizeProductImages(data.images);
+  const images = await normalizeProductImages(data.images, {
+    allowedRemoteUrls: new Set(existingProduct.images.map((image) => image.url))
+  });
 
   const product = await prisma.$transaction(async (tx) => {
     await tx.productImage.deleteMany({

@@ -46,7 +46,7 @@ export function RegisterForm() {
             return;
           }
 
-          router.push("/checkout");
+          router.push("/catalogo");
           router.refresh();
         });
       }}

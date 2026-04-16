@@ -35,7 +35,6 @@ type ProductFormProps = {
     brand: string;
     categoryId: string;
     description: string;
-    benefits: string[];
     price: number;
     stock: number;
     objective: string;
@@ -47,12 +46,17 @@ type ProductFormProps = {
   } | null;
 };
 
+function getImageLabel(value: string) {
+  const [, fileName] = value.split(/[/\\](?=[^/\\]+$)/);
+  return fileName || value;
+}
+
 function createStoredImageItem(id: string, value: string): ProductImageItem {
   return {
     id,
     source: "stored",
     value,
-    label: value,
+    label: getImageLabel(value),
     previewUrl: value
   };
 }
@@ -67,7 +71,6 @@ function moveItem<T>(items: T[], from: number, to: number) {
 export function ProductForm({ categories, product }: ProductFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [urlInput, setUrlInput] = useState("");
   const [imageItems, setImageItems] = useState<ProductImageItem[]>(
     product?.images.map((image) => createStoredImageItem(image.id, image.url)) ?? []
   );
@@ -92,35 +95,6 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       });
     };
   }, []);
-
-  function addUrlImages() {
-    const urls = urlInput
-      .split("\n")
-      .map((value) => value.trim())
-      .filter(Boolean);
-
-    if (urls.length === 0) {
-      return;
-    }
-
-    const existingValues = new Set(
-      imageItems.flatMap((item) => (item.source === "stored" ? [item.value] : []))
-    );
-
-    const nextItems = [...imageItems];
-
-    urls.forEach((url) => {
-      if (existingValues.has(url)) {
-        return;
-      }
-
-      nextItems.push(createStoredImageItem(`url-${crypto.randomUUID()}`, url));
-      existingValues.add(url);
-    });
-
-    setImageItems(nextItems);
-    setUrlInput("");
-  }
 
   function addFiles(files: FileList | null) {
     if (!files || files.length === 0) {
@@ -219,14 +193,9 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             .filter((value): value is string => Boolean(value));
 
           if (images.length === 0) {
-            setError("Debes cargar al menos una imagen por URL o archivo.");
+            setError("Debes cargar al menos una imagen desde tu equipo.");
             return;
           }
-
-          const benefits = String(formData.get("benefits") ?? "")
-            .split("\n")
-            .map((value) => value.trim())
-            .filter(Boolean);
 
           const payload = {
             sku: formData.get("sku"),
@@ -234,7 +203,6 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             brand: formData.get("brand"),
             categoryId: formData.get("categoryId"),
             description: formData.get("description"),
-            benefits,
             price: Number(formData.get("price")),
             stock: Number(formData.get("stock")),
             objective: formData.get("objective"),
@@ -335,49 +303,22 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         <Textarea name="description" defaultValue={product?.description ?? ""} required />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="space-y-3">
         <div className="space-y-2">
-          <label className="text-sm text-mist">Beneficios (uno por línea)</label>
-          <Textarea
-            name="benefits"
-            defaultValue={product ? product.benefits.join("\n") : ""}
-            required
+          <label className="text-sm text-mist">Subir imágenes</label>
+          <Input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            onChange={(event) => {
+              addFiles(event.target.files);
+              event.currentTarget.value = "";
+            }}
           />
-        </div>
-
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <label className="text-sm text-mist">Agregar imágenes por URL</label>
-            <Textarea
-              value={urlInput}
-              onChange={(event) => setUrlInput(event.target.value)}
-              placeholder="Pegá una o varias URLs públicas, una por línea."
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={addUrlImages}
-              disabled={urlInput.trim().length === 0}
-            >
-              Agregar URLs
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm text-mist">Subir archivos</label>
-            <Input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              onChange={(event) => {
-                addFiles(event.target.files);
-                event.currentTarget.value = "";
-              }}
-            />
-            <p className="text-xs text-mist">
-              Cargá varias imágenes y ordenalas manualmente antes de guardar.
-            </p>
-          </div>
+          <p className="text-xs text-mist">
+            Solo se aceptan archivos locales. Al guardar, quedan almacenados dentro
+            del sitio y podés ordenarlos manualmente.
+          </p>
         </div>
       </div>
 

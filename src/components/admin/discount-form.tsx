@@ -86,9 +86,10 @@ export function DiscountForm({ discount }: DiscountFormProps) {
                 type: formData.get("type"),
                 value: Number(formData.get("value")),
                 paymentMethod:
-                  formData.get("paymentMethod") === "ANY"
-                    ? undefined
-                    : formData.get("paymentMethod"),
+                  typeof formData.get("paymentMethod") === "string" &&
+                  formData.get("paymentMethod") !== "ANY"
+                    ? formData.get("paymentMethod")
+                    : undefined,
                 province: formData.get("province") || undefined,
                 active: formData.get("active") === "true",
                 startsAt: formData.get("startsAt") || undefined,
@@ -120,7 +121,7 @@ export function DiscountForm({ discount }: DiscountFormProps) {
             {isEditing ? "Editar promoción" : "Nueva promoción"}
           </h2>
           <p className="text-sm text-mist">
-            Podés limitar por medio de pago, provincia o vigencia.
+            Podés limitar por provincia o vigencia.
           </p>
         </div>
         {discount ? (
@@ -139,11 +140,11 @@ export function DiscountForm({ discount }: DiscountFormProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         <Input
           name="name"
-          placeholder="Transferencia bancaria"
+          placeholder="Promo Córdoba"
           required
           defaultValue={discount?.name}
         />
-        <Input name="code" placeholder="TRANSFER" defaultValue={discount?.code ?? ""} />
+        <Input name="code" placeholder="OTONO10" defaultValue={discount?.code ?? ""} />
         <Select
           name="type"
           defaultValue={discount?.type ?? DiscountType.PERCENTAGE}
@@ -159,15 +160,6 @@ export function DiscountForm({ discount }: DiscountFormProps) {
           required
           defaultValue={discount?.value}
         />
-        <Select
-          name="paymentMethod"
-          defaultValue={discount?.paymentMethod ?? "ANY"}
-        >
-          <option value="ANY">Todos los medios</option>
-          <option value={PaymentMethod.BANK_TRANSFER}>Transferencia</option>
-          <option value={PaymentMethod.MERCADO_PAGO}>Mercado Pago</option>
-          <option value={PaymentMethod.CASH}>Efectivo</option>
-        </Select>
         <Input name="province" placeholder="Córdoba" defaultValue={discount?.province ?? ""} />
         <Input
           type="datetime-local"
@@ -187,7 +179,7 @@ export function DiscountForm({ discount }: DiscountFormProps) {
 
       <Input
         name="description"
-        placeholder="Descuento automático para transferencias."
+        placeholder="Beneficio especial por zona o campaña."
         defaultValue={discount?.description ?? ""}
       />
 

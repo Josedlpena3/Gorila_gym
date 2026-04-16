@@ -26,16 +26,19 @@ export function ProductCard({
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
-        <div className="absolute left-4 top-4 flex gap-2">
+        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           {product.featured ? <Badge variant="success">Destacado</Badge> : null}
           <Badge>{product.category}</Badge>
         </div>
       </div>
 
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-4 sm:p-5">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-mist">{product.brand}</p>
-          <Link href={`/productos/${product.slug}`} className="mt-2 block text-xl font-black">
+          <Link
+            href={`/productos/${product.slug}`}
+            className="mt-2 block text-lg font-black leading-tight sm:text-xl"
+          >
             {product.name}
           </Link>
           <p className="mt-2 text-sm text-mist">
@@ -49,7 +52,7 @@ export function ProductCard({
           </div>
         </div>
 
-        <div className="flex items-end justify-between">
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-2xl font-black text-sand">{formatCurrency(product.price)}</p>
             <p className="text-sm text-mist">

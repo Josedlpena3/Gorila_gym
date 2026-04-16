@@ -9,12 +9,10 @@ import { ORDER_STATUS_LABELS } from "@/lib/constants";
 
 export function OrderStatusForm({
   orderId,
-  currentStatus,
-  paymentMethod
+  currentStatus
 }: {
   orderId: string;
   currentStatus: OrderStatus;
-  paymentMethod: string;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<OrderStatus>(currentStatus);
@@ -26,7 +24,9 @@ export function OrderStatusForm({
     setStatus(currentStatus);
   }, [currentStatus]);
 
-  async function submitOrderAction(payload: { status?: OrderStatus; action?: "confirm-transfer" }) {
+  async function submitOrderAction(payload: {
+    status: OrderStatus;
+  }) {
     setError(null);
     setFeedback(null);
 
@@ -49,11 +49,7 @@ export function OrderStatusForm({
       setStatus(result.status as OrderStatus);
     }
 
-    setFeedback(
-      payload.action === "confirm-transfer"
-        ? "Transferencia confirmada."
-        : "Estado actualizado."
-    );
+    setFeedback("Estado actualizado.");
     router.refresh();
   }
 
@@ -61,6 +57,7 @@ export function OrderStatusForm({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
         <Select
+          name="status"
           className="min-w-[210px]"
           value={status}
           onChange={(event) => {
@@ -87,19 +84,6 @@ export function OrderStatusForm({
         >
           {isPending ? "Guardando..." : "Guardar"}
         </Button>
-        {paymentMethod === "BANK_TRANSFER" ? (
-          <Button
-            type="button"
-            disabled={isPending}
-            onClick={() =>
-              startTransition(async () => {
-                await submitOrderAction({ action: "confirm-transfer" });
-              })
-            }
-          >
-            {isPending ? "Actualizando..." : "Confirmar transferencia"}
-          </Button>
-        ) : null}
       </div>
 
       {feedback ? <p className="text-sm text-neon">{feedback}</p> : null}

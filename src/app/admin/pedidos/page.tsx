@@ -1,11 +1,6 @@
 import { OrderStatusForm } from "@/components/admin/order-status-form";
-import { TransferPaymentCard } from "@/components/payments/transfer-payment-card";
 import { Badge } from "@/components/ui/badge";
-import {
-  ORDER_STATUS_LABELS,
-  PAYMENT_METHOD_LABELS,
-  PAYMENT_STATUS_LABELS
-} from "@/lib/constants";
+import { ORDER_STATUS_BADGE_VARIANTS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { listAllOrders } from "@/modules/orders/order.service";
 
@@ -29,11 +24,7 @@ export default async function AdminOrdersPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge>{PAYMENT_METHOD_LABELS[order.paymentMethod]}</Badge>
-                  <Badge variant={order.paymentStatus === "APPROVED" ? "success" : "default"}>
-                    {PAYMENT_STATUS_LABELS[order.paymentStatus]}
-                  </Badge>
-                  <Badge variant={order.status === "DELIVERED" ? "success" : "default"}>
+                  <Badge variant={ORDER_STATUS_BADGE_VARIANTS[order.status]}>
                     {ORDER_STATUS_LABELS[order.status]}
                   </Badge>
                 </div>
@@ -43,6 +34,7 @@ export default async function AdminOrdersPage() {
                 <p className="mt-2 text-sm text-mist">
                   {order.customer} · {order.email}
                 </p>
+                <p className="text-sm text-mist">WhatsApp: {order.contactPhone}</p>
                 <p className="text-sm text-mist">
                   {formatDate(order.createdAt)} · {order.city}, {order.province}
                 </p>
@@ -57,25 +49,16 @@ export default async function AdminOrdersPage() {
               <OrderStatusForm
                 orderId={order.id}
                 currentStatus={order.status}
-                paymentMethod={order.paymentMethod}
               />
             </div>
-            {order.payment.transfer ? (
-              <TransferPaymentCard
-                className="mt-6"
-                transfer={order.payment.transfer}
-                showAccountDetails={false}
-              />
-            ) : null}
             <div className="mt-6 grid gap-3 md:grid-cols-2">
               <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
                 <p className="text-xs uppercase tracking-[0.24em] text-mist">
                   Datos del pedido
                 </p>
                 <p className="mt-3 text-sand">Cliente: {order.customer}</p>
-                <p>Método de pago: {PAYMENT_METHOD_LABELS[order.paymentMethod]}</p>
                 <p>Estado del pedido: {ORDER_STATUS_LABELS[order.status]}</p>
-                <p>Estado del pago: {PAYMENT_STATUS_LABELS[order.paymentStatus]}</p>
+                <p>Celular: {order.contactPhone}</p>
                 <p>Ciudad: {order.city}</p>
                 <p>Provincia: {order.province}</p>
                 <p>Dirección: {order.street ? `${order.street} ${order.number ?? ""}`.trim() : "-"}</p>
