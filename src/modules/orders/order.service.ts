@@ -47,6 +47,7 @@ type UserContext = {
   firstName: string;
   lastName: string;
   email: string;
+  emailVerified: boolean;
   phone: string;
   addresses: Array<{
     id: string;
@@ -485,6 +486,14 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
   await releaseExpiredOrders();
 
   const data = createOrderSchema.parse(input);
+
+  if (!user.emailVerified) {
+    throw new AppError(
+      "Verificá tu email antes de completar una compra.",
+      403
+    );
+  }
+
   const cart = await getCartByUserId(user.id);
 
   if (cart.items.length === 0) {

@@ -7,13 +7,19 @@ const passwordRules = z
   .regex(/[a-z]/, "La contraseña debe contener al menos 1 minúscula")
   .regex(/[0-9]/, "La contraseña debe contener al menos 1 número");
 
-export const registerSchema = z.object({
-  firstName: z.string().min(2, "Nombre inválido"),
-  lastName: z.string().min(2, "Apellido inválido"),
-  email: z.string().email("Email inválido"),
-  phone: z.string().min(8, "Teléfono inválido"),
-  password: passwordRules
-});
+export const registerSchema = z
+  .object({
+    firstName: z.string().min(2, "Nombre inválido"),
+    lastName: z.string().min(2, "Apellido inválido"),
+    email: z.string().email("Email inválido"),
+    phone: z.string().min(8, "Teléfono inválido"),
+    password: passwordRules,
+    confirmPassword: z.string().min(1, "Repetí tu contraseña")
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"]
+  });
 
 export const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -24,7 +30,24 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email("Email inválido")
 });
 
-export const resetPasswordSchema = z.object({
-  token: z.string().min(20, "Token inválido"),
-  password: passwordRules
-});
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(20, "Token inválido"),
+    password: passwordRules,
+    confirmPassword: z.string().min(1, "Repetí tu contraseña")
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"]
+  });
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Ingresá tu contraseña actual"),
+    newPassword: passwordRules,
+    confirmPassword: z.string().min(1, "Repetí tu contraseña nueva")
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"]
+  });

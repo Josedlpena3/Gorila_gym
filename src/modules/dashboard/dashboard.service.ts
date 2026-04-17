@@ -50,9 +50,14 @@ export async function getAdminDashboard(): Promise<AdminDashboardDto> {
           }
         }
       }),
-      prisma.order.count({
+      prisma.user.count({
         where: {
-          status: OrderStatus.PENDING_CONFIRMATION
+          role: {
+            is: {
+              key: RoleKey.CUSTOMER
+            }
+          },
+          emailVerified: false
         }
       }),
       listAllOrders()

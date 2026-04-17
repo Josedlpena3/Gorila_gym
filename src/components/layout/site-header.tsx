@@ -68,8 +68,14 @@ export function SiteHeader({ user }: SiteHeaderProps) {
 
             {user ? (
               <div className="flex items-center gap-3">
-                <div className="hidden text-right sm:block">
-                  <p className="text-sm font-semibold text-sand">{user.firstName}</p>
+                <Link
+                  href="/mi-cuenta"
+                  className="hidden text-right transition hover:text-neon sm:block"
+                >
+                  <p className="text-sm font-semibold text-sand">Mi cuenta</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-mist">Ver perfil</p>
+                </Link>
+                <div className="hidden sm:block">
                   <Badge variant={user.role === "ADMIN" ? "success" : "info"}>
                     {user.role === "ADMIN" ? "Administrador" : "Cliente"}
                   </Badge>

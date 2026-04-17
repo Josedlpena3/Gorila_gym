@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { EmailVerificationNotice } from "@/components/auth/email-verification-notice";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentUser } from "@/modules/users/user.service";
@@ -26,6 +27,11 @@ export default async function RootLayout({
         <SiteHeader
           user={user ? { firstName: user.firstName, role: user.role } : null}
         />
+        {user && !user.emailVerified ? (
+          <div className="page-shell pt-6">
+            <EmailVerificationNotice email={user.email} />
+          </div>
+        ) : null}
         <main className="min-h-[calc(100vh-160px)] py-10">{children}</main>
         <SiteFooter />
       </body>

@@ -49,6 +49,8 @@ export function mapCurrentUser(user: CurrentUserRecord) {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
+    emailVerified: user.emailVerified,
+    emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
     phone: user.phone,
     role: user.role.key,
     roleLabel: user.role.label,
@@ -62,6 +64,8 @@ export function mapAuthenticatedUser(user: AuthUserRecord) {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
+    emailVerified: user.emailVerified,
+    emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
     phone: user.phone,
     role: user.role
   };

@@ -9,7 +9,8 @@ export default function RegisterPage() {
           Crear cuenta
         </h1>
         <p className="mt-3 text-mist">
-          Registrate para comprar, guardar tus datos y seguir el estado de cada pedido.
+          Registrate para comprar, guardar tus datos y seguir cada pedido. Después
+          te enviamos un correo para verificar tu email.
         </p>
         <div className="mt-8">
           <RegisterForm />
@@ -18,4 +19,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-

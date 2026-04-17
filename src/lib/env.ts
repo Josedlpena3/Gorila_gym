@@ -55,18 +55,25 @@ export const env = {
   ),
   bankTransferBankName: readText(process.env.BANK_TRANSFER_BANK_NAME),
   bankTransferInstructions: readText(process.env.BANK_TRANSFER_INSTRUCTIONS),
-  notificationProvider: readText(process.env.NOTIFICATION_PROVIDER),
   orderNotificationEmails: readCsv(
-    process.env.ORDER_NOTIFICATION_EMAILS || process.env.MAIL_FROM_ADDRESS
+    process.env.ORDER_NOTIFICATION_EMAILS ||
+      process.env.MAIL_FROM_ADDRESS ||
+      process.env.EMAIL_USER ||
+      process.env.SMTP_USER
   ),
-  mailFromName: readText(process.env.MAIL_FROM_NAME),
-  mailFromAddress: readText(process.env.MAIL_FROM_ADDRESS),
-  smtpHost: readText(process.env.SMTP_HOST),
-  smtpPort: readNumber(process.env.SMTP_PORT),
-  smtpUser: readText(process.env.SMTP_USER),
-  smtpPassword: readText(process.env.SMTP_PASSWORD),
-  smtpSecure:
-    process.env.SMTP_SECURE?.trim().toLowerCase() === "true" ||
-    process.env.SMTP_SECURE === "1",
+  mailFromName: readText(process.env.MAIL_FROM_NAME, "Gorila Strong"),
+  mailFromAddress: readText(
+    process.env.MAIL_FROM_ADDRESS || process.env.EMAIL_USER || process.env.SMTP_USER
+  ),
+  emailHost: readText(process.env.EMAIL_HOST || process.env.SMTP_HOST),
+  emailPort: readNumber(process.env.EMAIL_PORT || process.env.SMTP_PORT) ?? 465,
+  emailUser: readText(process.env.EMAIL_USER || process.env.SMTP_USER),
+  emailPass: readText(process.env.EMAIL_PASS || process.env.SMTP_PASSWORD),
+  emailSecure:
+    (process.env.EMAIL_SECURE || process.env.SMTP_SECURE)?.trim().toLowerCase() ===
+      "true" ||
+    process.env.EMAIL_SECURE === "1" ||
+    process.env.SMTP_SECURE === "1" ||
+    (readNumber(process.env.EMAIL_PORT) ?? 465) === 465,
   allowedImageHosts: readCsv(process.env.NEXT_PUBLIC_ALLOWED_IMAGE_HOSTS)
 };

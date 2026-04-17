@@ -13,6 +13,7 @@ type CheckoutFormProps = {
   user: {
     firstName: string;
     lastName: string;
+    emailVerified: boolean;
     phone: string;
     addresses: Array<{
       street: string;
@@ -185,12 +186,20 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
         </div>
 
         <div className="mt-6 rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-          Al confirmar el pedido, lo recibimos y te contactamos por WhatsApp para
-          coordinar la entrega.
+          {user.emailVerified
+            ? "Al confirmar el pedido, lo recibimos y te contactamos por WhatsApp para coordinar la entrega."
+            : "Primero necesitás verificar tu email. Después vas a poder confirmar el pedido normalmente."}
         </div>
 
-        <Button className="mt-6 min-h-[52px] w-full text-base sm:text-sm" disabled={isPending}>
-          {isPending ? "Confirmando pedido..." : "Confirmar pedido"}
+        <Button
+          className="mt-6 min-h-[52px] w-full text-base sm:text-sm"
+          disabled={isPending || !user.emailVerified}
+        >
+          {isPending
+            ? "Confirmando pedido..."
+            : user.emailVerified
+              ? "Confirmar pedido"
+              : "Verificá tu email para comprar"}
         </Button>
       </aside>
     </form>

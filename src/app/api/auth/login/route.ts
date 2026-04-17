@@ -23,11 +23,11 @@ export async function POST(request: Request) {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role.key
+        role: user.role.key,
+        emailVerified: user.emailVerified
       }
     });
   } catch (error) {
     return handleRouteError(error);
   }
 }
-

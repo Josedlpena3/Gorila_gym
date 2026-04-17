@@ -68,7 +68,16 @@ export function MobileNavMenu({ user }: MobileNavMenuProps) {
           <div className="absolute right-0 top-full z-30 mt-3 w-[min(18rem,calc(100vw-2rem))] rounded-[28px] border border-line bg-ink/95 p-4 shadow-premium backdrop-blur">
             {user ? (
               <div className="border-b border-line pb-4">
-                <p className="text-sm font-semibold text-sand">{user.firstName}</p>
+                <Link
+                  href="/mi-cuenta"
+                  className="block rounded-2xl transition hover:text-neon"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <p className="text-sm font-semibold text-sand">Mi cuenta</p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.2em] text-mist">
+                    Ver perfil
+                  </p>
+                </Link>
                 <div className="mt-2">
                   <Badge variant={user.role === "ADMIN" ? "success" : "info"}>
                     {user.role === "ADMIN" ? "Administrador" : "Cliente"}

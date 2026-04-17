@@ -6,7 +6,8 @@ import { registerUser } from "@/modules/auth/auth.service";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const user = await registerUser(body);
+    const result = await registerUser(body);
+    const user = result.user;
     const token = createSessionToken({
       sub: user.id,
       email: user.email,
@@ -23,11 +24,13 @@ export async function POST(request: Request) {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role.key
-      }
+        role: user.role.key,
+        emailVerified: user.emailVerified
+      },
+      verificationLink: result.verificationLink,
+      emailError: result.emailError
     });
   } catch (error) {
     return handleRouteError(error);
   }
 }
-

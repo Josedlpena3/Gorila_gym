@@ -11,7 +11,7 @@ export default async function AdminDashboardPage() {
     { label: "Pedidos", value: String(dashboard.totalOrders) },
     { label: "Productos activos", value: String(dashboard.activeProducts) },
     { label: "Clientes", value: String(dashboard.customers) },
-    { label: "Pendientes de confirmación", value: String(dashboard.pendingVerification) },
+    { label: "Emails sin verificar", value: String(dashboard.pendingVerification) },
     { label: "Stock crítico", value: String(dashboard.lowStockProducts) }
   ];
 

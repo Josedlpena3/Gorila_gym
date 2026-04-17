@@ -26,6 +26,12 @@ export default async function CheckoutPage() {
         <p className="mt-3 max-w-2xl text-sm leading-6 text-mist sm:text-base">
           Revisamos el pedido y te escribimos por WhatsApp para coordinar la entrega.
         </p>
+        {!user.emailVerified ? (
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-amber-200">
+            Antes de comprar necesitás verificar tu email. Podés reenviar el correo desde
+            el aviso superior.
+          </p>
+        ) : null}
       </div>
       <CheckoutForm user={user} cart={cart} />
     </div>

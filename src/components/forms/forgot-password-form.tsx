@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 
 export function ForgotPasswordForm() {
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [devLink, setDevLink] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -19,6 +20,7 @@ export function ForgotPasswordForm() {
 
         startTransition(async () => {
           setMessage(null);
+          setError(null);
           setDevLink(null);
 
           const response = await fetch("/api/auth/forgot-password", {
@@ -33,6 +35,7 @@ export function ForgotPasswordForm() {
 
           const payload = await response.json();
           setMessage(payload.message ?? "Revisá tu correo.");
+          setError(payload.emailError ?? null);
           setDevLink(payload.resetLink ?? null);
         });
       }}
@@ -47,6 +50,7 @@ export function ForgotPasswordForm() {
       </Button>
 
       {message ? <p className="text-sm text-mist">{message}</p> : null}
+      {error ? <p className="text-sm text-red-300">{error}</p> : null}
       {devLink ? (
         <Link href={devLink} className="block text-sm font-semibold text-neon">
           Abrir enlace de recuperación de desarrollo
@@ -55,4 +59,3 @@ export function ForgotPasswordForm() {
     </form>
   );
 }
-
