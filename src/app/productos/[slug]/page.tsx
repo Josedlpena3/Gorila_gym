@@ -1,21 +1,53 @@
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/catalog/add-to-cart-button";
+import { StatusCard } from "@/components/layout/status-card";
 import { ProductGallery } from "@/components/products/product-gallery";
 import { Badge } from "@/components/ui/badge";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { formatCurrency } from "@/lib/utils";
 import { getProductBySlug } from "@/modules/products/product.service";
-import { getCurrentUser } from "@/modules/users/user.service";
+import { tryGetCurrentUser } from "@/modules/users/user.service";
+
+async function loadProduct(slug: string) {
+  try {
+    return {
+      product: await getProductBySlug(slug),
+      hasError: false
+    };
+  } catch (error) {
+    console.error(`[product-page] no se pudo cargar el producto ${slug}`, error);
+    return {
+      product: null,
+      hasError: true
+    };
+  }
+}
 
 export default async function ProductPage({
   params
 }: {
   params: { slug: string };
 }) {
-  const [product, user] = await Promise.all([
-    getProductBySlug(params.slug),
-    getCurrentUser()
+  const [{ product, hasError }, user] = await Promise.all([
+    loadProduct(params.slug),
+    tryGetCurrentUser("product-page")
   ]);
+
+  if (hasError) {
+    return (
+      <div className="page-shell">
+        <StatusCard
+          eyebrow="Producto"
+          title="No se pudo cargar este producto."
+          description="El render no se convirtió en `404`: falló la lectura de la base de datos y la página respondió con un estado visible para que puedas corregir la conexión remota."
+          actions={[
+            { href: "/catalogo", label: "Volver al catálogo" },
+            { href: "/", label: "Ir a la home", variant: "secondary" }
+          ]}
+        />
+      </div>
+    );
+  }
 
   if (!product) {
     notFound();

@@ -3,6 +3,8 @@ import { handleRouteError } from "@/lib/errors";
 import { getCartByUserId } from "@/modules/cart/cart.service";
 import { requireCurrentUser } from "@/modules/users/user.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const user = await requireCurrentUser();
@@ -13,4 +15,3 @@ export async function GET() {
     return handleRouteError(error);
   }
 }
-

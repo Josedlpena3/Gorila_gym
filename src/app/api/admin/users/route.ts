@@ -3,6 +3,8 @@ import { handleRouteError } from "@/lib/errors";
 import { listUsers } from "@/modules/users/user.service";
 import { requireAdminUser } from "@/modules/users/user.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     await requireAdminUser();
@@ -13,4 +15,3 @@ export async function GET() {
     return handleRouteError(error);
   }
 }
-

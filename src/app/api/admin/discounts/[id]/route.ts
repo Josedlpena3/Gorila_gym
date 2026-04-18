@@ -6,6 +6,8 @@ import {
 } from "@/modules/discounts/discount.service";
 import { requireAdminUser } from "@/modules/users/user.service";
 
+export const dynamic = "force-dynamic";
+
 type RouteContext = {
   params: {
     id: string;

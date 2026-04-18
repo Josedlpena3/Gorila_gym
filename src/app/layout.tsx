@@ -4,7 +4,7 @@ import "./globals.css";
 import { EmailVerificationNotice } from "@/components/auth/email-verification-notice";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { getCurrentUser } from "@/modules/users/user.service";
+import { tryGetCurrentUser } from "@/modules/users/user.service";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  const user = await getCurrentUser();
+  const user = await tryGetCurrentUser("root-layout");
 
   return (
     <html lang="es">

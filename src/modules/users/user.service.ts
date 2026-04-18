@@ -29,6 +29,15 @@ export async function getCurrentUser() {
   return mapCurrentUser(user);
 }
 
+export async function tryGetCurrentUser(context = "user-service") {
+  try {
+    return await getCurrentUser();
+  } catch (error) {
+    console.error(`[${context}] no se pudo cargar la sesión actual`, error);
+    return null;
+  }
+}
+
 export async function requireCurrentUser() {
   const user = await getCurrentUser();
 

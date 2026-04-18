@@ -47,7 +47,7 @@ function createRawToken() {
 }
 
 function getAppBaseUrl() {
-  return env.appUrl || (env.nodeEnv === "production" ? "" : "http://localhost:3000");
+  return env.appUrl;
 }
 
 function shouldExposeDevLink() {

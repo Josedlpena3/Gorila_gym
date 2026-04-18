@@ -6,6 +6,8 @@ import {
 } from "@/modules/products/product.service";
 import { requireAdminUser } from "@/modules/users/user.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     await requireAdminUser();
@@ -28,4 +30,3 @@ export async function POST(request: Request) {
     return handleRouteError(error);
   }
 }
-

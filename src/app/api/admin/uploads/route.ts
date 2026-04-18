@@ -3,6 +3,8 @@ import { handleRouteError } from "@/lib/errors";
 import { storeUploadedFile } from "@/lib/uploads";
 import { requireAdminUser } from "@/modules/users/user.service";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   try {
     await requireAdminUser();

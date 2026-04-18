@@ -5,6 +5,8 @@ import { env } from "@/lib/env";
 import { AppError, handleRouteError } from "@/lib/errors";
 import { requireAdminUser } from "@/modules/users/user.service";
 
+export const dynamic = "force-dynamic";
+
 const testEmailSchema = z.object({
   email: z.string().trim().email("Ingresá un email válido")
 });
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const data = testEmailSchema.parse(body);
-    const appUrl = env.appUrl || "http://localhost:3000";
+    const appUrl = env.appUrl;
 
     if (!appUrl) {
       throw new AppError("NEXT_PUBLIC_APP_URL no está configurada.", 500);

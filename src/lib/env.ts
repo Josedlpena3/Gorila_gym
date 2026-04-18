@@ -21,9 +21,32 @@ function readText(value: string | undefined, fallback = "") {
   return trimmed.length > 0 ? trimmed : fallback;
 }
 
+function normalizeUrl(value?: string) {
+  const trimmed = value?.trim() ?? "";
+
+  if (trimmed.length === 0) {
+    return "";
+  }
+
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  return withProtocol.replace(/\/+$/, "");
+}
+
+function readAppUrl() {
+  return (
+    normalizeUrl(process.env.NEXT_PUBLIC_APP_URL) ||
+    normalizeUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
+    normalizeUrl(process.env.VERCEL_URL)
+  );
+}
+
 export const env = {
   nodeEnv: readText(process.env.NODE_ENV, "development"),
-  appUrl: readText(process.env.NEXT_PUBLIC_APP_URL),
+  databaseUrl: readText(process.env.DATABASE_URL),
+  appUrl: readAppUrl(),
   jwtSecret: readText(process.env.JWT_SECRET),
   jwtExpiresIn: readText(process.env.JWT_EXPIRES_IN, "7d"),
   mercadoPagoAccessToken: readText(process.env.MERCADO_PAGO_ACCESS_TOKEN),
@@ -44,15 +67,9 @@ export const env = {
   storePickupProvince: readText(process.env.STORE_PICKUP_PROVINCE),
   storePickupPostalCode: readText(process.env.STORE_PICKUP_POSTAL_CODE),
   storePickupCountry: readText(process.env.STORE_PICKUP_COUNTRY, "Argentina"),
-  bankTransferAlias: readText(process.env.BANK_TRANSFER_ALIAS, "josedlp3"),
-  bankTransferCbu: readText(
-    process.env.BANK_TRANSFER_CBU,
-    "0000003100097110373230"
-  ),
-  bankTransferAccountHolder: readText(
-    process.env.BANK_TRANSFER_ACCOUNT_HOLDER,
-    "Jose Ignacio de la Peña"
-  ),
+  bankTransferAlias: readText(process.env.BANK_TRANSFER_ALIAS),
+  bankTransferCbu: readText(process.env.BANK_TRANSFER_CBU),
+  bankTransferAccountHolder: readText(process.env.BANK_TRANSFER_ACCOUNT_HOLDER),
   bankTransferBankName: readText(process.env.BANK_TRANSFER_BANK_NAME),
   bankTransferInstructions: readText(process.env.BANK_TRANSFER_INSTRUCTIONS),
   orderNotificationEmails: readCsv(
@@ -61,7 +78,7 @@ export const env = {
       process.env.EMAIL_USER ||
       process.env.SMTP_USER
   ),
-  mailFromName: readText(process.env.MAIL_FROM_NAME, "Gorila Strong"),
+  mailFromName: readText(process.env.MAIL_FROM_NAME),
   mailFromAddress: readText(
     process.env.MAIL_FROM_ADDRESS || process.env.EMAIL_USER || process.env.SMTP_USER
   ),

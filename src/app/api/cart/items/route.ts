@@ -12,6 +12,8 @@ import {
 } from "@/modules/cart/cart.schemas";
 import { requireCurrentUser } from "@/modules/users/user.service";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   try {
     const user = await requireCurrentUser();

@@ -6,6 +6,8 @@ import {
   updateCurrentUserProfile
 } from "@/modules/users/user.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -32,4 +34,3 @@ export async function PUT(request: Request) {
     return handleRouteError(error);
   }
 }
-

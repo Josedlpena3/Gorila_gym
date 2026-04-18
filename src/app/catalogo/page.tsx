@@ -1,7 +1,8 @@
 import { CatalogToolbar } from "@/components/catalog/catalog-toolbar";
 import { ProductCard } from "@/components/catalog/product-card";
+import { StatusCard } from "@/components/layout/status-card";
 import { listCatalogProducts } from "@/modules/products/product.service";
-import { getCurrentUser } from "@/modules/users/user.service";
+import { tryGetCurrentUser } from "@/modules/users/user.service";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -48,6 +49,17 @@ function buildCatalogHref(
   return query.length > 0 ? `/catalogo?${query}` : "/catalogo";
 }
 
+async function loadCatalogProducts(currentQuery?: string) {
+  try {
+    return await listCatalogProducts({
+      q: currentQuery
+    });
+  } catch (error) {
+    console.error("[catalog-page] no se pudo cargar el catálogo", error);
+    return null;
+  }
+}
+
 export default async function CatalogPage({
   searchParams
 }: {
@@ -55,11 +67,25 @@ export default async function CatalogPage({
 }) {
   const currentQuery = getSearchParam(searchParams, "q");
   const [data, user] = await Promise.all([
-    listCatalogProducts({
-      q: currentQuery
-    }),
-    getCurrentUser()
+    loadCatalogProducts(currentQuery),
+    tryGetCurrentUser("catalog-page")
   ]);
+
+  if (!data) {
+    return (
+      <div className="page-shell">
+        <StatusCard
+          eyebrow="Catálogo"
+          title="No se pudo cargar el catálogo."
+          description="La página sigue respondiendo, pero la base de datos no devolvió productos en este momento. Revisá `DATABASE_URL`, el estado de Prisma y reintentá."
+          actions={[
+            { href: "/catalogo", label: "Reintentar" },
+            { href: "/", label: "Volver a la home", variant: "secondary" }
+          ]}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="page-shell space-y-6 sm:space-y-8">
