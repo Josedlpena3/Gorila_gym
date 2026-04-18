@@ -1,126 +1,37 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ProductCard } from "@/components/catalog/product-card";
-import { StatusCard } from "@/components/layout/status-card";
-import { getFeaturedProducts } from "@/modules/products/product.service";
-import { tryGetCurrentUser } from "@/modules/users/user.service";
-
-async function loadFeaturedProducts() {
-  try {
-    return await getFeaturedProducts(3);
-  } catch (error) {
-    console.error("[home-page] no se pudieron cargar los productos destacados", error);
-    return null;
-  }
-}
 
 const primaryLinkClass =
   "inline-flex items-center justify-center rounded-full bg-neon px-5 py-3 text-sm font-semibold text-ink transition hover:bg-neon/90";
 
-const secondaryLinkClass =
-  "inline-flex items-center justify-center rounded-full border border-line bg-white/5 px-5 py-3 text-sm font-semibold text-sand transition hover:border-neon/60 hover:bg-white/10";
-
 export default async function HomePage() {
-  const [featuredProducts, user] = await Promise.all([
-    loadFeaturedProducts(),
-    tryGetCurrentUser("home-page")
-  ]);
-
   return (
-    <div className="page-shell space-y-8 sm:space-y-10">
-      <section className="section-card overflow-hidden p-6 sm:p-8 lg:p-10">
-        <p className="text-xs uppercase tracking-[0.32em] text-neon sm:text-sm">
-          Gorila Strong
-        </p>
-        <div className="mt-4 grid gap-8 lg:grid-cols-[1.15fr,0.85fr] lg:items-end">
-          <div>
-            <h1 className="max-w-4xl text-4xl font-black uppercase tracking-[0.06em] text-sand sm:text-5xl lg:text-6xl">
-              Suplementación premium lista para vender en producción.
-            </h1>
-            <p className="mt-5 max-w-2xl text-sm leading-7 text-mist sm:text-base">
-              Explorá el catálogo, gestioná pedidos y seguí el estado de tu cuenta desde
-              una home estable que no depende de redirecciones para responder en `/`.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/catalogo" className={primaryLinkClass}>
-                Explorar catálogo
-              </Link>
-              <Link
-                href={user ? "/mi-cuenta" : "/login?next=/mi-cuenta"}
-                className={secondaryLinkClass}
-              >
-                {user ? "Ir a mi cuenta" : "Ingresar"}
-              </Link>
-            </div>
+    <div className="page-shell">
+      <section className="relative overflow-hidden rounded-[36px] border border-line/80 bg-steel/70 px-6 py-16 shadow-premium backdrop-blur sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(183,255,57,0.16),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_22%)]" />
+        <div className="relative mx-auto flex max-w-5xl flex-col items-center text-center">
+          <div className="flex h-28 w-28 items-center justify-center rounded-[32px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:h-32 sm:w-32">
+            <Image
+              src="/branding/logo-gorila.png"
+              alt="Gorila Strong"
+              width={512}
+              height={512}
+              priority
+              className="h-full w-full object-contain"
+            />
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            <div className="rounded-[28px] border border-line bg-ink/65 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-mist">Deploy</p>
-              <p className="mt-2 text-lg font-black uppercase text-sand">Vercel Ready</p>
-              <p className="mt-2 text-sm leading-6 text-mist">
-                Build compatible con Node 18/20 y Prisma generado en instalación.
-              </p>
-            </div>
-            <div className="rounded-[28px] border border-line bg-ink/65 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-mist">Base de datos</p>
-              <p className="mt-2 text-lg font-black uppercase text-sand">PostgreSQL Remoto</p>
-              <p className="mt-2 text-sm leading-6 text-mist">
-                Preparado para usar `DATABASE_URL` externa sin depender de `localhost`.
-              </p>
-            </div>
-            <div className="rounded-[28px] border border-line bg-ink/65 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-mist">Producción</p>
-              <p className="mt-2 text-lg font-black uppercase text-sand">Prisma Seguro</p>
-              <p className="mt-2 text-sm leading-6 text-mist">
-                La carga de sesión y de catálogo ahora degrada con fallback en lugar de
-                romper el render inicial.
-              </p>
-            </div>
+          <p className="mt-8 text-xs font-black uppercase tracking-[0.36em] text-neon sm:text-sm">
+            Gorila Strong
+          </p>
+          <h1 className="mt-5 text-4xl font-black uppercase tracking-[0.08em] text-sand sm:text-5xl lg:text-6xl">
+            Suplementación premium
+          </h1>
+          <div className="mt-8">
+            <Link href="/catalogo" className={primaryLinkClass}>
+              Explorar catálogo
+            </Link>
           </div>
         </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-mist">Home</p>
-            <h2 className="text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-3xl">
-              Productos destacados
-            </h2>
-          </div>
-          <Link
-            href="/catalogo"
-            className="text-sm font-semibold text-neon transition hover:text-neon/80"
-          >
-            Ver catálogo completo
-          </Link>
-        </div>
-
-        {featuredProducts === null ? (
-          <StatusCard
-            eyebrow="Catálogo"
-            title="La home sigue disponible aunque el catálogo no haya cargado."
-            description="La conexión con la base de datos no respondió al consultar los productos destacados. El resto de la home queda operativo mientras se restablece la conexión."
-            actions={[{ href: "/catalogo", label: "Reintentar catálogo" }]}
-          />
-        ) : featuredProducts.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 sm:gap-6 xl:grid-cols-3">
-            {featuredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                requiresLogin={!user}
-              />
-            ))}
-          </div>
-        ) : (
-          <StatusCard
-            eyebrow="Catálogo"
-            title="Todavía no hay productos destacados publicados."
-            description="La home ya está operativa en `/`. Cuando cargues productos destacados van a aparecer automáticamente en esta sección."
-            actions={[{ href: "/catalogo", label: "Ir al catálogo" }]}
-          />
-        )}
       </section>
     </div>
   );

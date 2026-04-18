@@ -251,25 +251,28 @@ export async function verifyEmailByToken(token: string) {
     }
   });
 
-  if (
-    !verificationToken ||
-    verificationToken.usedAt ||
-    verificationToken.expiresAt < new Date()
-  ) {
+  if (!verificationToken || verificationToken.expiresAt < new Date()) {
     throw new AppError("El enlace de verificación es inválido o expiró", 400);
   }
 
   if (verificationToken.user.emailVerified) {
-    await prisma.emailVerificationToken.update({
-      where: { id: verificationToken.id },
-      data: {
-        usedAt: new Date()
-      }
-    });
+    if (!verificationToken.usedAt) {
+      await prisma.emailVerificationToken.update({
+        where: { id: verificationToken.id },
+        data: {
+          usedAt: new Date()
+        }
+      });
+    }
 
     return {
+      status: "already_verified" as const,
       message: "Tu email ya estaba verificado."
     };
+  }
+
+  if (verificationToken.usedAt) {
+    throw new AppError("El enlace de verificación es inválido o expiró", 400);
   }
 
   await prisma.$transaction([
@@ -301,6 +304,7 @@ export async function verifyEmailByToken(token: string) {
   ]);
 
   return {
+    status: "verified" as const,
     message: "Tu email fue verificado correctamente."
   };
 }
