@@ -233,6 +233,28 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     });
   }
 
+  function replacePendingFilesWithUploadedUrls(urls: string[]) {
+    let uploadedIndex = 0;
+
+    return imageItems
+      .map((item) => {
+        if (item.source !== "file") {
+          return item;
+        }
+
+        const nextUrl = urls[uploadedIndex];
+        uploadedIndex += 1;
+
+        if (!nextUrl) {
+          return null;
+        }
+
+        console.log("Imagen subida:", nextUrl);
+        return createStoredImageItem(`stored-${crypto.randomUUID()}`, nextUrl);
+      })
+      .filter((item): item is ProductImageItem => Boolean(item));
+  }
+
   return (
     <form
       className="section-card space-y-6 p-6"
@@ -274,6 +296,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
           try {
             let uploadedImages: string[] = [];
+            let imageItemsToPersist = imageItems;
             const pendingFiles = imageItems.filter(
               (item): item is Extract<ProductImageItem, { source: "file" }> =>
                 item.source === "file"
@@ -307,24 +330,24 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                             typeof value === "string"
                         )
                     : [];
+
+                  imageItemsToPersist = replacePendingFilesWithUploadedUrls(uploadedImages);
+                  setImageItems(imageItemsToPersist);
                 }
               } catch {
                 setWarning(
                   "No se pudieron subir las imágenes. El producto se guardará sin esas imágenes."
                 );
+                imageItemsToPersist = imageItems.filter(
+                  (item): item is Extract<ProductImageItem, { source: "stored" }> =>
+                    item.source === "stored"
+                );
               }
             }
 
-            let uploadedIndex = 0;
-            const images = imageItems
+            const images = imageItemsToPersist
               .map((item) => {
-                if (item.source === "file") {
-                  const url = uploadedImages[uploadedIndex];
-                  uploadedIndex += 1;
-                  return url;
-                }
-
-                return item.value;
+                return item.source === "stored" ? item.value : null;
               })
               .filter((value): value is string => Boolean(value));
 
@@ -343,6 +366,8 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               flavor: formData.get("flavor"),
               images
             };
+
+            console.log("Imagen guardada:", images[0] ?? null);
 
             const response = await fetch(
               product ? `/api/admin/products/${product.id}` : "/api/admin/products",

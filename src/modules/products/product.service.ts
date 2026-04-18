@@ -176,9 +176,7 @@ function mapProductCard(product: Prisma.ProductGetPayload<{ include: typeof prod
     category: product.category.name,
     price: decimalToNumber(product.price) ?? 0,
     stock: product.stock,
-    image:
-      primaryImage?.url ??
-      "https://images.unsplash.com/photo-1622484212850-eb596d769edc?auto=format&fit=crop&w=1200&q=80",
+    image: primaryImage?.url ?? null,
     images: product.images.map((image) => ({
       id: image.id,
       url: image.url,
@@ -402,6 +400,7 @@ export async function createProduct(input: unknown, adminUserId: string) {
 
   const slug = buildProductSlug(data);
   const images = normalizeProductImages(data.images);
+  console.log("Imagen guardada:", images[0] ?? null);
 
   let product;
 
@@ -477,6 +476,7 @@ export async function updateProduct(
 
   const slug = buildProductSlug(data);
   const images = normalizeProductImages(data.images);
+  console.log("Imagen guardada:", images[0] ?? null);
 
   let product;
 

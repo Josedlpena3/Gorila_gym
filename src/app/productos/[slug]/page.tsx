@@ -58,10 +58,6 @@ export default async function ProductPage({
       <div className="grid gap-5 lg:grid-cols-[0.85fr,1.15fr] lg:items-start xl:gap-6">
         <ProductGallery
           images={product.images}
-          fallback={{
-            url: product.image,
-            alt: product.name
-          }}
         />
 
         <div className="section-card p-5 sm:p-6 lg:p-7">

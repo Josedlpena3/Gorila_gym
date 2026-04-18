@@ -31,7 +31,7 @@ export type ProductCardDto = {
   category: string;
   price: number;
   stock: number;
-  image: string;
+  image: string | null;
   images: ProductImageDto[];
   description: string;
   objective: string;

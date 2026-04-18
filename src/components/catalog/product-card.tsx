@@ -17,14 +17,7 @@ export function ProductCard({
   return (
     <article className="section-card group overflow-hidden">
       <div className="relative overflow-hidden">
-        <ProductGallery
-          mode="card"
-          images={product.images}
-          fallback={{
-            url: product.image,
-            alt: product.name
-          }}
-        />
+        <ProductGallery mode="card" images={product.images} />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           {product.featured ? <Badge variant="success">Destacado</Badge> : null}

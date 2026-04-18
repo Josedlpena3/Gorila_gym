@@ -6,10 +6,10 @@ import type { ProductImageDto } from "@/types";
 
 type ProductGalleryProps = {
   images: ProductImageDto[];
-  fallback: {
+  fallback?: {
     url: string;
     alt: string;
-  };
+  } | null;
   mode?: "card" | "detail";
 };
 
@@ -82,10 +82,29 @@ export function ProductGallery({
   fallback,
   mode = "detail"
 }: ProductGalleryProps) {
-  const items = images.length > 0 ? images : [{ id: "fallback", ...fallback }];
+  const items =
+    images.length > 0
+      ? images
+      : fallback?.url
+        ? [{ id: "fallback", ...fallback }]
+        : [];
   const [activeIndex, setActiveIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const activeImage = items[activeIndex] ?? items[0];
+
+  useEffect(() => {
+    setActiveIndex((current) => {
+      if (items.length === 0) {
+        return 0;
+      }
+
+      return current >= items.length ? 0 : current;
+    });
+  }, [items.length]);
+
+  useEffect(() => {
+    console.log("Imagen mostrada:", activeImage?.url ?? null);
+  }, [activeImage?.url]);
 
   useEffect(() => {
     if (!isLightboxOpen) {
@@ -125,6 +144,24 @@ export function ProductGallery({
 
       return current === items.length - 1 ? 0 : current + 1;
     });
+  }
+
+  if (!activeImage) {
+    if (mode === "card") {
+      return (
+        <div className="flex h-64 items-center justify-center bg-steel/70 text-sm text-mist">
+          Sin imagen
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative overflow-hidden rounded-[34px] border border-line bg-steel">
+        <div className="flex h-[300px] w-full items-center justify-center text-sm text-mist sm:h-[360px] lg:h-[420px]">
+          Sin imagen disponible
+        </div>
+      </div>
+    );
   }
 
   if (mode === "card") {

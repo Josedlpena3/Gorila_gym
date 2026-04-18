@@ -23,8 +23,19 @@ export async function POST(request: Request) {
     const uploadedFiles = await Promise.all(
       files.map((file) => storeUploadedFile(file, "products"))
     );
+    const firstUrl = uploadedFiles[0]?.url ?? null;
 
-    return NextResponse.json({ files: uploadedFiles }, { status: 201 });
+    uploadedFiles.forEach((file) => {
+      console.log("Imagen subida:", file.url);
+    });
+
+    return NextResponse.json(
+      {
+        url: firstUrl,
+        files: uploadedFiles
+      },
+      { status: 201 }
+    );
   } catch (error) {
     return handleRouteError(error);
   }
