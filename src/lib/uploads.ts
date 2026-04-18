@@ -41,24 +41,25 @@ function getUploadFailureMessage() {
 
 let cloudinaryConfigured = false;
 
-function isCloudinaryConfigured() {
-  return Boolean(
-    env.cloudinaryCloudName &&
-      env.cloudinaryApiKey &&
-      env.cloudinaryApiSecret
-  );
-}
-
 function ensureCloudinaryConfigured() {
-  if (!isCloudinaryConfigured()) {
-    throw new AppError(getUploadFailureMessage(), 500);
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+  const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new Error("Cloudinary no está configurado");
   }
 
   if (!cloudinaryConfigured) {
+    console.log("Cloudinary config:", {
+      cloud_name: cloudName,
+      api_key: apiKey
+    });
+
     cloudinary.config({
-      cloud_name: env.cloudinaryCloudName,
-      api_key: env.cloudinaryApiKey,
-      api_secret: env.cloudinaryApiSecret,
+      cloud_name: cloudName,
+      api_key: apiKey,
+      api_secret: apiSecret,
       secure: true
     });
     cloudinaryConfigured = true;
@@ -95,49 +96,51 @@ async function uploadToCloudinary(
   file: File,
   category: UploadCategory
 ): Promise<StoredUpload> {
-  ensureCloudinaryConfigured();
-  const folder = getCloudinaryFolder(category);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const originalName =
-    sanitizeFileName(file.name.replace(/\.[^.]+$/, "")) || `${category}-${Date.now()}`;
-  const payload = await new Promise<UploadApiResponse>((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type: "image",
-        use_filename: true,
-        unique_filename: true,
-        filename_override: originalName
-      },
-      (error, result) => {
-        if (error || !result) {
-          reject(error ?? new Error("cloudinary_upload_failed"));
-          return;
+  try {
+    ensureCloudinaryConfigured();
+    const folder = getCloudinaryFolder(category);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const originalName =
+      sanitizeFileName(file.name.replace(/\.[^.]+$/, "")) || `${category}-${Date.now()}`;
+    const payload = await new Promise<UploadApiResponse>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: "image",
+          use_filename: true,
+          unique_filename: true,
+          filename_override: originalName
+        },
+        (error, result) => {
+          if (error || !result) {
+            reject(error ?? new Error("cloudinary_upload_failed"));
+            return;
+          }
+
+          resolve(result);
         }
+      );
 
-        resolve(result);
-      }
-    );
+      uploadStream.end(buffer);
+    });
 
-    uploadStream.end(buffer);
-  }).catch((error) => {
+    const baseFileName =
+      sanitizeFileName(payload.original_filename || file.name || payload.public_id || "") ||
+      `${category}-${Date.now()}`;
+    const extension = payload.format ? `.${payload.format}` : "";
+
+    return {
+      url: payload.secure_url,
+      fileName: `${baseFileName}${extension}`,
+      mimeType: file.type,
+      size: file.size
+    };
+  } catch (error) {
     console.error("[cloudinary] error al subir imagen", {
       message: error instanceof Error ? error.message : "unknown_error"
     });
     throw new AppError(getUploadFailureMessage(), 500);
-  });
-
-  const baseFileName =
-    sanitizeFileName(payload.original_filename || file.name || payload.public_id || "") ||
-    `${category}-${Date.now()}`;
-  const extension = payload.format ? `.${payload.format}` : "";
-
-  return {
-    url: payload.secure_url,
-    fileName: `${baseFileName}${extension}`,
-    mimeType: file.type,
-    size: file.size
-  };
+  }
 }
 
 export async function storeUploadedFile(

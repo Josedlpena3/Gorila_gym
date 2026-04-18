@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         url: firstUrl,
         files: uploadedFiles
       },
-      { status: 201 }
+      { status: 200 }
     );
   } catch (error) {
     if (!(error instanceof AppError && error.statusCode === 400)) {
