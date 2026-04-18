@@ -23,6 +23,7 @@ const allowedImageHosts = Array.from(
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    domains: ["res.cloudinary.com"],
     remotePatterns: allowedImageHosts.map((hostname) => ({
       protocol: "https",
       hostname

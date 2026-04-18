@@ -1,7 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/catalog/add-to-cart-button";
-import { ProductGallery } from "@/components/products/product-gallery";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { OBJECTIVE_LABELS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
@@ -14,10 +14,24 @@ export function ProductCard({
   product: ProductCardDto;
   requiresLogin?: boolean;
 }) {
+  console.log("Imagen catálogo:", product.image);
+
   return (
     <article className="section-card group overflow-hidden">
-      <div className="relative overflow-hidden">
-        <ProductGallery mode="card" images={product.images} />
+      <div className="relative h-64 overflow-hidden bg-steel/70">
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-mist">
+            Sin imagen
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           {product.featured ? <Badge variant="success">Destacado</Badge> : null}
