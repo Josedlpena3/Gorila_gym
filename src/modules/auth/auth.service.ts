@@ -4,6 +4,7 @@ import { comparePassword, hashPassword } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   changePasswordSchema,
   forgotPasswordSchema,
@@ -22,6 +23,13 @@ import {
 
 const PASSWORD_RESET_TOKEN_MINUTES = 30;
 const EMAIL_VERIFICATION_TOKEN_HOURS = 24;
+const PASSWORD_RESET_COOLDOWN_MS = 60 * 1000;
+const AUTH_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const AUTH_RATE_LIMIT_MAX_REQUESTS = 5;
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const LOGIN_BLOCK_DURATION_MS = 5 * 60 * 1000;
+const DUMMY_PASSWORD_HASH =
+  "$2b$12$DnECzMyCk0MCle2p1lUDwOoRUOY/u4K6p50H9SJRx4tffJLU/3uw.";
 
 async function ensureBaseRoles() {
   await Promise.all([
@@ -46,12 +54,71 @@ function createRawToken() {
   return randomBytes(32).toString("hex");
 }
 
+async function assertSensitiveAuthRateLimit(action: "login" | "forgot-password", email: string) {
+  const result = await consumeRateLimit({
+    key: email,
+    prefix: `auth:${action}`,
+    limit: AUTH_RATE_LIMIT_MAX_REQUESTS,
+    windowMs: AUTH_RATE_LIMIT_WINDOW_MS
+  });
+
+  if (result.limited) {
+    console.warn("[auth] rate limit", {
+      action,
+      reason: "email_rate_limited"
+    });
+    throw new AppError(
+      action === "login"
+        ? "Demasiados intentos, intentá más tarde"
+        : "Demasiadas solicitudes",
+      429,
+      {
+        retryAfterSeconds: result.retryAfterSeconds
+      }
+    );
+  }
+}
+
+async function assertPasswordResetCooldown(email: string) {
+  const now = new Date();
+  const request = await prisma.passwordResetRequest.findUnique({
+    where: { email },
+    select: {
+      lastRequestedAt: true
+    }
+  });
+
+  if (
+    request &&
+    now.getTime() - request.lastRequestedAt.getTime() < PASSWORD_RESET_COOLDOWN_MS
+  ) {
+    throw new AppError("Esperá unos segundos antes de volver a intentarlo", 429);
+  }
+
+  await prisma.passwordResetRequest.upsert({
+    where: { email },
+    update: {
+      lastRequestedAt: now
+    },
+    create: {
+      email,
+      lastRequestedAt: now
+    }
+  });
+}
+
 function getAppBaseUrl() {
   return env.appUrl;
 }
 
 function shouldExposeDevLink() {
   return env.nodeEnv !== "production";
+}
+
+function getSafeEmailErrorMessage(message: string) {
+  return shouldExposeDevLink()
+    ? message
+    : "No se pudo enviar el correo en este momento.";
 }
 
 function buildVerificationUrl(token: string) {
@@ -110,10 +177,12 @@ async function sendVerificationEmailToUser(input: {
     });
 
     if (!result.ok) {
-      emailError = result.error;
+      emailError = getSafeEmailErrorMessage(result.error);
     }
   } else {
-    emailError = "NEXT_PUBLIC_APP_URL no está configurada para construir el enlace.";
+    emailError = getSafeEmailErrorMessage(
+      "NEXT_PUBLIC_APP_URL no está configurada para construir el enlace."
+    );
   }
 
   return {
@@ -174,21 +243,89 @@ export async function registerUser(input: unknown) {
 
 export async function loginUser(input: unknown) {
   const data = loginSchema.parse(input);
+  const normalizedEmail = data.email.toLowerCase().trim();
+  const now = new Date();
+
+  await assertSensitiveAuthRateLimit("login", normalizedEmail);
   await ensureBaseRoles();
 
   const user = await prisma.user.findUnique({
-    where: { email: data.email.toLowerCase() },
+    where: { email: normalizedEmail },
     include: authUserInclude
   });
 
   if (!user) {
+    await comparePassword(data.password, DUMMY_PASSWORD_HASH);
+    console.warn("[auth] login fallido", {
+      reason: "invalid_credentials"
+    });
     throw new AppError("Credenciales inválidas", 401);
   }
+
+  if (user.loginBlockedUntil && user.loginBlockedUntil > now) {
+    console.warn("[auth] login bloqueado", {
+      reason: "user_temporarily_blocked"
+    });
+    throw new AppError("Demasiados intentos, intentá más tarde", 429, {
+      retryAfterSeconds: Math.max(
+        Math.ceil((user.loginBlockedUntil.getTime() - now.getTime()) / 1000),
+        1
+      )
+    });
+  }
+
+  const currentFailedAttempts =
+    user.loginBlockedUntil && user.loginBlockedUntil <= now
+      ? 0
+      : user.failedLoginAttempts;
 
   const isValidPassword = await comparePassword(data.password, user.passwordHash);
 
   if (!isValidPassword) {
+    const nextFailedAttempts = currentFailedAttempts + 1;
+    const shouldBlock = nextFailedAttempts >= MAX_FAILED_LOGIN_ATTEMPTS;
+    const blockedUntil = shouldBlock
+      ? new Date(now.getTime() + LOGIN_BLOCK_DURATION_MS)
+      : null;
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: nextFailedAttempts,
+        lastFailedLoginAt: now,
+        loginBlockedUntil: blockedUntil
+      }
+    });
+
+    console.warn("[auth] login fallido", {
+      reason: shouldBlock ? "user_blocked" : "invalid_password"
+    });
+
+    if (shouldBlock && blockedUntil) {
+      throw new AppError("Demasiados intentos, intentá más tarde", 429, {
+        retryAfterSeconds: Math.max(
+          Math.ceil((blockedUntil.getTime() - now.getTime()) / 1000),
+          1
+        )
+      });
+    }
+
     throw new AppError("Credenciales inválidas", 401);
+  }
+
+  if (
+    currentFailedAttempts > 0 ||
+    user.lastFailedLoginAt ||
+    user.loginBlockedUntil
+  ) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: 0,
+        lastFailedLoginAt: null,
+        loginBlockedUntil: null
+      }
+    });
   }
 
   return mapAuthenticatedUser(user);
@@ -311,9 +448,13 @@ export async function verifyEmailByToken(token: string) {
 
 export async function requestPasswordReset(input: unknown) {
   const data = forgotPasswordSchema.parse(input);
+  const normalizedEmail = data.email.toLowerCase().trim();
+
+  await assertSensitiveAuthRateLimit("forgot-password", normalizedEmail);
+  await assertPasswordResetCooldown(normalizedEmail);
 
   const user = await prisma.user.findUnique({
-    where: { email: data.email.toLowerCase() }
+    where: { email: normalizedEmail }
   });
 
   if (!user) {
@@ -345,7 +486,6 @@ export async function requestPasswordReset(input: unknown) {
   });
 
   const resetUrl = buildResetUrl(rawToken);
-  let emailError: string | null = null;
 
   if (resetUrl) {
     const result = await sendPasswordResetEmail({
@@ -356,17 +496,20 @@ export async function requestPasswordReset(input: unknown) {
     });
 
     if (!result.ok) {
-      emailError = result.error;
+      console.warn("[auth] no se pudo enviar el email de recuperación", {
+        reason: "email_send_failed"
+      });
     }
   } else {
-    emailError = "NEXT_PUBLIC_APP_URL no está configurada para construir el enlace.";
+    console.warn("[auth] no se pudo construir el enlace de recuperación", {
+      reason: "missing_app_url"
+    });
   }
 
   return {
     message:
       "Si el email existe, vas a recibir instrucciones para recuperar tu contraseña.",
-    resetLink: shouldExposeDevLink() ? resetUrl || null : null,
-    emailError
+    resetLink: shouldExposeDevLink() && resetUrl ? resetUrl : null
   };
 }
 

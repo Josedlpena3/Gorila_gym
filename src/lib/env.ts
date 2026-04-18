@@ -92,5 +92,11 @@ export const env = {
     process.env.EMAIL_SECURE === "1" ||
     process.env.SMTP_SECURE === "1" ||
     (readNumber(process.env.EMAIL_PORT) ?? 465) === 465,
+  cloudinaryCloudName: readText(process.env.CLOUDINARY_CLOUD_NAME),
+  cloudinaryApiKey: readText(process.env.CLOUDINARY_API_KEY),
+  cloudinaryApiSecret: readText(process.env.CLOUDINARY_API_SECRET),
+  cloudinaryUploadFolder: readText(process.env.CLOUDINARY_UPLOAD_FOLDER, "gorila-strong"),
+  upstashRedisRestUrl: readText(process.env.UPSTASH_REDIS_REST_URL),
+  upstashRedisRestToken: readText(process.env.UPSTASH_REDIS_REST_TOKEN),
   allowedImageHosts: readCsv(process.env.NEXT_PUBLIC_ALLOWED_IMAGE_HOSTS)
 };

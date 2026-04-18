@@ -23,20 +23,37 @@ export function ForgotPasswordForm() {
           setError(null);
           setDevLink(null);
 
-          const response = await fetch("/api/auth/forgot-password", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              email: formData.get("email")
-            })
-          });
+          try {
+            const response = await fetch("/api/auth/forgot-password", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                email: formData.get("email")
+              })
+            });
 
-          const payload = await response.json();
-          setMessage(payload.message ?? "Revisá tu correo.");
-          setError(payload.emailError ?? null);
-          setDevLink(payload.resetLink ?? null);
+            const payload = (await response.json().catch(() => null)) as
+              | {
+                  error?: string;
+                  message?: string;
+                  emailError?: string | null;
+                  resetLink?: string | null;
+                }
+              | null;
+
+            if (!response.ok) {
+              setError(payload?.error ?? "No se pudo procesar la solicitud.");
+              return;
+            }
+
+            setMessage(payload?.message ?? "Revisá tu correo.");
+            setError(payload?.emailError ?? null);
+            setDevLink(payload?.resetLink ?? null);
+          } catch {
+            setError("No se pudo procesar la solicitud.");
+          }
         });
       }}
     >

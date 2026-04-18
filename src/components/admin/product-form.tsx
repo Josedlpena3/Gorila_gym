@@ -26,8 +26,13 @@ type ProductImageItem =
       previewUrl: string;
     };
 
+type ProductCategory = {
+  id: string;
+  name: string;
+};
+
 type ProductFormProps = {
-  categories: Array<{ id: string; name: string }>;
+  categories: ProductCategory[];
   product?: {
     id: string;
     sku: string;
@@ -71,6 +76,14 @@ function moveItem<T>(items: T[], from: number, to: number) {
 export function ProductForm({ categories, product }: ProductFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [categoryMessage, setCategoryMessage] = useState<string | null>(null);
+  const [availableCategories, setAvailableCategories] =
+    useState<ProductCategory[]>(categories);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(categories.length === 0);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(
+    product?.categoryId ?? categories[0]?.id ?? ""
+  );
   const [imageItems, setImageItems] = useState<ProductImageItem[]>(
     product?.images.map((image) => createStoredImageItem(image.id, image.url)) ?? []
   );
@@ -85,6 +98,89 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   useEffect(() => {
     imageItemsRef.current = imageItems;
   }, [imageItems]);
+
+  useEffect(() => {
+    setAvailableCategories(categories);
+  }, [categories]);
+
+  useEffect(() => {
+    if (product?.categoryId) {
+      setSelectedCategoryId(product.categoryId);
+      return;
+    }
+
+    if (!selectedCategoryId && availableCategories[0]?.id) {
+      setSelectedCategoryId(availableCategories[0].id);
+    }
+  }, [availableCategories, product?.categoryId, selectedCategoryId]);
+
+  useEffect(() => {
+    if (categories.length > 0) {
+      setCategoryMessage(null);
+      setIsLoadingCategories(false);
+      return;
+    }
+
+    let isActive = true;
+    const abortController = new AbortController();
+
+    setIsLoadingCategories(true);
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/categories", {
+          cache: "no-store",
+          signal: abortController.signal
+        });
+        const payload = (await response.json().catch(() => null)) as unknown;
+
+        if (!response.ok) {
+          throw new Error("categories_unavailable");
+        }
+
+        const nextCategories = Array.isArray(payload)
+          ? payload.filter(
+              (entry): entry is ProductCategory =>
+                Boolean(
+                  entry &&
+                    typeof entry === "object" &&
+                    "id" in entry &&
+                    "name" in entry &&
+                    typeof entry.id === "string" &&
+                    typeof entry.name === "string"
+                )
+            )
+          : [];
+
+        if (!isActive) {
+          return;
+        }
+
+        setAvailableCategories(nextCategories);
+        setCategoryMessage(
+          nextCategories.length === 0
+            ? "Todavía no hay categorías disponibles."
+            : null
+        );
+      } catch (fetchError) {
+        if (!isActive || abortController.signal.aborted) {
+          return;
+        }
+
+        console.warn("No se pudieron cargar las categorías del formulario.");
+        setCategoryMessage("No se pudieron cargar las categorías ahora.");
+      } finally {
+        if (isActive) {
+          setIsLoadingCategories(false);
+        }
+      }
+    })();
+
+    return () => {
+      isActive = false;
+      abortController.abort();
+    };
+  }, [categories]);
 
   useEffect(() => {
     return () => {
@@ -146,92 +242,130 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
         startTransition(async () => {
           setError(null);
+          setWarning(null);
 
-          let uploadedImages: string[] = [];
-          const pendingFiles = imageItems.filter(
-            (item): item is Extract<ProductImageItem, { source: "file" }> =>
-              item.source === "file"
-          );
+          const name = String(formData.get("name") ?? "").trim();
+          const price = Number(formData.get("price"));
+          const stock = Number(formData.get("stock"));
+          const categoryId =
+            String(formData.get("categoryId") ?? "").trim() ||
+            availableCategories[0]?.id ||
+            "";
 
-          if (pendingFiles.length > 0) {
-            const uploadFormData = new FormData();
+          if (name.length === 0) {
+            setError("El nombre es obligatorio.");
+            return;
+          }
 
-            pendingFiles.forEach((item) => {
-              uploadFormData.append("files", item.file);
-            });
+          if (!Number.isFinite(price) || price <= 0) {
+            setError("El precio debe ser mayor a 0.");
+            return;
+          }
 
-            const uploadResponse = await fetch("/api/admin/uploads", {
-              method: "POST",
-              body: uploadFormData
-            });
+          if (!Number.isInteger(stock) || stock < 0) {
+            setError("El stock no puede ser negativo.");
+            return;
+          }
 
-            const uploadPayload = await uploadResponse.json().catch(() => null);
+          if (!categoryId) {
+            setError("No hay categorías disponibles para este producto.");
+            return;
+          }
 
-            if (!uploadResponse.ok) {
-              setError(uploadPayload?.error ?? "No se pudieron subir las imágenes.");
+          try {
+            let uploadedImages: string[] = [];
+            const pendingFiles = imageItems.filter(
+              (item): item is Extract<ProductImageItem, { source: "file" }> =>
+                item.source === "file"
+            );
+
+            if (pendingFiles.length > 0) {
+              const uploadFormData = new FormData();
+
+              pendingFiles.forEach((item) => {
+                uploadFormData.append("files", item.file);
+              });
+
+              try {
+                const uploadResponse = await fetch("/api/admin/uploads", {
+                  method: "POST",
+                  body: uploadFormData
+                });
+                const uploadPayload = await uploadResponse.json().catch(() => null);
+
+                if (!uploadResponse.ok) {
+                  setWarning(
+                    uploadPayload?.error ??
+                      "No se pudieron subir las imágenes. El producto se guardará sin esas imágenes."
+                  );
+                } else {
+                  uploadedImages = Array.isArray(uploadPayload?.files)
+                    ? uploadPayload.files
+                        .map((entry: { url?: string }) => entry.url)
+                        .filter(
+                          (value: unknown): value is string =>
+                            typeof value === "string"
+                        )
+                    : [];
+                }
+              } catch {
+                setWarning(
+                  "No se pudieron subir las imágenes. El producto se guardará sin esas imágenes."
+                );
+              }
+            }
+
+            let uploadedIndex = 0;
+            const images = imageItems
+              .map((item) => {
+                if (item.source === "file") {
+                  const url = uploadedImages[uploadedIndex];
+                  uploadedIndex += 1;
+                  return url;
+                }
+
+                return item.value;
+              })
+              .filter((value): value is string => Boolean(value));
+
+            const payload = {
+              sku: formData.get("sku"),
+              name,
+              brand: formData.get("brand"),
+              categoryId,
+              description: formData.get("description"),
+              price,
+              stock,
+              objective: formData.get("objective"),
+              active: formData.get("active") === "on",
+              featured: formData.get("featured") === "on",
+              weight: formData.get("weight"),
+              flavor: formData.get("flavor"),
+              images
+            };
+
+            const response = await fetch(
+              product ? `/api/admin/products/${product.id}` : "/api/admin/products",
+              {
+                method: product ? "PUT" : "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+              }
+            );
+
+            if (!response.ok) {
+              const result = await response.json().catch(() => null);
+              setError(result?.error ?? "No se pudo guardar el producto.");
               return;
             }
 
-            uploadedImages = Array.isArray(uploadPayload?.files)
-              ? uploadPayload.files
-                  .map((entry: { url?: string }) => entry.url)
-                  .filter((value: unknown): value is string => typeof value === "string")
-              : [];
+            router.push("/admin/productos");
+            router.refresh();
+          } catch {
+            setError("No se pudo guardar el producto.");
           }
-
-          let uploadedIndex = 0;
-          const images = imageItems
-            .map((item) => {
-              if (item.source === "file") {
-                const url = uploadedImages[uploadedIndex];
-                uploadedIndex += 1;
-                return url;
-              }
-
-              return item.value;
-            })
-            .filter((value): value is string => Boolean(value));
-
-          if (images.length === 0) {
-            setError("Debes cargar al menos una imagen desde tu equipo.");
-            return;
-          }
-
-          const payload = {
-            sku: formData.get("sku"),
-            name: formData.get("name"),
-            brand: formData.get("brand"),
-            categoryId: formData.get("categoryId"),
-            description: formData.get("description"),
-            price: Number(formData.get("price")),
-            stock: Number(formData.get("stock")),
-            objective: formData.get("objective"),
-            active: formData.get("active") === "on",
-            featured: formData.get("featured") === "on",
-            weight: formData.get("weight"),
-            flavor: formData.get("flavor"),
-            images
-          };
-
-          const response = await fetch(
-            product ? `/api/admin/products/${product.id}` : "/api/admin/products",
-            {
-              method: product ? "PUT" : "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(payload)
-            }
-          );
-
-          if (!response.ok) {
-            const result = await response.json().catch(() => null);
-            setError(result?.error ?? "No se pudo guardar el producto.");
-            return;
-          }
-
-          router.push("/admin/productos");
-          router.refresh();
         });
       }}
     >
@@ -239,7 +373,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         <div>
           <h1 className="text-2xl font-black uppercase tracking-[0.08em]">{title}</h1>
           <p className="text-sm text-mist">
-            Producto editable, tipado y listo para el catálogo.
+            Gestioná el catálogo con una carga estable y preparada para producción.
           </p>
         </div>
       </div>
@@ -259,13 +393,24 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         </div>
         <div className="space-y-2">
           <label className="text-sm text-mist">Categoría</label>
-          <Select name="categoryId" defaultValue={product?.categoryId ?? categories[0]?.id}>
-            {categories.map((category) => (
+          <Select
+            name="categoryId"
+            value={selectedCategoryId}
+            onChange={(event) => setSelectedCategoryId(event.target.value)}
+            disabled={availableCategories.length === 0}
+          >
+            {availableCategories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
             ))}
           </Select>
+          {isLoadingCategories ? (
+            <p className="text-xs text-mist">Cargando categorías...</p>
+          ) : null}
+          {categoryMessage ? (
+            <p className="text-xs text-amber-200">{categoryMessage}</p>
+          ) : null}
         </div>
         <div className="space-y-2">
           <label className="text-sm text-mist">Objetivo</label>
@@ -282,11 +427,25 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         </div>
         <div className="space-y-2">
           <label className="text-sm text-mist">Precio</label>
-          <Input type="number" name="price" defaultValue={product?.price ?? 0} required />
+          <Input
+            type="number"
+            name="price"
+            min="0.01"
+            step="0.01"
+            defaultValue={product?.price ?? 0}
+            required
+          />
         </div>
         <div className="space-y-2">
           <label className="text-sm text-mist">Stock</label>
-          <Input type="number" name="stock" defaultValue={product?.stock ?? 0} required />
+          <Input
+            type="number"
+            name="stock"
+            min="0"
+            step="1"
+            defaultValue={product?.stock ?? 0}
+            required
+          />
         </div>
         <div className="space-y-2">
           <label className="text-sm text-mist">Peso</label>
@@ -316,8 +475,8 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             }}
           />
           <p className="text-xs text-mist">
-            Solo se aceptan archivos locales. Al guardar, quedan almacenados dentro
-            del sitio y podés ordenarlos manualmente.
+            Las imágenes son opcionales. Si la carga no está disponible, podés guardar
+            el producto igual y agregar imágenes más adelante.
           </p>
         </div>
       </div>
@@ -332,7 +491,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
         {imageItems.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-line bg-ink/40 p-4 text-sm text-mist">
-            Todavía no agregaste imágenes.
+            Podés publicar el producto sin imágenes y agregarlas más adelante.
           </div>
         ) : (
           <div className="space-y-3">
@@ -420,9 +579,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       </div>
 
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      {warning ? <p className="text-sm text-amber-200">{warning}</p> : null}
 
       <div className="flex gap-3">
-        <Button disabled={isPending}>{isPending ? "Guardando..." : "Guardar producto"}</Button>
+        <Button disabled={isPending || isLoadingCategories || availableCategories.length === 0}>
+          {isPending ? "Guardando..." : "Guardar producto"}
+        </Button>
         <Button variant="secondary" type="button" onClick={() => router.push("/admin/productos")}>
           Cancelar
         </Button>

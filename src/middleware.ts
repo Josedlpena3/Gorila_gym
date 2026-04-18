@@ -1,51 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AUTH_COOKIE_NAME } from "@/lib/constants";
+import { AUTH_COOKIE_NAME, VALID_AUTH_ROLES } from "@/lib/auth-constants";
+import { consumeRateLimit, getRequestIp } from "@/lib/rate-limit";
 
 type SessionPayload = {
   sub?: string;
   role?: string;
   exp?: number;
   iat?: number;
-  [key: string]: unknown;
-};
-
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
-
-type GlobalRateLimitState = typeof globalThis & {
-  __gorilaRateLimitStore?: Map<string, RateLimitEntry>;
-  __gorilaRateLimitLastCleanup?: number;
 };
 
 const LOGIN_PATH = "/login";
 const HOME_PATH = "/";
 const PUBLIC_API_PREFIX = "/api/public";
+const AUTH_API_PREFIX = "/api/auth";
 const DANGEROUS_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 60;
-const PUBLIC_API_ROUTES = new Set([
-  "/api/auth/login",
-  "/api/auth/logout",
-  "/api/auth/register",
-  "/api/auth/forgot-password",
-  "/api/auth/reset-password",
-  "/api/auth/verify-email"
-]);
-
-const globalRateLimitState = globalThis as GlobalRateLimitState;
-const rateLimitStore =
-  globalRateLimitState.__gorilaRateLimitStore ??
-  (globalRateLimitState.__gorilaRateLimitStore = new Map<string, RateLimitEntry>());
 
 function buildContentSecurityPolicy(pathname: string) {
   if (pathname.startsWith("/api/")) {
-    return "default-src 'self'; img-src 'self' https: data:; script-src 'self'; style-src 'self' 'unsafe-inline';";
+    return "default-src 'none';";
   }
 
-  // Next.js App Router in HTML responses still relies on inline bootstrap scripts.
-  return "default-src 'self'; img-src 'self' https: data:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';";
+  return [
+    "default-src 'self';",
+    "img-src 'self' https: data:;",
+    "script-src 'self' 'unsafe-inline';",
+    "style-src 'self' 'unsafe-inline';",
+    "object-src 'none';",
+    "base-uri 'self';"
+  ].join(" ");
 }
 
 function addSecurityHeaders(response: NextResponse, pathname: string) {
@@ -56,6 +40,13 @@ function addSecurityHeaders(response: NextResponse, pathname: string) {
     "Content-Security-Policy",
     buildContentSecurityPolicy(pathname)
   );
+
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload"
+    );
+  }
 
   return response;
 }
@@ -72,12 +63,9 @@ function isPublicApi(pathname: string) {
   return (
     pathname === PUBLIC_API_PREFIX ||
     pathname.startsWith(`${PUBLIC_API_PREFIX}/`) ||
-    PUBLIC_API_ROUTES.has(pathname)
+    pathname === AUTH_API_PREFIX ||
+    pathname.startsWith(`${AUTH_API_PREFIX}/`)
   );
-}
-
-function isProtectedProductsWrite(request: NextRequest) {
-  return request.nextUrl.pathname === "/api/products" && DANGEROUS_METHODS.has(request.method);
 }
 
 function requiresAuthenticatedWrite(request: NextRequest) {
@@ -98,68 +86,36 @@ function getSessionToken(request: NextRequest) {
   );
 }
 
-function getClientIp(request: NextRequest) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0]?.trim() || "unknown";
-  }
-
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
-}
-
-function cleanupRateLimitEntries(now: number) {
-  const lastCleanup = globalRateLimitState.__gorilaRateLimitLastCleanup ?? 0;
-
-  if (now - lastCleanup < RATE_LIMIT_WINDOW_MS) {
-    return;
-  }
-
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (entry.resetAt <= now) {
-      rateLimitStore.delete(key);
-    }
-  }
-
-  globalRateLimitState.__gorilaRateLimitLastCleanup = now;
-}
-
-function applyRateLimit(request: NextRequest) {
-  const now = Date.now();
-  cleanupRateLimitEntries(now);
-
-  const ip = getClientIp(request);
-  const current = rateLimitStore.get(ip);
-
-  if (!current || current.resetAt <= now) {
-    rateLimitStore.set(ip, {
-      count: 1,
-      resetAt: now + RATE_LIMIT_WINDOW_MS
-    });
-
+async function applyApiRateLimit(request: NextRequest) {
+  if (!request.nextUrl.pathname.startsWith("/api/")) {
     return null;
   }
 
-  current.count += 1;
+  const ip = getRequestIp(request.headers);
+  const result = await consumeRateLimit({
+    key: ip,
+    prefix: "api:ip",
+    limit: RATE_LIMIT_MAX_REQUESTS,
+    windowMs: RATE_LIMIT_WINDOW_MS
+  });
 
-  if (current.count > RATE_LIMIT_MAX_REQUESTS) {
-    console.warn(`[middleware] acceso rechazado`, {
-      path: request.nextUrl.pathname,
-      method: request.method,
-      reason: "rate_limited"
-    });
-
-    return addSecurityHeaders(
-      NextResponse.json(
-        { error: "Demasiadas solicitudes" },
-        { status: 429 }
-      ),
-      request.nextUrl.pathname
-    );
+  if (!result.limited) {
+    return null;
   }
 
-  rateLimitStore.set(ip, current);
-  return null;
+  console.warn("[middleware] acceso rechazado", {
+    path: request.nextUrl.pathname,
+    method: request.method,
+    reason: "rate_limited"
+  });
+
+  const response = NextResponse.json(
+    { error: "Demasiadas solicitudes" },
+    { status: 429 }
+  );
+
+  response.headers.set("Retry-After", `${result.retryAfterSeconds}`);
+  return addSecurityHeaders(response, request.nextUrl.pathname);
 }
 
 function decodeBase64Url(value: string) {
@@ -216,8 +172,15 @@ async function verifyJwt(token: string, secret: string) {
     }
 
     if (
-      typeof payload.exp === "number" &&
+      typeof payload.exp !== "number" ||
       payload.exp <= Math.floor(Date.now() / 1000)
+    ) {
+      return null;
+    }
+
+    if (
+      typeof payload.role !== "string" ||
+      !VALID_AUTH_ROLES.includes(payload.role as (typeof VALID_AUTH_ROLES)[number])
     ) {
       return null;
     }
@@ -238,7 +201,7 @@ function buildLoginRedirect(request: NextRequest) {
 }
 
 function rejectUnauthorized(request: NextRequest, reason: string) {
-  console.warn(`[middleware] acceso rechazado`, {
+  console.warn("[middleware] acceso rechazado", {
     path: request.nextUrl.pathname,
     method: request.method,
     reason
@@ -246,10 +209,7 @@ function rejectUnauthorized(request: NextRequest, reason: string) {
 
   if (request.nextUrl.pathname.startsWith("/api/")) {
     return addSecurityHeaders(
-      NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      ),
+      NextResponse.json({ error: "No autorizado" }, { status: 401 }),
       request.nextUrl.pathname
     );
   }
@@ -261,7 +221,7 @@ function rejectUnauthorized(request: NextRequest, reason: string) {
 }
 
 function rejectForbidden(request: NextRequest, reason: string) {
-  console.warn(`[middleware] acceso rechazado`, {
+  console.warn("[middleware] acceso rechazado", {
     path: request.nextUrl.pathname,
     method: request.method,
     reason
@@ -269,10 +229,7 @@ function rejectForbidden(request: NextRequest, reason: string) {
 
   if (request.nextUrl.pathname.startsWith("/api/")) {
     return addSecurityHeaders(
-      NextResponse.json(
-        { error: "Acceso denegado" },
-        { status: 403 }
-      ),
+      NextResponse.json({ error: "Acceso denegado" }, { status: 403 }),
       request.nextUrl.pathname
     );
   }
@@ -289,7 +246,7 @@ function rejectForbidden(request: NextRequest, reason: string) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const rateLimitResponse = applyRateLimit(request);
+  const rateLimitResponse = await applyApiRateLimit(request);
 
   if (rateLimitResponse) {
     return rateLimitResponse;
@@ -300,9 +257,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const needsAdmin = isAdminPage(pathname) || isAdminApi(pathname);
-  const needsAuthenticatedWrite =
-    requiresAuthenticatedWrite(request) || isProtectedProductsWrite(request);
-  const needsAuth = needsAdmin || needsAuthenticatedWrite;
+  const needsAuth = needsAdmin || requiresAuthenticatedWrite(request);
 
   if (!needsAuth) {
     return addSecurityHeaders(NextResponse.next(), pathname);
@@ -334,5 +289,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/:path*"]
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map)$).*)"]
 };

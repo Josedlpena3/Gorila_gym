@@ -1,7 +1,5 @@
 import { OrderStatus } from "@prisma/client";
 
-export const AUTH_COOKIE_NAME = "gorila_strong_session";
-
 export const OBJECTIVE_LABELS: Record<string, string> = {
   MUSCLE_GAIN: "Volumen muscular",
   RECOVERY: "Recuperación",

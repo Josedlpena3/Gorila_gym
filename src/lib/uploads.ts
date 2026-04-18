@@ -1,7 +1,6 @@
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import { createHash } from "crypto";
 import { AppError } from "@/lib/errors";
+import { env } from "@/lib/env";
 
 export type UploadCategory = "products" | "payment-proofs";
 
@@ -23,23 +22,6 @@ const MAX_UPLOAD_BYTES: Record<UploadCategory, number> = {
   "payment-proofs": 8 * 1024 * 1024
 };
 
-const EXTENSION_BY_MIME: Record<string, string> = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp"
-};
-
-const MIME_BY_EXTENSION: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp"
-};
-
-function getUploadDirectory(category: UploadCategory) {
-  return path.join(process.cwd(), "public", "uploads", category);
-}
-
 function sanitizeFileName(value: string) {
   return value
     .normalize("NFD")
@@ -49,22 +31,36 @@ function sanitizeFileName(value: string) {
     .toLowerCase();
 }
 
-function getExtension(fileName: string, mimeType: string) {
-  const extension = path.extname(fileName);
-
-  if (extension) {
-    return extension.toLowerCase();
-  }
-
-  return EXTENSION_BY_MIME[mimeType] ?? ".bin";
+function getCloudinaryFolder(category: UploadCategory) {
+  return `${env.cloudinaryUploadFolder}/${category}`.replace(/\/{2,}/g, "/");
 }
 
-function inferMimeType(fileName: string, mimeType: string) {
-  if (mimeType) {
-    return mimeType;
+function getUploadUnavailableMessage(category: UploadCategory) {
+  if (category === "products") {
+    return "La carga de imágenes no está disponible ahora. Podés guardar el producto sin imagen.";
   }
 
-  return MIME_BY_EXTENSION[path.extname(fileName).toLowerCase()] ?? "";
+  return "La carga de archivos no está disponible ahora. Intentá nuevamente más tarde.";
+}
+
+function buildCloudinarySignature(params: Record<string, string>) {
+  const signatureBase = Object.entries(params)
+    .filter(([, value]) => value.length > 0)
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+
+  return createHash("sha1")
+    .update(`${signatureBase}${env.cloudinaryApiSecret}`)
+    .digest("hex");
+}
+
+function isCloudinaryConfigured() {
+  return Boolean(
+    env.cloudinaryCloudName &&
+      env.cloudinaryApiKey &&
+      env.cloudinaryApiSecret
+  );
 }
 
 function assertValidImage(input: {
@@ -93,89 +89,88 @@ function assertValidImage(input: {
   }
 }
 
-async function writeUpload(input: {
-  buffer: Buffer;
-  originalName: string;
-  mimeType: string;
-  category: UploadCategory;
-}) {
-  assertValidImage({
-    mimeType: input.mimeType,
-    size: input.buffer.length,
-    category: input.category
+async function uploadToCloudinary(
+  file: File,
+  category: UploadCategory
+): Promise<StoredUpload> {
+  if (!isCloudinaryConfigured()) {
+    throw new AppError(getUploadUnavailableMessage(category), 503);
+  }
+
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const folder = getCloudinaryFolder(category);
+  const signature = buildCloudinarySignature({
+    folder,
+    timestamp
   });
+  const formData = new FormData();
 
-  const directory = getUploadDirectory(input.category);
-  await mkdir(directory, { recursive: true });
+  formData.append("file", file);
+  formData.append("api_key", env.cloudinaryApiKey);
+  formData.append("timestamp", timestamp);
+  formData.append("folder", folder);
+  formData.append("signature", signature);
 
-  const baseName =
-    sanitizeFileName(path.basename(input.originalName, path.extname(input.originalName))) ||
-    input.category;
-  const fileName = `${baseName}-${randomUUID()}${getExtension(
-    input.originalName,
-    input.mimeType
-  )}`;
-  const absolutePath = path.join(directory, fileName);
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${env.cloudinaryCloudName}/image/upload`,
+    {
+      method: "POST",
+      body: formData,
+      cache: "no-store"
+    }
+  );
 
-  await writeFile(absolutePath, input.buffer);
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        secure_url?: string;
+        original_filename?: string;
+        public_id?: string;
+        format?: string;
+      }
+    | null;
+
+  if (!response.ok || typeof payload?.secure_url !== "string") {
+    throw new AppError("No se pudo completar la carga del archivo.", 503);
+  }
+
+  const baseFileName =
+    sanitizeFileName(payload.original_filename || file.name || payload.public_id || "") ||
+    `${category}-${timestamp}`;
+  const extension =
+    typeof payload.format === "string" && payload.format.length > 0
+      ? `.${payload.format}`
+      : "";
 
   return {
-    url: `/uploads/${input.category}/${fileName}`,
-    fileName,
-    mimeType: input.mimeType,
-    size: input.buffer.length
-  } satisfies StoredUpload;
+    url: payload.secure_url,
+    fileName: `${baseFileName}${extension}`,
+    mimeType: file.type,
+    size: file.size
+  };
 }
 
 export async function storeUploadedFile(
   file: File,
   category: UploadCategory
 ) {
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  return writeUpload({
-    buffer,
-    originalName: file.name,
+  assertValidImage({
     mimeType: file.type,
+    size: file.size,
     category
   });
-}
 
-export async function importRemoteImage(
-  sourceUrl: string,
-  category: UploadCategory
-) {
-  let parsedUrl: URL;
-
-  try {
-    parsedUrl = new URL(sourceUrl);
-  } catch {
-    throw new AppError("La URL de la imagen no es válida.", 400);
-  }
-
-  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-    throw new AppError("La URL de la imagen debe ser pública y usar http o https.", 400);
-  }
-
-  const response = await fetch(sourceUrl);
-
-  if (!response.ok) {
-    throw new AppError("No se pudo descargar la imagen desde la URL indicada.", 400);
-  }
-
-  const contentType =
-    response.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
-  const buffer = Buffer.from(await response.arrayBuffer());
-  const originalName = path.basename(parsedUrl.pathname) || `${category}.jpg`;
-
-  return writeUpload({
-    buffer,
-    originalName,
-    mimeType: inferMimeType(originalName, contentType),
-    category
-  });
+  return uploadToCloudinary(file, category);
 }
 
 export function isStoredUploadUrl(value: string) {
-  return value.startsWith("/uploads/");
+  if (value.startsWith("/uploads/")) {
+    return true;
+  }
+
+  try {
+    const url = new URL(value);
+    return url.hostname === "res.cloudinary.com";
+  } catch {
+    return false;
+  }
 }

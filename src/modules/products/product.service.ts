@@ -2,13 +2,31 @@ import { Prisma } from "@prisma/client";
 import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
-import { importRemoteImage, isStoredUploadUrl } from "@/lib/uploads";
+import { isStoredUploadUrl } from "@/lib/uploads";
 import { decimalToNumber, slugify } from "@/lib/utils";
 import {
   productFiltersSchema,
   productSchema
 } from "@/modules/products/product.schemas";
 import type { ProductCardDto, ProductDetailDto } from "@/types";
+
+const DEFAULT_CATEGORIES = [
+  {
+    slug: "proteinas",
+    name: "Proteínas",
+    description: "Proteínas para recuperación y desarrollo muscular."
+  },
+  {
+    slug: "creatinas",
+    name: "Creatinas",
+    description: "Creatinas para fuerza, potencia y rendimiento."
+  },
+  {
+    slug: "pre-entrenos",
+    name: "Pre entrenos",
+    description: "Fórmulas para energía y enfoque antes de entrenar."
+  }
+] as const;
 
 const productInclude = {
   category: true,
@@ -19,29 +37,132 @@ const productInclude = {
   }
 };
 
-async function normalizeProductImages(
-  urls: string[],
-  options?: { allowedRemoteUrls?: Set<string> }
-) {
-  const normalized = await Promise.all(
-    urls.map(async (url) => {
-      if (isStoredUploadUrl(url)) {
+function isPublicImageUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
+async function ensureDefaultCategories() {
+  const existingCount = await prisma.category.count();
+
+  if (existingCount > 0) {
+    return;
+  }
+
+  await Promise.all(
+    DEFAULT_CATEGORIES.map((category) =>
+      prisma.category.upsert({
+        where: { slug: category.slug },
+        update: {
+          name: category.name,
+          description: category.description
+        },
+        create: {
+          slug: category.slug,
+          name: category.name,
+          description: category.description
+        }
+      })
+    )
+  );
+}
+
+async function getSortedCategories() {
+  await ensureDefaultCategories();
+
+  return prisma.category.findMany({
+    orderBy: {
+      name: "asc"
+    }
+  });
+}
+
+function normalizeProductImages(urls: string[]) {
+  const normalized = urls
+    .map((url) => url.trim())
+    .filter(Boolean)
+    .map((url) => {
+      if (isStoredUploadUrl(url) || isPublicImageUrl(url)) {
         return url;
       }
 
-      if (!options?.allowedRemoteUrls?.has(url)) {
-        throw new AppError(
-          "Las imágenes del producto deben subirse desde tu equipo antes de guardar.",
-          400
-        );
-      }
-
-      const storedImage = await importRemoteImage(url, "products");
-      return storedImage.url;
-    })
-  );
+      throw new AppError("Las imágenes del producto no son válidas.", 400);
+    });
 
   return Array.from(new Set(normalized));
+}
+
+function buildProductSlug(input: {
+  name: string;
+  brand: string;
+  slug?: string | null;
+}) {
+  return slugify(input.slug?.trim() || `${input.name} ${input.brand}`);
+}
+
+async function assertProductDoesNotExist(input: {
+  sku: string;
+  name: string;
+  brand: string;
+  excludeProductId?: string;
+}) {
+  const duplicateProduct = await prisma.product.findFirst({
+    where: {
+      ...(input.excludeProductId
+        ? {
+            id: {
+              not: input.excludeProductId
+            }
+          }
+        : {}),
+      OR: [
+        {
+          sku: {
+            equals: input.sku,
+            mode: "insensitive"
+          }
+        },
+        {
+          AND: [
+            {
+              name: {
+                equals: input.name,
+                mode: "insensitive"
+              }
+            },
+            {
+              brand: {
+                equals: input.brand,
+                mode: "insensitive"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (duplicateProduct) {
+    throw new AppError("Este producto ya existe", 409);
+  }
+}
+
+function throwIfProductPersistenceError(error: unknown): never {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    throw new AppError("Este producto ya existe", 409);
+  }
+
+  throw error;
 }
 
 function mapProductCard(product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): ProductCardDto {
@@ -150,11 +271,7 @@ export async function listCatalogProducts(filters: unknown = {}) {
       include: productInclude,
       orderBy: [{ featured: "desc" }, { createdAt: "desc" }]
     }),
-    prisma.category.findMany({
-      orderBy: {
-        name: "asc"
-      }
-    }),
+    getSortedCategories(),
     prisma.product.findMany({
       where: { active: true },
       select: { brand: true },
@@ -187,11 +304,7 @@ export async function getFeaturedProducts(limit = 4) {
 }
 
 export async function listCategories() {
-  return prisma.category.findMany({
-    orderBy: {
-      name: "asc"
-    }
-  });
+  return getSortedCategories();
 }
 
 export async function getProductBySlug(slug: string) {
@@ -273,6 +386,11 @@ export async function getStockOverview() {
 
 export async function createProduct(input: unknown, adminUserId: string) {
   const data = productSchema.parse(input);
+  await assertProductDoesNotExist({
+    sku: data.sku,
+    name: data.name,
+    brand: data.brand
+  });
 
   const category = await prisma.category.findUnique({
     where: { id: data.categoryId }
@@ -282,35 +400,41 @@ export async function createProduct(input: unknown, adminUserId: string) {
     throw new AppError("La categoría seleccionada no existe", 404);
   }
 
-  const slug = slugify(data.slug || data.name);
-  const images = await normalizeProductImages(data.images);
+  const slug = buildProductSlug(data);
+  const images = normalizeProductImages(data.images);
 
-  const product = await prisma.product.create({
-    data: {
-      sku: data.sku,
-      name: data.name,
-      slug,
-      brand: data.brand,
-      categoryId: data.categoryId,
-      description: data.description,
-      benefits: data.benefits,
-      price: data.price,
-      stock: data.stock,
-      objective: data.objective,
-      active: data.active,
-      featured: data.featured,
-      weight: data.weight,
-      flavor: data.flavor,
-      images: {
-        create: images.map((url, index) => ({
-          url,
-          alt: `${data.name} imagen ${index + 1}`,
-          position: index,
-          isPrimary: index === 0
-        }))
+  let product;
+
+  try {
+    product = await prisma.product.create({
+      data: {
+        sku: data.sku,
+        name: data.name,
+        slug,
+        brand: data.brand,
+        categoryId: data.categoryId,
+        description: data.description,
+        benefits: data.benefits,
+        price: data.price,
+        stock: data.stock,
+        objective: data.objective,
+        active: data.active,
+        featured: data.featured,
+        weight: data.weight,
+        flavor: data.flavor,
+        images: {
+          create: images.map((url, index) => ({
+            url,
+            alt: `${data.name} imagen ${index + 1}`,
+            position: index,
+            isPrimary: index === 0
+          }))
+        }
       }
-    }
-  });
+    });
+  } catch (error) {
+    throwIfProductPersistenceError(error);
+  }
 
   await logAdminAction({
     adminUserId,
@@ -344,46 +468,57 @@ export async function updateProduct(
     throw new AppError("Producto no encontrado", 404);
   }
 
-  const slug = slugify(data.slug || data.name);
-  const images = await normalizeProductImages(data.images, {
-    allowedRemoteUrls: new Set(existingProduct.images.map((image) => image.url))
+  await assertProductDoesNotExist({
+    sku: data.sku,
+    name: data.name,
+    brand: data.brand,
+    excludeProductId: id
   });
 
-  const product = await prisma.$transaction(async (tx) => {
-    await tx.productImage.deleteMany({
-      where: {
-        productId: id
-      }
-    });
+  const slug = buildProductSlug(data);
+  const images = normalizeProductImages(data.images);
 
-    return tx.product.update({
-      where: { id },
-      data: {
-        sku: data.sku,
-        name: data.name,
-        slug,
-        brand: data.brand,
-        categoryId: data.categoryId,
-        description: data.description,
-        benefits: data.benefits,
-        price: data.price,
-        stock: data.stock,
-        objective: data.objective,
-        active: data.active,
-        featured: data.featured,
-        weight: data.weight,
-        flavor: data.flavor,
-        images: {
-          create: images.map((url, index) => ({
-            url,
-            alt: `${data.name} imagen ${index + 1}`,
-            position: index,
-            isPrimary: index === 0
-          }))
+  let product;
+
+  try {
+    product = await prisma.$transaction(async (tx) => {
+      await tx.productImage.deleteMany({
+        where: {
+          productId: id
         }
-      }
+      });
+
+      return tx.product.update({
+        where: { id },
+        data: {
+          sku: data.sku,
+          name: data.name,
+          slug,
+          brand: data.brand,
+          categoryId: data.categoryId,
+          description: data.description,
+          benefits: data.benefits,
+          price: data.price,
+          stock: data.stock,
+          objective: data.objective,
+          active: data.active,
+          featured: data.featured,
+          weight: data.weight,
+          flavor: data.flavor,
+          images: {
+            create: images.map((url, index) => ({
+              url,
+              alt: `${data.name} imagen ${index + 1}`,
+              position: index,
+              isPrimary: index === 0
+            }))
+          }
+        }
+      });
     });
-  });
+  } catch (error) {
+    throwIfProductPersistenceError(error);
+  }
 
   await logAdminAction({
     adminUserId,

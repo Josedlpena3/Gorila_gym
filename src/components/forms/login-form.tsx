@@ -3,7 +3,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -12,38 +12,92 @@ export function LoginForm({ redirectTo = "/catalogo" }: { redirectTo?: string })
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+  const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
+  const [nowTimestamp, setNowTimestamp] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!blockedUntil) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setNowTimestamp(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [blockedUntil]);
+
+  useEffect(() => {
+    if (blockedUntil && blockedUntil <= nowTimestamp) {
+      setBlockedUntil(null);
+    }
+  }, [blockedUntil, nowTimestamp]);
+
+  const isTemporarilyBlocked = Boolean(blockedUntil && blockedUntil > nowTimestamp);
 
   return (
     <form
       className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
+        if (isTemporarilyBlocked) {
+          return;
+        }
+
         const formData = new FormData(event.currentTarget);
 
         startTransition(async () => {
           setError(null);
 
-          const response = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              email: formData.get("email"),
-              password: formData.get("password")
-            })
-          });
+          try {
+            const response = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                email: formData.get("email"),
+                password: formData.get("password")
+              })
+            });
 
-          if (!response.ok) {
-            const payload = await response.json().catch(() => null);
-            setError(payload?.error ?? "No se pudo iniciar sesión.");
-            return;
+            const payload = (await response.json().catch(() => null)) as
+              | {
+                  error?: string;
+                  retryAfterSeconds?: number;
+                  user?: {
+                    role: "ADMIN" | "CUSTOMER";
+                  };
+                }
+              | null;
+
+            if (!response.ok) {
+              if (response.status === 429) {
+                const retryAfterHeader = Number(response.headers.get("Retry-After"));
+                const retryAfterSeconds = Number.isFinite(payload?.retryAfterSeconds)
+                  ? Number(payload?.retryAfterSeconds)
+                  : Number.isFinite(retryAfterHeader)
+                    ? retryAfterHeader
+                    : 300;
+
+                setBlockedUntil(Date.now() + Math.max(retryAfterSeconds, 1) * 1000);
+                setNowTimestamp(Date.now());
+                setError("Demasiados intentos, esperá unos minutos");
+                return;
+              }
+
+              setError(payload?.error ?? "No se pudo iniciar sesión.");
+              return;
+            }
+
+            const nextPath = payload?.user?.role === "ADMIN" ? "/admin" : redirectTo;
+            router.push(nextPath);
+            router.refresh();
+          } catch {
+            setError("No se pudo iniciar sesión.");
           }
-
-          const payload = await response.json();
-          const nextPath = payload.user.role === "ADMIN" ? "/admin" : redirectTo;
-          router.push(nextPath);
-          router.refresh();
         });
       }}
     >
@@ -74,8 +128,13 @@ export function LoginForm({ redirectTo = "/catalogo" }: { redirectTo?: string })
       </div>
 
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      {isTemporarilyBlocked ? (
+        <p className="text-xs text-amber-200">
+          El acceso está pausado temporalmente. Intentá nuevamente en unos minutos.
+        </p>
+      ) : null}
 
-      <Button className="w-full" disabled={isPending}>
+      <Button className="w-full" disabled={isPending || isTemporarilyBlocked}>
         {isPending ? "Ingresando..." : "Ingresar"}
       </Button>
 

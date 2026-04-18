@@ -25,21 +25,21 @@ const imageSourceSchema = z
   .transform((value) => value.trim());
 
 export const productSchema = z.object({
-  sku: z.string().min(3, "SKU inválido"),
-  name: z.string().min(3, "Nombre inválido"),
-  slug: z.string().optional(),
-  brand: z.string().min(2, "Marca inválida"),
-  categoryId: z.string().min(1, "Categoría requerida"),
-  description: z.string().min(20, "Descripción demasiado corta"),
+  sku: z.string().trim().min(3, "SKU inválido"),
+  name: z.string().trim().min(3, "Nombre inválido"),
+  slug: z.string().trim().optional(),
+  brand: z.string().trim().min(2, "Marca inválida"),
+  categoryId: z.string().trim().min(1, "Categoría requerida"),
+  description: z.string().trim().min(20, "Descripción demasiado corta"),
   benefits: z.array(z.string().min(2)).default([]),
   price: z.coerce.number().positive("Precio inválido"),
   stock: z.coerce.number().int().min(0, "Stock inválido"),
   objective: z.nativeEnum(Objective),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
-  weight: z.string().optional(),
-  flavor: z.string().optional(),
-  images: z.array(imageSourceSchema).min(1, "Agregá al menos una imagen")
+  weight: z.string().trim().optional(),
+  flavor: z.string().trim().optional(),
+  images: z.array(imageSourceSchema).default([])
 });
 
 export const productFiltersSchema = z.object({

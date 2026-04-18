@@ -4,7 +4,8 @@ const defaultImageHosts = [
   "starnutrition.com.ar",
   "www.starnutrition.com.ar",
   "titannutrition.net",
-  "www.titannutrition.net"
+  "www.titannutrition.net",
+  "res.cloudinary.com"
 ];
 
 const allowedImageHosts = Array.from(

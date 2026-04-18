@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSessionToken, setSessionCookie } from "@/lib/auth";
-import { handleRouteError } from "@/lib/errors";
+import { AppError, handleRouteError } from "@/lib/errors";
 import { loginUser } from "@/modules/auth/auth.service";
 
 export async function POST(request: Request) {
@@ -28,6 +28,29 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
+    if (error instanceof AppError && error.statusCode === 429) {
+      const retryAfterSeconds =
+        typeof error.details === "object" &&
+        error.details !== null &&
+        "retryAfterSeconds" in error.details &&
+        typeof error.details.retryAfterSeconds === "number"
+          ? Math.max(Math.ceil(error.details.retryAfterSeconds), 1)
+          : 300;
+
+      return NextResponse.json(
+        {
+          error: error.message,
+          retryAfterSeconds
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": `${retryAfterSeconds}`
+          }
+        }
+      );
+    }
+
     return handleRouteError(error);
   }
 }

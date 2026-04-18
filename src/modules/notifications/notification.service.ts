@@ -24,7 +24,8 @@ function buildEmailShell(input: {
   intro: string;
   actionUrl: string;
   actionLabel: string;
-  fallbackLabel: string;
+  fallbackLabel?: string;
+  showPlainLink?: boolean;
   footer: string;
 }) {
   return `
@@ -42,10 +43,15 @@ function buildEmailShell(input: {
             <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#f5f1e8;">${input.title}</h1>
             <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#c3cad5;">${input.intro}</p>
             <div style="margin:0 0 24px;">${buildActionButton(input.actionUrl, input.actionLabel)}</div>
+            ${
+              input.showPlainLink === false || !input.fallbackLabel
+                ? ""
+                : `
             <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#c3cad5;">${input.fallbackLabel}</p>
             <p style="margin:0 0 24px;font-size:14px;line-height:1.6;word-break:break-all;">
               <a href="${input.actionUrl}" style="color:#b7ff39;text-decoration:none;">${input.actionUrl}</a>
-            </p>
+            </p>`
+            }
             <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;">
               <p style="margin:0;font-size:13px;line-height:1.6;color:#9aa4b2;">${input.footer}</p>
             </div>
@@ -88,7 +94,7 @@ export async function sendPasswordResetEmail(input: {
       "Recibimos una solicitud para recuperar el acceso a tu cuenta. Usá el botón de abajo para definir una nueva contraseña.",
     actionUrl: input.resetUrl,
     actionLabel: "Restablecer contraseña",
-    fallbackLabel: "Si el botón no funciona, copiá y pegá este enlace en tu navegador:",
+    showPlainLink: false,
     footer: `Este enlace vence ${formatDate(input.expiresAt)} y solo puede usarse una vez.`
   });
 
@@ -112,7 +118,7 @@ export async function sendEmailVerificationEmail(input: {
       "Para activar tu cuenta y poder completar compras, confirmá tu email desde el siguiente botón.",
     actionUrl: input.verificationUrl,
     actionLabel: "Verificar email",
-    fallbackLabel: "Si el botón no funciona, copiá y pegá este enlace en tu navegador:",
+    showPlainLink: false,
     footer: `Este enlace vence ${formatDate(input.expiresAt)} y solo puede usarse una vez.`
   });
 
