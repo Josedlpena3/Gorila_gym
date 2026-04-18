@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/errors";
+import { AppError, handleRouteError } from "@/lib/errors";
 import { storeUploadedFile } from "@/lib/uploads";
 import { requireAdminUser } from "@/modules/users/user.service";
 
@@ -37,6 +37,17 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (!(error instanceof AppError && error.statusCode === 400)) {
+      console.error("[api/admin/uploads] fallo upload", {
+        message: error instanceof Error ? error.message : "unknown_error"
+      });
+
+      return NextResponse.json(
+        { error: "No se pudo subir la imagen." },
+        { status: 500 }
+      );
+    }
+
     return handleRouteError(error);
   }
 }

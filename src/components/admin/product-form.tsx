@@ -329,7 +329,9 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                           (value: unknown): value is string =>
                             typeof value === "string"
                         )
-                    : [];
+                    : typeof uploadPayload?.url === "string"
+                      ? [uploadPayload.url]
+                      : [];
 
                   imageItemsToPersist = replacePendingFilesWithUploadedUrls(uploadedImages);
                   setImageItems(imageItemsToPersist);

@@ -24,7 +24,7 @@ function buildContentSecurityPolicy(pathname: string) {
 
   return [
     "default-src 'self';",
-    "img-src 'self' https: data:;",
+    "img-src 'self' https: data: blob:;",
     "script-src 'self' 'unsafe-inline';",
     "style-src 'self' 'unsafe-inline';",
     "object-src 'none';",

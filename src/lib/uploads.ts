@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 import { AppError } from "@/lib/errors";
 import { env } from "@/lib/env";
 
@@ -35,25 +35,11 @@ function getCloudinaryFolder(category: UploadCategory) {
   return `${env.cloudinaryUploadFolder}/${category}`.replace(/\/{2,}/g, "/");
 }
 
-function getUploadUnavailableMessage(category: UploadCategory) {
-  if (category === "products") {
-    return "La carga de imágenes no está disponible ahora. Podés guardar el producto sin imagen.";
-  }
-
-  return "La carga de archivos no está disponible ahora. Intentá nuevamente más tarde.";
+function getUploadFailureMessage() {
+  return "No se pudo subir la imagen.";
 }
 
-function buildCloudinarySignature(params: Record<string, string>) {
-  const signatureBase = Object.entries(params)
-    .filter(([, value]) => value.length > 0)
-    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
-    .map(([key, value]) => `${key}=${value}`)
-    .join("&");
-
-  return createHash("sha1")
-    .update(`${signatureBase}${env.cloudinaryApiSecret}`)
-    .digest("hex");
-}
+let cloudinaryConfigured = false;
 
 function isCloudinaryConfigured() {
   return Boolean(
@@ -61,6 +47,22 @@ function isCloudinaryConfigured() {
       env.cloudinaryApiKey &&
       env.cloudinaryApiSecret
   );
+}
+
+function ensureCloudinaryConfigured() {
+  if (!isCloudinaryConfigured()) {
+    throw new AppError(getUploadFailureMessage(), 500);
+  }
+
+  if (!cloudinaryConfigured) {
+    cloudinary.config({
+      cloud_name: env.cloudinaryCloudName,
+      api_key: env.cloudinaryApiKey,
+      api_secret: env.cloudinaryApiSecret,
+      secure: true
+    });
+    cloudinaryConfigured = true;
+  }
 }
 
 function assertValidImage(input: {
@@ -93,53 +95,42 @@ async function uploadToCloudinary(
   file: File,
   category: UploadCategory
 ): Promise<StoredUpload> {
-  if (!isCloudinaryConfigured()) {
-    throw new AppError(getUploadUnavailableMessage(category), 503);
-  }
-
-  const timestamp = Math.floor(Date.now() / 1000).toString();
+  ensureCloudinaryConfigured();
   const folder = getCloudinaryFolder(category);
-  const signature = buildCloudinarySignature({
-    folder,
-    timestamp
-  });
-  const formData = new FormData();
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const originalName =
+    sanitizeFileName(file.name.replace(/\.[^.]+$/, "")) || `${category}-${Date.now()}`;
+  const payload = await new Promise<UploadApiResponse>((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: "image",
+        use_filename: true,
+        unique_filename: true,
+        filename_override: originalName
+      },
+      (error, result) => {
+        if (error || !result) {
+          reject(error ?? new Error("cloudinary_upload_failed"));
+          return;
+        }
 
-  formData.append("file", file);
-  formData.append("api_key", env.cloudinaryApiKey);
-  formData.append("timestamp", timestamp);
-  formData.append("folder", folder);
-  formData.append("signature", signature);
-
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${env.cloudinaryCloudName}/image/upload`,
-    {
-      method: "POST",
-      body: formData,
-      cache: "no-store"
-    }
-  );
-
-  const payload = (await response.json().catch(() => null)) as
-    | {
-        secure_url?: string;
-        original_filename?: string;
-        public_id?: string;
-        format?: string;
+        resolve(result);
       }
-    | null;
+    );
 
-  if (!response.ok || typeof payload?.secure_url !== "string") {
-    throw new AppError("No se pudo completar la carga del archivo.", 503);
-  }
+    uploadStream.end(buffer);
+  }).catch((error) => {
+    console.error("[cloudinary] error al subir imagen", {
+      message: error instanceof Error ? error.message : "unknown_error"
+    });
+    throw new AppError(getUploadFailureMessage(), 500);
+  });
 
   const baseFileName =
     sanitizeFileName(payload.original_filename || file.name || payload.public_id || "") ||
-    `${category}-${timestamp}`;
-  const extension =
-    typeof payload.format === "string" && payload.format.length > 0
-      ? `.${payload.format}`
-      : "";
+    `${category}-${Date.now()}`;
+  const extension = payload.format ? `.${payload.format}` : "";
 
   return {
     url: payload.secure_url,
@@ -163,10 +154,6 @@ export async function storeUploadedFile(
 }
 
 export function isStoredUploadUrl(value: string) {
-  if (value.startsWith("/uploads/")) {
-    return true;
-  }
-
   try {
     const url = new URL(value);
     return url.hostname === "res.cloudinary.com";
