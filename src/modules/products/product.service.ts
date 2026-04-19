@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { ZodError } from "zod";
 import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -35,6 +36,17 @@ const productInclude = {
       position: "asc" as const
     }
   }
+};
+
+export type BulkCreateProductsResult = {
+  created: number;
+  failed: number;
+  errors: Array<{
+    index: number;
+    sku: string | null;
+    name: string | null;
+    error: string;
+  }>;
 };
 
 function isPublicImageUrl(value: string) {
@@ -163,6 +175,40 @@ function throwIfProductPersistenceError(error: unknown): never {
   }
 
   throw error;
+}
+
+function getBulkErrorMessage(error: unknown) {
+  if (error instanceof AppError) {
+    return error.message;
+  }
+
+  if (error instanceof ZodError) {
+    const details = error.flatten();
+    const firstFieldError = Object.values(details.fieldErrors)
+      .flat()
+      .find((message): message is string => Boolean(message));
+    const firstFormError = details.formErrors.find(Boolean);
+
+    return firstFieldError ?? firstFormError ?? "Datos inválidos";
+  }
+
+  return "Error interno";
+}
+
+function getBulkProductDebugInfo(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return {
+      sku: null,
+      name: null
+    };
+  }
+
+  const product = input as Record<string, unknown>;
+
+  return {
+    sku: typeof product.sku === "string" ? product.sku : null,
+    name: typeof product.name === "string" ? product.name : null
+  };
 }
 
 function mapProductCard(product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): ProductCardDto {
@@ -447,6 +493,51 @@ export async function createProduct(input: unknown, adminUserId: string) {
   });
 
   return product;
+}
+
+export async function bulkCreateProducts(
+  input: unknown,
+  adminUserId: string
+): Promise<BulkCreateProductsResult> {
+  if (!Array.isArray(input)) {
+    throw new AppError("Debes enviar un array de productos", 400);
+  }
+
+  let created = 0;
+  let failed = 0;
+  const errors: BulkCreateProductsResult["errors"] = [];
+
+  for (const [index, item] of input.entries()) {
+    const debugInfo = getBulkProductDebugInfo(item);
+
+    try {
+      await createProduct(item, adminUserId);
+      created += 1;
+    } catch (error) {
+      failed += 1;
+      const message = getBulkErrorMessage(error);
+
+      console.warn("[bulk_products] producto omitido", {
+        index,
+        sku: debugInfo.sku,
+        name: debugInfo.name,
+        message
+      });
+
+      errors.push({
+        index,
+        sku: debugInfo.sku,
+        name: debugInfo.name,
+        error: message
+      });
+    }
+  }
+
+  return {
+    created,
+    failed,
+    errors
+  };
 }
 
 export async function updateProduct(
