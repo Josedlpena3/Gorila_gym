@@ -12,6 +12,44 @@ type CategoryFilter = {
   slug: string;
 };
 
+const CATEGORY_ORDER: readonly string[] = [
+  "Creatinas",
+  "Proteínas",
+  "Pre entrenos",
+  "Pancakes",
+  "Aminoácidos",
+  "Geles",
+  "Barritas",
+  "Shakers"
+] as const;
+
+function getCategoryDisplayName(name: string) {
+  return name === "Panqueques" ? "Pancakes" : name;
+}
+
+function sortCategories(categories: CategoryFilter[]) {
+  return [...categories].sort((categoryA, categoryB) => {
+    const nameA = getCategoryDisplayName(categoryA.name);
+    const nameB = getCategoryDisplayName(categoryB.name);
+    const indexA = CATEGORY_ORDER.indexOf(nameA);
+    const indexB = CATEGORY_ORDER.indexOf(nameB);
+
+    if (indexA === -1 && indexB === -1) {
+      return nameA.localeCompare(nameB, "es");
+    }
+
+    if (indexA === -1) {
+      return 1;
+    }
+
+    if (indexB === -1) {
+      return -1;
+    }
+
+    return indexA - indexB;
+  });
+}
+
 export function CatalogToolbar({
   currentQuery,
   currentCategory
@@ -98,6 +136,7 @@ export function CatalogToolbar({
   const selectedCategory =
     categories.find((category) => category.id === currentCategory) ??
     categories.find((category) => category.slug === currentCategory);
+  const sortedCategories = sortCategories(categories);
 
   function isCurrentCategory(category: CategoryFilter) {
     return selectedCategory
@@ -158,7 +197,7 @@ export function CatalogToolbar({
                     Todo
                   </Link>
 
-                  {categories.map((category) => (
+                  {sortedCategories.map((category) => (
                     <Link
                       key={category.id}
                       href={buildCategoryHref(category.id)}
@@ -169,7 +208,7 @@ export function CatalogToolbar({
                       }`}
                       onClick={() => setIsExploreOpen(false)}
                     >
-                      {category.name}
+                      {getCategoryDisplayName(category.name)}
                     </Link>
                   ))}
                 </div>
@@ -224,7 +263,7 @@ export function CatalogToolbar({
             Todo
           </Link>
 
-          {categories.map((category) => (
+          {sortedCategories.map((category) => (
             <Link
               key={category.id}
               href={buildCategoryHref(category.id)}
@@ -234,7 +273,7 @@ export function CatalogToolbar({
                   : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
               }`}
             >
-              {category.name}
+              {getCategoryDisplayName(category.name)}
             </Link>
           ))}
         </div>
