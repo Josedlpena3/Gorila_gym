@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { syncGuestCartToServer } from "@/lib/guest-cart";
 
 export function LoginForm({ redirectTo = "/catalogo" }: { redirectTo?: string }) {
   const router = useRouter();
@@ -92,7 +93,21 @@ export function LoginForm({ redirectTo = "/catalogo" }: { redirectTo?: string })
               return;
             }
 
-            const nextPath = payload?.user?.role === "ADMIN" ? "/admin" : redirectTo;
+            let nextPath = payload?.user?.role === "ADMIN" ? "/admin" : redirectTo;
+
+            if (payload?.user?.role !== "ADMIN") {
+              try {
+                const syncResult = await syncGuestCartToServer();
+
+                if (syncResult.failed > 0) {
+                  console.warn("[login] algunos items del carrito no se pudieron sincronizar");
+                  nextPath = "/carrito";
+                }
+              } catch {
+                console.warn("[login] no se pudo sincronizar el carrito invitado");
+              }
+            }
+
             router.push(nextPath);
             router.refresh();
           } catch {

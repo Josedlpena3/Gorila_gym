@@ -34,6 +34,14 @@ const optionalPageSize = z.preprocess((value) => {
   return value;
 }, z.coerce.number().int().min(1).max(100).optional());
 
+const optionalPriority = z.preprocess((value) => {
+  if (value === "" || value === null || value === undefined) {
+    return undefined;
+  }
+
+  return value;
+}, z.coerce.number().int().min(1).optional());
+
 const imageSourceSchema = z
   .string()
   .trim()
@@ -53,6 +61,7 @@ export const productSchema = z.object({
   objective: z.nativeEnum(Objective),
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
+  featuredPriority: optionalPriority,
   weight: z.string().trim().optional(),
   flavor: z.string().trim().optional(),
   images: z.array(imageSourceSchema).default([])

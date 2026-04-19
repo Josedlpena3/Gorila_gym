@@ -45,6 +45,7 @@ type ProductFormProps = {
     objective: string;
     active: boolean;
     featured: boolean;
+    featuredPriority?: number;
     weight?: string | null;
     flavor?: string | null;
     images: Array<{ id: string; url: string; alt: string }>;
@@ -84,6 +85,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(
     product?.categoryId ?? categories[0]?.id ?? ""
   );
+  const [isFeatured, setIsFeatured] = useState(product?.featured ?? false);
   const [imageItems, setImageItems] = useState<ProductImageItem[]>(
     product?.images.map((image) => createStoredImageItem(image.id, image.url)) ?? []
   );
@@ -364,6 +366,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               objective: formData.get("objective"),
               active: formData.get("active") === "on",
               featured: formData.get("featured") === "on",
+              featuredPriority: Number(formData.get("featuredPriority") || 1),
               weight: formData.get("weight"),
               flavor: formData.get("flavor"),
               images
@@ -600,8 +603,21 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             type="checkbox"
             name="featured"
             defaultChecked={product?.featured ?? false}
+            onChange={(event) => setIsFeatured(event.target.checked)}
           />
           Destacar en home
+        </label>
+        <label className="flex items-center gap-2 text-sm text-mist">
+          <span>Prioridad</span>
+          <Input
+            type="number"
+            name="featuredPriority"
+            min="1"
+            step="1"
+            defaultValue={product?.featuredPriority ?? 1}
+            disabled={!isFeatured}
+            className="w-24"
+          />
         </label>
       </div>
 

@@ -14,20 +14,6 @@ type CatalogFilterKey =
   | "minPrice"
   | "maxPrice";
 
-const QUICK_CATALOG_LINKS: ReadonlyArray<{
-  label: string;
-  q?: string;
-  showsAll?: boolean;
-}> = [
-  { label: "Todo", showsAll: true },
-  { label: "Creatinas", q: "creatina" },
-  { label: "Proteinas", q: "proteina" },
-  { label: "Combos", q: "combo" },
-  { label: "Barritas", q: "barrita" },
-  { label: "Panqueques", q: "panqueque" },
-  { label: "Shakers", q: "shaker" }
-];
-
 const CATALOG_FILTER_KEYS: readonly CatalogFilterKey[] = [
   "q",
   "category",
@@ -45,26 +31,6 @@ function getSearchParam(
 ) {
   const value = searchParams[key];
   return typeof value === "string" ? value : undefined;
-}
-
-function buildCatalogHref(
-  searchParams: SearchParams,
-  overrides: Partial<Record<"q", string | undefined>>
-) {
-  const params = new URLSearchParams();
-
-  (["q"] as const).forEach((key) => {
-    const value = Object.prototype.hasOwnProperty.call(overrides, key)
-      ? overrides[key]
-      : getSearchParam(searchParams, key);
-
-    if (typeof value === "string" && value.trim().length > 0) {
-      params.set(key, value);
-    }
-  });
-
-  const query = params.toString();
-  return query.length > 0 ? `/catalogo?${query}` : "/catalogo";
 }
 
 function buildCatalogApiQuery(searchParams: SearchParams) {
@@ -106,6 +72,7 @@ export default async function CatalogPage({
 }) {
   noStore();
   const currentQuery = getSearchParam(searchParams, "q");
+  const currentCategory = getSearchParam(searchParams, "category");
   const apiQuery = buildCatalogApiQuery(searchParams);
   const [data, user] = await Promise.all([
     loadCatalogProducts(searchParams),
@@ -132,15 +99,7 @@ export default async function CatalogPage({
     <div className="page-shell space-y-6 sm:space-y-8">
       <CatalogToolbar
         currentQuery={currentQuery}
-        quickLinks={QUICK_CATALOG_LINKS.map((item) => ({
-          label: item.label,
-          href: buildCatalogHref(searchParams, { q: item.q }),
-          isActive: item.showsAll
-            ? !currentQuery
-            : item.q
-              ? currentQuery?.toLowerCase() === item.q
-              : false
-        }))}
+        currentCategory={currentCategory}
       />
 
       <CatalogProductFeed

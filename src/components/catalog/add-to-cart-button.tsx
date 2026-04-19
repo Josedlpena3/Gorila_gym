@@ -3,9 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { addGuestCartItem } from "@/lib/guest-cart";
 
 type AddToCartButtonProps = {
   productId: string;
+  productSlug: string;
+  productName: string;
+  productBrand: string;
+  productImage: string | null;
+  productPrice: number;
+  productStock: number;
   disabled?: boolean;
   requiresLogin?: boolean;
   nextPath?: string;
@@ -13,6 +20,12 @@ type AddToCartButtonProps = {
 
 export function AddToCartButton({
   productId,
+  productSlug,
+  productName,
+  productBrand,
+  productImage,
+  productPrice,
+  productStock,
   disabled,
   requiresLogin,
   nextPath = "/catalogo"
@@ -27,7 +40,17 @@ export function AddToCartButton({
       onClick={() =>
         startTransition(async () => {
           if (requiresLogin) {
-            router.push(`/login?next=${encodeURIComponent(nextPath)}`);
+            addGuestCartItem({
+              productId,
+              slug: productSlug,
+              name: productName,
+              brand: productBrand,
+              image: productImage,
+              unitPrice: productPrice,
+              stock: productStock,
+              quantity: 1
+            });
+            router.push("/carrito");
             return;
           }
 

@@ -25,6 +25,36 @@ const categories = [
     slug: "pre-entrenos",
     name: "Pre entrenos",
     description: "Fórmulas para energía y enfoque antes de entrenar."
+  },
+  {
+    slug: "barritas",
+    name: "Barritas",
+    description: "Snacks proteicos y barras funcionales para el día a día."
+  },
+  {
+    slug: "aminoacidos",
+    name: "Aminoácidos",
+    description: "Aminoácidos esenciales y BCAA para recuperación y rendimiento."
+  },
+  {
+    slug: "panqueques",
+    name: "Panqueques",
+    description: "Mezclas proteicas para desayunos y meriendas funcionales."
+  },
+  {
+    slug: "shakers",
+    name: "Shakers",
+    description: "Shakers y accesorios para preparar suplementos."
+  },
+  {
+    slug: "geles",
+    name: "Geles",
+    description: "Geles energéticos para entrenamientos y competencias."
+  },
+  {
+    slug: "otros",
+    name: "Otros",
+    description: "Productos complementarios y categorías especiales."
   }
 ] as const;
 
@@ -46,6 +76,7 @@ const seedProducts = [
     price: 58990,
     stock: 18,
     featured: true,
+    featuredPriority: 1,
     weight: "2 lb",
     flavor: "Chocolate",
     image: "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=1200&q=80"
@@ -67,6 +98,7 @@ const seedProducts = [
     price: 27990,
     stock: 24,
     featured: true,
+    featuredPriority: 2,
     weight: "300 g",
     flavor: "Sin sabor",
     image: "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?auto=format&fit=crop&w=1200&q=80"
@@ -88,6 +120,7 @@ const seedProducts = [
     price: 34990,
     stock: 14,
     featured: true,
+    featuredPriority: 3,
     weight: "420 g",
     flavor: "Frutos rojos",
     image: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=1200&q=80"
@@ -200,6 +233,7 @@ async function ensureProduct(input: (typeof seedProducts)[number], categoryId: s
       stock: input.stock,
       active: true,
       featured: input.featured,
+      featuredPriority: input.featuredPriority,
       weight: input.weight,
       flavor: input.flavor
     },
@@ -216,6 +250,7 @@ async function ensureProduct(input: (typeof seedProducts)[number], categoryId: s
       stock: input.stock,
       active: true,
       featured: input.featured,
+      featuredPriority: input.featuredPriority,
       weight: input.weight,
       flavor: input.flavor
     }

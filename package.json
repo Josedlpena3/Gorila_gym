@@ -8,14 +8,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "prisma migrate deploy && next build",
+    "vercel-build": "node scripts/run-prisma-migrate-deploy.mjs && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
+    "migrate:deploy": "prisma migrate deploy",
+    "db:deploy": "npm run migrate:deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "jobs:release-expired-orders": "tsx scripts/release-expired-orders.ts"

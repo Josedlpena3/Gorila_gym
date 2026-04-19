@@ -6,21 +6,68 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type QuickCatalogLink = {
-  label: string;
-  href: string;
-  isActive: boolean;
+type CategoryFilter = {
+  id: string;
+  name: string;
+  slug: string;
 };
 
 export function CatalogToolbar({
   currentQuery,
-  quickLinks
+  currentCategory
 }: {
   currentQuery?: string;
-  quickLinks: QuickCatalogLink[];
+  currentCategory?: string;
 }) {
   const [isExploreOpen, setIsExploreOpen] = useState(false);
+  const [categories, setCategories] = useState<CategoryFilter[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    const abortController = new AbortController();
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/categories", {
+          cache: "no-store",
+          signal: abortController.signal
+        });
+        const payload = (await response.json().catch(() => null)) as unknown;
+
+        if (!response.ok || !Array.isArray(payload) || !isActive) {
+          return;
+        }
+
+        setCategories(
+          payload.filter(
+            (entry): entry is CategoryFilter =>
+              Boolean(
+                entry &&
+                  typeof entry === "object" &&
+                  "id" in entry &&
+                  "name" in entry &&
+                  "slug" in entry &&
+                  typeof entry.id === "string" &&
+                  typeof entry.name === "string" &&
+                  typeof entry.slug === "string"
+              )
+          )
+        );
+      } catch {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        console.warn("[catalog-toolbar] no se pudieron cargar las categorías");
+      }
+    })();
+
+    return () => {
+      isActive = false;
+      abortController.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isExploreOpen) {
@@ -48,6 +95,22 @@ export function CatalogToolbar({
     };
   }, [isExploreOpen]);
 
+  function buildCategoryHref(categorySlug?: string) {
+    const params = new URLSearchParams();
+
+    if (currentQuery?.trim()) {
+      params.set("q", currentQuery.trim());
+    }
+
+    if (categorySlug) {
+      params.set("category", categorySlug);
+    }
+
+    const query = params.toString();
+
+    return query ? `/catalogo?${query}` : "/catalogo";
+  }
+
   return (
     <form
       method="GET"
@@ -73,18 +136,30 @@ export function CatalogToolbar({
             {isExploreOpen ? (
               <div className="absolute left-0 top-full z-20 mt-3 w-[min(18rem,calc(100vw-2rem))] rounded-[28px] border border-white/10 bg-ink/95 p-3 shadow-premium backdrop-blur sm:w-72">
                 <div className="space-y-1">
-                  {quickLinks.map((item) => (
+                  <Link
+                    href={buildCategoryHref()}
+                    className={`block rounded-2xl px-3 py-3 text-sm font-semibold transition ${
+                      !currentCategory
+                        ? "bg-neon text-ink"
+                        : "text-sand hover:bg-white/5 hover:text-neon"
+                    }`}
+                    onClick={() => setIsExploreOpen(false)}
+                  >
+                    Todo
+                  </Link>
+
+                  {categories.map((category) => (
                     <Link
-                      key={item.label}
-                      href={item.href}
+                      key={category.id}
+                      href={buildCategoryHref(category.slug)}
                       className={`block rounded-2xl px-3 py-3 text-sm font-semibold transition ${
-                        item.isActive
+                        currentCategory === category.slug
                           ? "bg-neon text-ink"
                           : "text-sand hover:bg-white/5 hover:text-neon"
                       }`}
                       onClick={() => setIsExploreOpen(false)}
                     >
-                      {item.label}
+                      {category.name}
                     </Link>
                   ))}
                 </div>
@@ -102,6 +177,10 @@ export function CatalogToolbar({
             />
           </div>
 
+          {currentCategory ? (
+            <input type="hidden" name="category" value={currentCategory} />
+          ) : null}
+
           <Button
             type="submit"
             className="h-12 shrink-0 rounded-[20px] px-4 text-sm shadow-[0_14px_34px_rgba(183,255,57,0.16)] sm:px-5"
@@ -111,7 +190,7 @@ export function CatalogToolbar({
         </div>
 
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {currentQuery ? (
+          {currentQuery || currentCategory ? (
             <Link
               href="/catalogo"
               className="whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-sand transition hover:border-neon/60 hover:text-neon"
@@ -120,17 +199,28 @@ export function CatalogToolbar({
             </Link>
           ) : null}
 
-          {quickLinks.map((item) => (
+          <Link
+            href={buildCategoryHref()}
+            className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              !currentCategory
+                ? "border-neon bg-neon text-ink"
+                : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
+            }`}
+          >
+            Todo
+          </Link>
+
+          {categories.map((category) => (
             <Link
-              key={item.label}
-              href={item.href}
+              key={category.id}
+              href={buildCategoryHref(category.slug)}
               className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                item.isActive
+                currentCategory === category.slug
                   ? "border-neon bg-neon text-ink"
                   : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
               }`}
             >
-              {item.label}
+              {category.name}
             </Link>
           ))}
         </div>

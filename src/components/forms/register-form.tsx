@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { syncGuestCartToServer } from "@/lib/guest-cart";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -76,6 +77,18 @@ export function RegisterForm() {
             } else {
               window.sessionStorage.removeItem("emailVerificationLink");
             }
+          }
+
+          try {
+            const syncResult = await syncGuestCartToServer();
+
+            if (syncResult.failed > 0) {
+              router.push("/carrito");
+              router.refresh();
+              return;
+            }
+          } catch {
+            console.warn("[register] no se pudo sincronizar el carrito invitado");
           }
 
           router.push("/catalogo");

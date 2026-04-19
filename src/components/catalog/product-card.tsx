@@ -18,14 +18,14 @@ export function ProductCard({
 
   return (
     <article className="section-card group overflow-hidden">
-      <div className="relative h-64 overflow-hidden bg-steel/70">
+      <div className="relative aspect-square overflow-hidden bg-steel/70">
         {product.image ? (
           <Image
             src={product.image}
             alt={product.name}
             fill
             sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
-            className="object-cover transition duration-500 group-hover:scale-105"
+            className="object-contain p-5 transition duration-500 group-hover:scale-[1.03] sm:p-6"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-mist">
@@ -42,6 +42,12 @@ export function ProductCard({
       <div className="space-y-4 p-4 sm:p-5">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-mist">{product.brand}</p>
+          {(product.weight || product.flavor) ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {product.weight ? <Badge variant="info">{product.weight}</Badge> : null}
+              {product.flavor ? <Badge variant="warning">{product.flavor}</Badge> : null}
+            </div>
+          ) : null}
           <Link
             href={`/productos/${product.slug}`}
             className="mt-2 block text-lg font-black leading-tight sm:text-xl"
@@ -76,6 +82,12 @@ export function ProductCard({
 
         <AddToCartButton
           productId={product.id}
+          productSlug={product.slug}
+          productName={product.name}
+          productBrand={product.brand}
+          productImage={product.image}
+          productPrice={product.price}
+          productStock={product.stock}
           disabled={product.stock <= 0}
           requiresLogin={requiresLogin}
           nextPath={`/productos/${product.slug}`}

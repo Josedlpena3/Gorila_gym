@@ -138,6 +138,7 @@ model Product {
   stock       Int
   active      Boolean      @default(true)
   featured    Boolean      @default(false)
+  featuredPriority Int     @default(999)
   weight      String?
   flavor      String?
   images      ProductImage[]
@@ -150,6 +151,7 @@ model Product {
   @@index([name])
   @@index([brand])
   @@index([objective])
+  @@index([featured, featuredPriority])
   @@unique([name, brand])
   @@map("products")
 }

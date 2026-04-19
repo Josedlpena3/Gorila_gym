@@ -36,6 +36,9 @@ export type ProductCardDto = {
   description: string;
   objective: string;
   featured: boolean;
+  featuredPriority: number;
+  weight?: string | null;
+  flavor?: string | null;
 };
 
 export type ProductDetailDto = ProductCardDto & {

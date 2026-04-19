@@ -30,8 +30,40 @@ const DEFAULT_CATEGORIES = [
     slug: "pre-entrenos",
     name: "Pre entrenos",
     description: "Fórmulas para energía y enfoque antes de entrenar."
+  },
+  {
+    slug: "barritas",
+    name: "Barritas",
+    description: "Snacks proteicos y barras funcionales para el día a día."
+  },
+  {
+    slug: "aminoacidos",
+    name: "Aminoácidos",
+    description: "Aminoácidos esenciales y BCAA para recuperación y rendimiento."
+  },
+  {
+    slug: "panqueques",
+    name: "Panqueques",
+    description: "Mezclas proteicas para desayunos y meriendas funcionales."
+  },
+  {
+    slug: "shakers",
+    name: "Shakers",
+    description: "Shakers y accesorios para preparar suplementos."
+  },
+  {
+    slug: "geles",
+    name: "Geles",
+    description: "Geles energéticos para entrenamientos y competencias."
+  },
+  {
+    slug: "otros",
+    name: "Otros",
+    description: "Productos complementarios y categorías especiales."
   }
 ] as const;
+
+const DEFAULT_FEATURED_PRIORITY = 999;
 
 const productInclude = {
   category: true,
@@ -63,12 +95,6 @@ function isPublicImageUrl(value: string) {
 }
 
 async function ensureDefaultCategories() {
-  const existingCount = await prisma.category.count();
-
-  if (existingCount > 0) {
-    return;
-  }
-
   await Promise.all(
     DEFAULT_CATEGORIES.map((category) =>
       prisma.category.upsert({
@@ -234,7 +260,10 @@ function mapProductCard(product: Prisma.ProductGetPayload<{ include: typeof prod
     })),
     description: product.description,
     objective: product.objective,
-    featured: product.featured
+    featured: product.featured,
+    featuredPriority: product.featuredPriority,
+    weight: product.weight,
+    flavor: product.flavor
   };
 }
 
@@ -273,6 +302,12 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
             },
             {
               brand: {
+                contains: data.q,
+                mode: "insensitive"
+              }
+            },
+            {
+              description: {
                 contains: data.q,
                 mode: "insensitive"
               }
@@ -345,9 +380,25 @@ export async function getFeaturedProducts(limit = 4) {
       featured: true
     },
     include: productInclude,
-    orderBy: {
-      createdAt: "desc"
+    orderBy: [{ featuredPriority: "asc" }, { createdAt: "desc" }, { id: "desc" }],
+    take: limit
+  });
+
+  return products.map(mapProductCard);
+}
+
+export async function getHomeProducts(limit = 8) {
+  const products = await prisma.product.findMany({
+    where: {
+      active: true
     },
+    include: productInclude,
+    orderBy: [
+      { featured: "desc" },
+      { featuredPriority: "asc" },
+      { createdAt: "desc" },
+      { id: "desc" }
+    ],
     take: limit
   });
 
@@ -394,7 +445,8 @@ export async function getAdminProductById(id: string) {
     ...mapProductDetail(product),
     sku: product.sku,
     categoryId: product.categoryId,
-    active: product.active
+    active: product.active,
+    featuredPriority: product.featuredPriority
   };
 }
 
@@ -408,8 +460,10 @@ export async function getAdminProducts() {
 
   return products.map((product) => ({
     ...mapProductDetail(product),
+    sku: product.sku,
     categoryId: product.categoryId,
-    active: product.active
+    active: product.active,
+    featuredPriority: product.featuredPriority
   }));
 }
 
@@ -453,6 +507,9 @@ export async function createProduct(input: unknown, adminUserId: string) {
 
   const slug = buildProductSlug(data);
   const images = normalizeProductImages(data.images);
+  const featuredPriority = data.featured
+    ? Math.max(data.featuredPriority ?? 1, 1)
+    : DEFAULT_FEATURED_PRIORITY;
   console.log("Imagen guardada:", images[0] ?? null);
 
   let product;
@@ -472,6 +529,7 @@ export async function createProduct(input: unknown, adminUserId: string) {
         objective: data.objective,
         active: data.active,
         featured: data.featured,
+        featuredPriority,
         weight: data.weight,
         flavor: data.flavor,
         images: {
@@ -574,6 +632,9 @@ export async function updateProduct(
 
   const slug = buildProductSlug(data);
   const images = normalizeProductImages(data.images);
+  const featuredPriority = data.featured
+    ? Math.max(data.featuredPriority ?? 1, 1)
+    : DEFAULT_FEATURED_PRIORITY;
   console.log("Imagen guardada:", images[0] ?? null);
 
   let product;
@@ -601,6 +662,7 @@ export async function updateProduct(
           objective: data.objective,
           active: data.active,
           featured: data.featured,
+          featuredPriority,
           weight: data.weight,
           flavor: data.flavor,
           images: {

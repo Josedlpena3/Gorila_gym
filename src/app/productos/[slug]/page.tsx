@@ -84,6 +84,12 @@ export default async function ProductPage({
             <div className="w-full sm:max-w-xs">
               <AddToCartButton
                 productId={product.id}
+                productSlug={product.slug}
+                productName={product.name}
+                productBrand={product.brand}
+                productImage={product.image}
+                productPrice={product.price}
+                productStock={product.stock}
                 disabled={product.stock <= 0}
                 requiresLogin={!user}
                 nextPath={`/productos/${product.slug}`}
