@@ -14,7 +14,9 @@ export async function GET(request: Request) {
       brand: searchParams.get("brand") ?? undefined,
       objective: searchParams.get("objective") ?? undefined,
       minPrice: searchParams.get("minPrice") ?? undefined,
-      maxPrice: searchParams.get("maxPrice") ?? undefined
+      maxPrice: searchParams.get("maxPrice") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined
     });
 
     return NextResponse.json(result);

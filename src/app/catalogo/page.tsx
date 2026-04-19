@@ -1,10 +1,18 @@
+import { unstable_noStore as noStore } from "next/cache";
+import { CatalogProductFeed } from "@/components/catalog/catalog-product-feed";
 import { CatalogToolbar } from "@/components/catalog/catalog-toolbar";
-import { ProductCard } from "@/components/catalog/product-card";
 import { StatusCard } from "@/components/layout/status-card";
 import { listCatalogProducts } from "@/modules/products/product.service";
 import { tryGetCurrentUser } from "@/modules/users/user.service";
 
 type SearchParams = Record<string, string | string[] | undefined>;
+type CatalogFilterKey =
+  | "q"
+  | "category"
+  | "brand"
+  | "objective"
+  | "minPrice"
+  | "maxPrice";
 
 const QUICK_CATALOG_LINKS: ReadonlyArray<{
   label: string;
@@ -20,9 +28,20 @@ const QUICK_CATALOG_LINKS: ReadonlyArray<{
   { label: "Shakers", q: "shaker" }
 ];
 
+const CATALOG_FILTER_KEYS: readonly CatalogFilterKey[] = [
+  "q",
+  "category",
+  "brand",
+  "objective",
+  "minPrice",
+  "maxPrice"
+];
+
+export const dynamic = "force-dynamic";
+
 function getSearchParam(
   searchParams: SearchParams,
-  key: "q"
+  key: CatalogFilterKey
 ) {
   const value = searchParams[key];
   return typeof value === "string" ? value : undefined;
@@ -32,10 +51,9 @@ function buildCatalogHref(
   searchParams: SearchParams,
   overrides: Partial<Record<"q", string | undefined>>
 ) {
-  const keys = ["q"] as const;
   const params = new URLSearchParams();
 
-  keys.forEach((key) => {
+  (["q"] as const).forEach((key) => {
     const value = Object.prototype.hasOwnProperty.call(overrides, key)
       ? overrides[key]
       : getSearchParam(searchParams, key);
@@ -49,10 +67,31 @@ function buildCatalogHref(
   return query.length > 0 ? `/catalogo?${query}` : "/catalogo";
 }
 
-async function loadCatalogProducts(currentQuery?: string) {
+function buildCatalogApiQuery(searchParams: SearchParams) {
+  const params = new URLSearchParams();
+
+  CATALOG_FILTER_KEYS.forEach((key) => {
+    const value = getSearchParam(searchParams, key);
+
+    if (typeof value === "string" && value.trim().length > 0) {
+      params.set(key, value);
+    }
+  });
+
+  return params.toString();
+}
+
+async function loadCatalogProducts(searchParams: SearchParams) {
   try {
     return await listCatalogProducts({
-      q: currentQuery
+      q: getSearchParam(searchParams, "q"),
+      category: getSearchParam(searchParams, "category"),
+      brand: getSearchParam(searchParams, "brand"),
+      objective: getSearchParam(searchParams, "objective"),
+      minPrice: getSearchParam(searchParams, "minPrice"),
+      maxPrice: getSearchParam(searchParams, "maxPrice"),
+      page: 1,
+      limit: 20
     });
   } catch (error) {
     console.error("[catalog-page] no se pudo cargar el catálogo", error);
@@ -65,9 +104,11 @@ export default async function CatalogPage({
 }: {
   searchParams: SearchParams;
 }) {
+  noStore();
   const currentQuery = getSearchParam(searchParams, "q");
+  const apiQuery = buildCatalogApiQuery(searchParams);
   const [data, user] = await Promise.all([
-    loadCatalogProducts(currentQuery),
+    loadCatalogProducts(searchParams),
     tryGetCurrentUser("catalog-page")
   ]);
 
@@ -102,15 +143,11 @@ export default async function CatalogPage({
         }))}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 sm:gap-6 xl:grid-cols-3">
-        {data.products.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            requiresLogin={!user}
-          />
-        ))}
-      </div>
+      <CatalogProductFeed
+        initialData={data}
+        requiresLogin={!user}
+        queryString={apiQuery}
+      />
     </div>
   );
 }

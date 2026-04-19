@@ -44,6 +44,13 @@ export type ProductDetailDto = ProductCardDto & {
   flavor?: string | null;
 };
 
+export type CatalogProductsPageDto = {
+  products: ProductCardDto[];
+  total: number;
+  page: number;
+  totalPages: number;
+};
+
 export type CartItemDto = {
   id: string;
   productId: string;

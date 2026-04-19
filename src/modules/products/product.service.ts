@@ -6,10 +6,14 @@ import { prisma } from "@/lib/prisma";
 import { isStoredUploadUrl } from "@/lib/uploads";
 import { decimalToNumber, slugify } from "@/lib/utils";
 import {
-  productFiltersSchema,
+  catalogProductQuerySchema,
   productSchema
 } from "@/modules/products/product.schemas";
-import type { ProductCardDto, ProductDetailDto } from "@/types";
+import type {
+  CatalogProductsPageDto,
+  ProductCardDto,
+  ProductDetailDto
+} from "@/types";
 
 const DEFAULT_CATEGORIES = [
   {
@@ -251,8 +255,10 @@ function mapProductDetail(
   };
 }
 
-export async function listCatalogProducts(filters: unknown = {}) {
-  const data = productFiltersSchema.parse(filters);
+export async function listCatalogProducts(filters: unknown = {}): Promise<CatalogProductsPageDto> {
+  const data = catalogProductQuerySchema.parse(filters);
+  const page = data.page ?? 1;
+  const limit = data.limit ?? 20;
 
   const where: Prisma.ProductWhereInput = {
     active: true,
@@ -309,25 +315,26 @@ export async function listCatalogProducts(filters: unknown = {}) {
       : {})
   };
 
-  const [products, categories, brands] = await Promise.all([
+  const [total, products] = await Promise.all([
+    prisma.product.count({
+      where
+    }),
     prisma.product.findMany({
       where,
       include: productInclude,
-      orderBy: [{ featured: "desc" }, { createdAt: "desc" }]
-    }),
-    getSortedCategories(),
-    prisma.product.findMany({
-      where: { active: true },
-      select: { brand: true },
-      distinct: ["brand"],
-      orderBy: { brand: "asc" }
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * limit,
+      take: limit
     })
   ]);
 
+  const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
+
   return {
     products: products.map(mapProductCard),
-    categories,
-    brands: brands.map((entry) => entry.brand)
+    total,
+    page,
+    totalPages
   };
 }
 

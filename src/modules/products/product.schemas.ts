@@ -18,6 +18,22 @@ const optionalNumber = z.preprocess((value) => {
   return value;
 }, z.coerce.number().optional());
 
+const optionalPositiveInteger = z.preprocess((value) => {
+  if (value === "" || value === null || value === undefined) {
+    return undefined;
+  }
+
+  return value;
+}, z.coerce.number().int().min(1).optional());
+
+const optionalPageSize = z.preprocess((value) => {
+  if (value === "" || value === null || value === undefined) {
+    return undefined;
+  }
+
+  return value;
+}, z.coerce.number().int().min(1).max(100).optional());
+
 const imageSourceSchema = z
   .string()
   .trim()
@@ -52,4 +68,9 @@ export const productFiltersSchema = z.object({
   ),
   minPrice: optionalNumber,
   maxPrice: optionalNumber
+});
+
+export const catalogProductQuerySchema = productFiltersSchema.extend({
+  page: optionalPositiveInteger,
+  limit: optionalPageSize
 });
