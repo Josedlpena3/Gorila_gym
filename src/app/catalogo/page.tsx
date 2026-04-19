@@ -8,7 +8,7 @@ import { tryGetCurrentUser } from "@/modules/users/user.service";
 type SearchParams = Record<string, string | string[] | undefined>;
 type CatalogFilterKey =
   | "q"
-  | "category"
+  | "categoryId"
   | "brand"
   | "objective"
   | "minPrice"
@@ -16,7 +16,7 @@ type CatalogFilterKey =
 
 const CATALOG_FILTER_KEYS: readonly CatalogFilterKey[] = [
   "q",
-  "category",
+  "categoryId",
   "brand",
   "objective",
   "minPrice",
@@ -33,6 +33,15 @@ function getSearchParam(
   return typeof value === "string" ? value : undefined;
 }
 
+function getLegacyCategoryParam(searchParams: SearchParams) {
+  const value = searchParams.category;
+  return typeof value === "string" ? value : undefined;
+}
+
+function getSelectedCategoryParam(searchParams: SearchParams) {
+  return getSearchParam(searchParams, "categoryId") ?? getLegacyCategoryParam(searchParams);
+}
+
 function buildCatalogApiQuery(searchParams: SearchParams) {
   const params = new URLSearchParams();
 
@@ -44,6 +53,14 @@ function buildCatalogApiQuery(searchParams: SearchParams) {
     }
   });
 
+  if (!params.has("categoryId")) {
+    const legacyCategory = getLegacyCategoryParam(searchParams);
+
+    if (legacyCategory?.trim()) {
+      params.set("category", legacyCategory.trim());
+    }
+  }
+
   return params.toString();
 }
 
@@ -51,7 +68,8 @@ async function loadCatalogProducts(searchParams: SearchParams) {
   try {
     return await listCatalogProducts({
       q: getSearchParam(searchParams, "q"),
-      category: getSearchParam(searchParams, "category"),
+      categoryId: getSearchParam(searchParams, "categoryId"),
+      category: getLegacyCategoryParam(searchParams),
       brand: getSearchParam(searchParams, "brand"),
       objective: getSearchParam(searchParams, "objective"),
       minPrice: getSearchParam(searchParams, "minPrice"),
@@ -72,7 +90,7 @@ export default async function CatalogPage({
 }) {
   noStore();
   const currentQuery = getSearchParam(searchParams, "q");
-  const currentCategory = getSearchParam(searchParams, "category");
+  const currentCategory = getSelectedCategoryParam(searchParams);
   const apiQuery = buildCatalogApiQuery(searchParams);
   const [data, user] = await Promise.all([
     loadCatalogProducts(searchParams),

@@ -95,15 +95,25 @@ export function CatalogToolbar({
     };
   }, [isExploreOpen]);
 
-  function buildCategoryHref(categorySlug?: string) {
+  const selectedCategory =
+    categories.find((category) => category.id === currentCategory) ??
+    categories.find((category) => category.slug === currentCategory);
+
+  function isCurrentCategory(category: CategoryFilter) {
+    return selectedCategory
+      ? category.id === selectedCategory.id
+      : currentCategory === category.id || currentCategory === category.slug;
+  }
+
+  function buildCategoryHref(categoryId?: string) {
     const params = new URLSearchParams();
 
     if (currentQuery?.trim()) {
       params.set("q", currentQuery.trim());
     }
 
-    if (categorySlug) {
-      params.set("category", categorySlug);
+    if (categoryId) {
+      params.set("categoryId", categoryId);
     }
 
     const query = params.toString();
@@ -151,9 +161,9 @@ export function CatalogToolbar({
                   {categories.map((category) => (
                     <Link
                       key={category.id}
-                      href={buildCategoryHref(category.slug)}
+                      href={buildCategoryHref(category.id)}
                       className={`block rounded-2xl px-3 py-3 text-sm font-semibold transition ${
-                        currentCategory === category.slug
+                        isCurrentCategory(category)
                           ? "bg-neon text-ink"
                           : "text-sand hover:bg-white/5 hover:text-neon"
                       }`}
@@ -178,7 +188,11 @@ export function CatalogToolbar({
           </div>
 
           {currentCategory ? (
-            <input type="hidden" name="category" value={currentCategory} />
+            <input
+              type="hidden"
+              name={selectedCategory?.id ? "categoryId" : "category"}
+              value={selectedCategory?.id ?? currentCategory}
+            />
           ) : null}
 
           <Button
@@ -213,9 +227,9 @@ export function CatalogToolbar({
           {categories.map((category) => (
             <Link
               key={category.id}
-              href={buildCategoryHref(category.slug)}
+              href={buildCategoryHref(category.id)}
               className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                currentCategory === category.slug
+                isCurrentCategory(category)
                   ? "border-neon bg-neon text-ink"
                   : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
               }`}

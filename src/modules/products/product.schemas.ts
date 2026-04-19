@@ -69,6 +69,7 @@ export const productSchema = z.object({
 
 export const productFiltersSchema = z.object({
   q: optionalText,
+  categoryId: optionalText,
   category: optionalText,
   brand: optionalText,
   objective: z.preprocess(

@@ -10,6 +10,7 @@ export async function GET(request: Request) {
 
     const result = await listCatalogProducts({
       q: searchParams.get("q") ?? undefined,
+      categoryId: searchParams.get("categoryId") ?? undefined,
       category: searchParams.get("category") ?? undefined,
       brand: searchParams.get("brand") ?? undefined,
       objective: searchParams.get("objective") ?? undefined,

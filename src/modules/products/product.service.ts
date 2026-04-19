@@ -196,6 +196,19 @@ async function assertProductDoesNotExist(input: {
   }
 }
 
+async function assertCategoryExists(categoryId: string) {
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+    select: {
+      id: true
+    }
+  });
+
+  if (!category) {
+    throw new AppError("La categoría seleccionada no existe", 404);
+  }
+}
+
 function throwIfProductPersistenceError(error: unknown): never {
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -323,7 +336,11 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
           ]
         }
       : {}),
-    ...(data.category
+    ...(data.categoryId
+      ? {
+          categoryId: data.categoryId
+        }
+      : data.category
       ? {
           category: {
             slug: data.category
@@ -357,7 +374,12 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
     prisma.product.findMany({
       where,
       include: productInclude,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      orderBy: [
+        { featured: "desc" },
+        { featuredPriority: "asc" },
+        { createdAt: "desc" },
+        { id: "desc" }
+      ],
       skip: (page - 1) * limit,
       take: limit
     })
@@ -496,14 +518,7 @@ export async function createProduct(input: unknown, adminUserId: string) {
     name: data.name,
     brand: data.brand
   });
-
-  const category = await prisma.category.findUnique({
-    where: { id: data.categoryId }
-  });
-
-  if (!category) {
-    throw new AppError("La categoría seleccionada no existe", 404);
-  }
+  await assertCategoryExists(data.categoryId);
 
   const slug = buildProductSlug(data);
   const images = normalizeProductImages(data.images);
@@ -629,6 +644,7 @@ export async function updateProduct(
     brand: data.brand,
     excludeProductId: id
   });
+  await assertCategoryExists(data.categoryId);
 
   const slug = buildProductSlug(data);
   const images = normalizeProductImages(data.images);

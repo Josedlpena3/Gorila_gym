@@ -108,6 +108,11 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   useEffect(() => {
     if (product?.categoryId) {
       setSelectedCategoryId(product.categoryId);
+    }
+  }, [product?.id, product?.categoryId]);
+
+  useEffect(() => {
+    if (product?.categoryId) {
       return;
     }
 
@@ -272,6 +277,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           const price = Number(formData.get("price"));
           const stock = Number(formData.get("stock"));
           const categoryId =
+            selectedCategoryId.trim() ||
             String(formData.get("categoryId") ?? "").trim() ||
             availableCategories[0]?.id ||
             "";
