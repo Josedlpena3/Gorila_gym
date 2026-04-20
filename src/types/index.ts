@@ -179,7 +179,7 @@ export type AdminDashboardDto = {
 
 export type SiteConfigDto = {
   address: string;
-  googleMapsEmbed: string;
+  googleMapsUrl: string;
   whatsappNumber: string;
   whatsappMessage: string;
 };

@@ -342,7 +342,7 @@ model AuditLog {
 model SiteConfig {
   id              String   @id @default(cuid())
   address         String
-  googleMapsEmbed String
+  googleMapsUrl   String
   whatsappNumber  String
   whatsappMessage String
   createdAt       DateTime @default(now())

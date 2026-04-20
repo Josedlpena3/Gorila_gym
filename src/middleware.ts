@@ -27,6 +27,7 @@ function buildContentSecurityPolicy(pathname: string) {
     "img-src 'self' https: data: blob:;",
     "script-src 'self' 'unsafe-inline';",
     "style-src 'self' 'unsafe-inline';",
+    "frame-src 'self' https://www.google.com https://maps.google.com;",
     "object-src 'none';",
     "base-uri 'self';"
   ].join(" ");

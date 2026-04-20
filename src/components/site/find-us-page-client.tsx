@@ -31,20 +31,19 @@ export function FindUsPageClient() {
       }
 
       if (
-        payload.configured === false ||
         typeof payload.address !== "string" ||
-        typeof payload.googleMapsEmbed !== "string" ||
+        typeof payload.googleMapsUrl !== "string" ||
         typeof payload.whatsappNumber !== "string" ||
         typeof payload.whatsappMessage !== "string" ||
         payload.address.trim().length === 0 ||
-        payload.googleMapsEmbed.trim().length === 0
+        payload.googleMapsUrl.trim().length === 0
       ) {
         throw new Error("La configuración del local todavía no está disponible.");
       }
 
       setSiteConfig({
         address: payload.address,
-        googleMapsEmbed: payload.googleMapsEmbed,
+        googleMapsUrl: payload.googleMapsUrl,
         whatsappNumber: payload.whatsappNumber,
         whatsappMessage: payload.whatsappMessage
       });
@@ -169,9 +168,13 @@ export function FindUsPageClient() {
           </div>
 
           <div className="overflow-hidden rounded-[28px] border border-line bg-ink/60 shadow-premium">
-            <div
-              className="[&_iframe]:block [&_iframe]:min-h-[320px] [&_iframe]:w-full sm:[&_iframe]:min-h-[360px]"
-              dangerouslySetInnerHTML={{ __html: siteConfig.googleMapsEmbed }}
+            <iframe
+              src={siteConfig.googleMapsUrl}
+              title="Mapa del local Gorila Strong"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="block min-h-[320px] w-full border-0 sm:min-h-[360px]"
+              allowFullScreen
             />
           </div>
         </div>

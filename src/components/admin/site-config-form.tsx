@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import type { SiteConfigDto } from "@/types";
 
 export function SiteConfigForm({
@@ -47,7 +46,7 @@ export function SiteConfigForm({
 
             setForm({
               address: payload.address,
-              googleMapsEmbed: payload.googleMapsEmbed,
+              googleMapsUrl: payload.googleMapsUrl,
               whatsappNumber: payload.whatsappNumber,
               whatsappMessage: payload.whatsappMessage
             });
@@ -111,31 +110,42 @@ export function SiteConfigForm({
         </div>
 
         <div className="space-y-2 lg:col-span-2">
-          <label className="text-sm text-mist">Iframe de Google Maps</label>
-          <Textarea
-            value={form.googleMapsEmbed}
+          <label className="text-sm text-mist">URL de Google Maps</label>
+          <Input
+            type="url"
+            value={form.googleMapsUrl}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
-                googleMapsEmbed: event.target.value
+                googleMapsUrl: event.target.value
               }))
             }
-            className="min-h-[200px]"
             required
           />
           <p className="text-xs text-mist">
-            Solo se aceptan iframes válidos de Google Maps embed.
+            Pegá solo la URL del `src` del embed de Google Maps.
           </p>
         </div>
       </div>
       <div className="rounded-[28px] border border-line bg-ink/60 p-5">
         <p className="text-xs uppercase tracking-[0.24em] text-mist">Publicación</p>
         <p className="mt-3 text-lg font-semibold text-sand">{form.address}</p>
-        <p className="mt-3 text-sm leading-7 text-mist">
-          El iframe se valida al guardar y luego se publica en{" "}
-          <span className="font-semibold text-sand">/encontranos</span>. No se
-          renderiza HTML crudo en esta pantalla de edición.
-        </p>
+        {form.googleMapsUrl.trim() ? (
+          <div className="mt-4 overflow-hidden rounded-[24px] border border-line bg-steel/50">
+            <iframe
+              src={form.googleMapsUrl}
+              title="Vista previa del mapa"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="block min-h-[320px] w-full border-0"
+            />
+          </div>
+        ) : (
+          <p className="mt-3 text-sm leading-7 text-mist">
+            La URL del mapa se valida al guardar y luego se publica en{" "}
+            <span className="font-semibold text-sand">/encontranos</span>.
+          </p>
+        )}
       </div>
 
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
