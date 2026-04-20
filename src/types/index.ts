@@ -177,6 +177,12 @@ export type AdminDashboardDto = {
   recentOrders: OrderSummaryDto[];
 };
 
+export type AdminOrderSummaryDto = OrderSummaryDto & {
+  customer: string;
+  email: string;
+  customerPhone: string;
+};
+
 export type SiteConfigDto = {
   address: string;
   googleMapsUrl: string;

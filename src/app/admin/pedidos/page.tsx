@@ -1,4 +1,5 @@
 import { OrderStatusForm } from "@/components/admin/order-status-form";
+import { OrderWhatsappButton } from "@/components/admin/order-whatsapp-button";
 import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_BADGE_VARIANTS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -46,10 +47,19 @@ export default async function AdminOrdersPage() {
                   {formatCurrency(order.total)}
                 </p>
               </div>
-              <OrderStatusForm
-                orderId={order.id}
-                currentStatus={order.status}
-              />
+              <div className="flex flex-col items-start gap-3 lg:items-end">
+                <OrderWhatsappButton
+                  customerName={order.customer}
+                  orderCode={order.code}
+                  phone={order.customerPhone}
+                  total={order.total}
+                  items={order.items}
+                />
+                <OrderStatusForm
+                  orderId={order.id}
+                  currentStatus={order.status}
+                />
+              </div>
             </div>
             <div className="mt-6 grid gap-3 md:grid-cols-2">
               <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
@@ -58,7 +68,7 @@ export default async function AdminOrdersPage() {
                 </p>
                 <p className="mt-3 text-sand">Cliente: {order.customer}</p>
                 <p>Estado del pedido: {ORDER_STATUS_LABELS[order.status]}</p>
-                <p>Celular: {order.contactPhone}</p>
+                <p>Celular: {order.customerPhone || order.contactPhone}</p>
                 <p>Ciudad: {order.city}</p>
                 <p>Provincia: {order.province}</p>
                 <p>Dirección: {order.street ? `${order.street} ${order.number ?? ""}`.trim() : "-"}</p>

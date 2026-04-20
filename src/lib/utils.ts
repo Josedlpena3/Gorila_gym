@@ -68,3 +68,34 @@ export function decimalToNumber(
   return value.toNumber();
 }
 
+export function normalizeWhatsappPhone(value?: string | null) {
+  const digits = (value ?? "").replace(/\D/g, "");
+
+  if (!digits) {
+    return null;
+  }
+
+  const normalizedLocal = digits.replace(/^0+/, "");
+
+  if (normalizedLocal.startsWith("549") && normalizedLocal.length >= 12) {
+    return normalizedLocal;
+  }
+
+  if (normalizedLocal.startsWith("54")) {
+    const withoutCountryCode = normalizedLocal.slice(2);
+
+    if (withoutCountryCode.startsWith("9") && withoutCountryCode.length >= 10) {
+      return normalizedLocal;
+    }
+
+    if (withoutCountryCode.length >= 10) {
+      return `549${withoutCountryCode}`;
+    }
+  }
+
+  if (normalizedLocal.length >= 10) {
+    return `549${normalizedLocal}`;
+  }
+
+  return null;
+}

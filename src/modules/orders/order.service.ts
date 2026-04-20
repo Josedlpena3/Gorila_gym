@@ -33,7 +33,11 @@ import {
   buildPaymentMethodOptions,
   getAvailablePaymentMethods
 } from "@/modules/payments/payment.service";
-import type { CheckoutQuoteDto, OrderSummaryDto } from "@/types";
+import type {
+  AdminOrderSummaryDto,
+  CheckoutQuoteDto,
+  OrderSummaryDto
+} from "@/types";
 
 const orderInclude = {
   items: true,
@@ -732,7 +736,7 @@ export async function getOrderById(orderId: string, userId?: string) {
   return order ? mapOrder(order) : null;
 }
 
-export async function listAllOrders() {
+export async function listAllOrders(): Promise<AdminOrderSummaryDto[]> {
   const orders = await prisma.order.findMany({
     include: {
       ...orderInclude,
@@ -740,7 +744,8 @@ export async function listAllOrders() {
         select: {
           firstName: true,
           lastName: true,
-          email: true
+          email: true,
+          phone: true
         }
       }
     },
@@ -752,7 +757,8 @@ export async function listAllOrders() {
   return orders.map((order) => ({
     ...mapOrder(order),
     customer: `${order.user.firstName} ${order.user.lastName}`,
-    email: order.user.email
+    email: order.user.email,
+    customerPhone: order.user.phone
   }));
 }
 
