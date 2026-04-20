@@ -19,11 +19,27 @@ export function FindUsPageClient() {
         cache: "no-store"
       });
       const payload = (await response.json().catch(() => null)) as
-        | (SiteConfigDto & { error?: string })
+        | (SiteConfigDto & {
+            ok?: boolean;
+            configured?: boolean;
+            error?: string;
+          })
         | null;
 
       if (!response.ok || !payload) {
         throw new Error(payload?.error || "No se pudo cargar la información del local.");
+      }
+
+      if (
+        payload.configured === false ||
+        typeof payload.address !== "string" ||
+        typeof payload.googleMapsEmbed !== "string" ||
+        typeof payload.whatsappNumber !== "string" ||
+        typeof payload.whatsappMessage !== "string" ||
+        payload.address.trim().length === 0 ||
+        payload.googleMapsEmbed.trim().length === 0
+      ) {
+        throw new Error("La configuración del local todavía no está disponible.");
       }
 
       setSiteConfig({

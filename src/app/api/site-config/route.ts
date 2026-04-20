@@ -1,14 +1,18 @@
-import { NextResponse } from "next/server";
 import { handleRouteError } from "@/lib/errors";
-import { getSiteConfig } from "@/modules/site-config/site-config.service";
+import { getOrCreateSiteConfig } from "@/modules/site-config/site-config.service";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  try {
-    const siteConfig = await getSiteConfig();
+  console.log("site-config endpoint hit");
 
-    return NextResponse.json(siteConfig);
+  try {
+    const siteConfig = await getOrCreateSiteConfig();
+
+    return Response.json({
+      ok: true,
+      ...siteConfig
+    });
   } catch (error) {
     return handleRouteError(error);
   }
