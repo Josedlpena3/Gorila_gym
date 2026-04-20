@@ -42,6 +42,9 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           <Link href="/catalogo" className="hover:text-sand">
             Catálogo
           </Link>
+          <Link href="/encontranos" className="hover:text-sand">
+            Encontranos
+          </Link>
           <Link href="/carrito" className="hover:text-sand">
             Carrito
           </Link>

@@ -338,3 +338,15 @@ model AuditLog {
   @@index([adminUserId])
   @@map("audit_logs")
 }
+
+model SiteConfig {
+  id              String   @id @default(cuid())
+  address         String
+  googleMapsEmbed String
+  whatsappNumber  String
+  whatsappMessage String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("site_config")
+}

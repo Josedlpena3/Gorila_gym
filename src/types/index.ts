@@ -176,3 +176,10 @@ export type AdminDashboardDto = {
   lowStockProducts: number;
   recentOrders: OrderSummaryDto[];
 };
+
+export type SiteConfigDto = {
+  address: string;
+  googleMapsEmbed: string;
+  whatsappNumber: string;
+  whatsappMessage: string;
+};
