@@ -69,9 +69,9 @@ export function GuestCartView() {
             {cart.items.map((item) => (
               <article
                 key={item.id}
-                className="grid grid-cols-[96px,1fr] gap-4 rounded-[28px] border border-line bg-ink/60 p-4 sm:grid-cols-[120px,1fr]"
+                className="grid gap-4 rounded-[28px] border border-line bg-ink/60 p-4 sm:grid-cols-[120px,1fr]"
               >
-                <div className="relative h-24 overflow-hidden rounded-3xl bg-steel sm:h-28">
+                <div className="relative h-40 overflow-hidden rounded-3xl bg-steel sm:h-28">
                   {item.image ? (
                     <Image
                       src={item.image}
@@ -95,11 +95,12 @@ export function GuestCartView() {
                       Stock disponible: {item.stock} unidades
                     </p>
                   </div>
-                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center rounded-full border border-line">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+                      <div className="flex min-h-11 items-center rounded-full border border-line">
                         <button
-                          className="px-4 py-2 text-lg"
+                          type="button"
+                          className="flex h-11 w-11 items-center justify-center text-lg"
                           disabled={item.quantity <= 1}
                           onClick={() =>
                             updateGuestCartItemQuantity(item.productId, item.quantity - 1)
@@ -107,11 +108,12 @@ export function GuestCartView() {
                         >
                           -
                         </button>
-                        <span className="min-w-10 text-center text-sm font-semibold">
+                        <span className="min-w-11 text-center text-sm font-semibold">
                           {item.quantity}
                         </span>
                         <button
-                          className="px-4 py-2 text-lg"
+                          type="button"
+                          className="flex h-11 w-11 items-center justify-center text-lg"
                           disabled={item.quantity >= item.stock}
                           onClick={() =>
                             updateGuestCartItemQuantity(item.productId, item.quantity + 1)
@@ -122,13 +124,13 @@ export function GuestCartView() {
                       </div>
                       <Button
                         variant="danger"
-                        className="px-4 py-2 text-red-100"
+                        className="w-full px-4 py-2 text-red-100 sm:w-auto"
                         onClick={() => removeGuestCartItem(item.productId)}
                       >
                         Quitar
                       </Button>
                     </div>
-                    <p className="text-xl font-black text-sand">
+                    <p className="text-xl font-black text-sand sm:text-right">
                       {formatCurrency(item.subtotal)}
                     </p>
                   </div>

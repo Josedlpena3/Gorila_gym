@@ -55,12 +55,10 @@ export default async function ProductPage({
 
   return (
     <div className="page-shell">
-      <div className="grid gap-5 lg:grid-cols-[0.85fr,1.15fr] lg:items-start xl:gap-6">
-        <ProductGallery
-          images={product.images}
-        />
+      <div className="grid gap-4 lg:grid-cols-[0.85fr,1.15fr] lg:items-start xl:gap-6">
+        <ProductGallery images={product.images} />
 
-        <div className="section-card p-5 sm:p-6 lg:p-7">
+        <div className="section-card p-4 sm:p-6 lg:p-7">
           <div className="flex flex-wrap gap-2">
             <Badge>{product.category}</Badge>
             <Badge variant={product.stock > 0 ? "success" : "warning"}>
@@ -74,7 +72,7 @@ export default async function ProductPage({
             {product.name}
           </h1>
 
-          <div className="mt-4 flex flex-col gap-3 rounded-[28px] border border-line bg-ink/55 p-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="sticky bottom-3 z-10 mt-4 flex flex-col gap-3 rounded-[28px] border border-line bg-ink/90 p-4 shadow-premium backdrop-blur sm:static sm:flex-row sm:items-end sm:justify-between sm:bg-ink/55 sm:shadow-none sm:backdrop-blur-0">
             <div>
               <p className="text-sm text-mist">Precio</p>
               <p className="text-3xl font-black text-sand sm:text-4xl">

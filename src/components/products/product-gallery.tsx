@@ -149,7 +149,7 @@ export function ProductGallery({
   if (!activeImage) {
     if (mode === "card") {
       return (
-        <div className="flex h-64 items-center justify-center bg-steel/70 text-sm text-mist">
+        <div className="flex aspect-square items-center justify-center bg-steel/70 px-4 text-center text-xs text-mist sm:text-sm">
           Sin imagen
         </div>
       );
@@ -166,12 +166,12 @@ export function ProductGallery({
 
   if (mode === "card") {
     return (
-      <div className="relative h-64 overflow-hidden">
+      <div className="relative aspect-square overflow-hidden bg-steel/70">
         <Image
           src={activeImage.url}
           alt={activeImage.alt}
           fill
-          className="object-cover transition duration-500 group-hover:scale-105"
+          className="object-contain p-4 transition duration-500 group-hover:scale-[1.03] sm:p-5"
         />
         {items.length > 1 ? (
           <>
@@ -205,14 +205,14 @@ export function ProductGallery({
           <button
             type="button"
             onClick={() => setIsLightboxOpen(true)}
-            className="relative block h-[300px] w-full cursor-zoom-in sm:h-[360px] lg:h-[420px]"
+            className="relative block aspect-square w-full cursor-zoom-in"
             aria-label="Abrir imagen en visor"
           >
             <Image
               src={activeImage.url}
               alt={activeImage.alt}
               fill
-              className="object-cover"
+              className="object-contain p-4 sm:p-6 lg:p-8"
               sizes="(min-width: 1024px) 42vw, 100vw"
             />
           </button>
@@ -295,11 +295,16 @@ export function ProductGallery({
                     key={image.id}
                     type="button"
                     onClick={() => setActiveIndex(index)}
-                    className={`relative h-20 min-w-[88px] overflow-hidden rounded-2xl border ${
-                      activeIndex === index ? "border-neon" : "border-line"
-                    }`}
-                  >
-                    <Image src={image.url} alt={image.alt} fill className="object-cover" />
+                  className={`relative h-20 min-w-[88px] overflow-hidden rounded-2xl border ${
+                    activeIndex === index ? "border-neon" : "border-line"
+                  }`}
+                >
+                    <Image
+                      src={image.url}
+                      alt={image.alt}
+                      fill
+                      className="object-contain p-2"
+                    />
                   </button>
                 ))}
               </div>

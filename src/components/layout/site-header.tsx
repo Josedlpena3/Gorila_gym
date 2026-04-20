@@ -59,6 +59,13 @@ export function SiteHeader({ user }: SiteHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/carrito"
+            aria-label="Ir al carrito"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-white/5 text-sand transition hover:border-neon/60 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-neon/60 lg:hidden"
+          >
+            <ShoppingBag className="h-5 w-5" />
+          </Link>
           <MobileNavMenu user={user} />
 
           <div className="hidden items-center gap-3 lg:flex">

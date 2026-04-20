@@ -48,7 +48,7 @@ export function MobileNavMenu({ user }: MobileNavMenuProps) {
     <div ref={menuRef} className="relative lg:hidden">
       <button
         type="button"
-        className="flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-white/5 text-sand transition hover:border-neon/60 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-neon/60"
+        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line bg-white/5 text-sand transition hover:border-neon/60 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-neon/60"
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label={isOpen ? "Cerrar menú principal" : "Abrir menú principal"}
@@ -65,7 +65,7 @@ export function MobileNavMenu({ user }: MobileNavMenuProps) {
             aria-label="Cerrar menú"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-full z-30 mt-3 w-[min(18rem,calc(100vw-2rem))] rounded-[28px] border border-line bg-ink/95 p-4 shadow-premium backdrop-blur">
+          <div className="absolute right-0 top-full z-30 mt-3 w-[min(20rem,calc(100vw-2rem))] rounded-[28px] border border-line bg-ink/95 p-4 shadow-premium backdrop-blur">
             {user ? (
               <div className="border-b border-line pb-4">
                 <Link
@@ -89,28 +89,28 @@ export function MobileNavMenu({ user }: MobileNavMenuProps) {
             <nav className="mt-4 space-y-1 text-sm font-semibold text-sand">
               <Link
                 href="/catalogo"
-                className="block rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
                 onClick={() => setIsOpen(false)}
               >
                 Catálogo
               </Link>
               <Link
                 href="/encontranos"
-                className="block rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
                 onClick={() => setIsOpen(false)}
               >
                 Encontranos
               </Link>
               <Link
                 href="/carrito"
-                className="block rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
                 onClick={() => setIsOpen(false)}
               >
                 Carrito
               </Link>
               <Link
                 href="/mis-pedidos"
-                className="block rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
                 onClick={() => setIsOpen(false)}
               >
                 Mis pedidos
@@ -118,7 +118,7 @@ export function MobileNavMenu({ user }: MobileNavMenuProps) {
               {user?.role === "ADMIN" ? (
                 <Link
                   href="/admin"
-                  className="flex items-center gap-2 rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                  className="flex min-h-11 items-center gap-2 rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
                   onClick={() => setIsOpen(false)}
                 >
                   <ShieldCheck className="h-4 w-4" />

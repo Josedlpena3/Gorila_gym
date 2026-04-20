@@ -89,7 +89,7 @@ export function CatalogProductFeed({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 sm:gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:gap-6">
         {products.map((product) => (
           <ProductCard
             key={product.id}
@@ -115,6 +115,7 @@ export function CatalogProductFeed({
             <Button
               type="button"
               variant="secondary"
+              className="w-full sm:w-auto"
               onClick={loadMore}
               disabled={isLoading}
             >

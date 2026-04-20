@@ -59,18 +59,20 @@ export function CartItemControls({
     });
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center rounded-full border border-line">
+    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex min-h-11 items-center rounded-full border border-line">
         <button
-          className="px-4 py-2 text-lg"
+          type="button"
+          className="flex h-11 w-11 items-center justify-center text-lg"
           disabled={isPending || quantity <= 1}
           onClick={() => updateQuantity(quantity - 1)}
         >
           -
         </button>
-        <span className="min-w-10 text-center text-sm font-semibold">{quantity}</span>
+        <span className="min-w-11 text-center text-sm font-semibold">{quantity}</span>
         <button
-          className="px-4 py-2 text-lg"
+          type="button"
+          className="flex h-11 w-11 items-center justify-center text-lg"
           disabled={isPending || quantity >= stock}
           onClick={() => updateQuantity(quantity + 1)}
         >
@@ -79,7 +81,7 @@ export function CartItemControls({
       </div>
       <Button
         variant="danger"
-        className="px-4 py-2 text-red-100"
+        className="w-full px-4 py-2 text-red-100 sm:w-auto"
         onClick={removeItem}
       >
         Quitar

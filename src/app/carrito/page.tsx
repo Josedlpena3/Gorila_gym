@@ -59,9 +59,9 @@ export default async function CartPage() {
             {cart.items.map((item) => (
               <article
                 key={item.id}
-                className="grid grid-cols-[96px,1fr] gap-4 rounded-[28px] border border-line bg-ink/60 p-4 sm:grid-cols-[120px,1fr]"
+                className="grid gap-4 rounded-[28px] border border-line bg-ink/60 p-4 sm:grid-cols-[120px,1fr]"
               >
-                <div className="relative h-24 overflow-hidden rounded-3xl sm:h-28">
+                <div className="relative h-40 overflow-hidden rounded-3xl sm:h-28">
                   {item.image ? (
                     <Image
                       src={item.image}
@@ -85,13 +85,13 @@ export default async function CartPage() {
                       Stock disponible: {item.stock} unidades
                     </p>
                   </div>
-                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <CartItemControls
                       productId={item.productId}
                       quantity={item.quantity}
                       stock={item.stock}
                     />
-                    <p className="text-xl font-black text-sand">
+                    <p className="text-xl font-black text-sand sm:text-right">
                       {formatCurrency(item.subtotal)}
                     </p>
                   </div>
