@@ -25,7 +25,15 @@ export default async function CheckoutPage() {
         cart={cart}
         pickupAvailable={Boolean(pickupAddress)}
         transferAvailable={Boolean(transferConfig)}
-        transferAlias={transferConfig?.alias ?? null}
+        transferConfig={
+          transferConfig
+            ? {
+                alias: transferConfig.alias,
+                cbu: transferConfig.cbu,
+                accountHolder: transferConfig.accountHolder
+              }
+            : null
+        }
       />
     </div>
   );

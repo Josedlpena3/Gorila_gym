@@ -2,8 +2,7 @@
 
 import { DeliveryMethod, PaymentMethod } from "@prisma/client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,8 +33,14 @@ type CheckoutFormProps = {
   cart: CartDto | null;
   pickupAvailable: boolean;
   transferAvailable: boolean;
-  transferAlias: string | null;
+  transferConfig: {
+    alias: string;
+    cbu: string;
+    accountHolder: string;
+  } | null;
 };
+
+const STORE_WHATSAPP_NUMBER = "5493512288010";
 
 function getFullName(user: CheckoutFormUser | null) {
   return [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
@@ -54,25 +59,21 @@ function splitFullName(fullName: string) {
 function SelectorButton({
   active,
   children,
-  disabled,
   onClick
 }: {
   active: boolean;
-  children: React.ReactNode;
-  disabled?: boolean;
+  children: ReactNode;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
-      disabled={disabled}
       onClick={onClick}
       className={[
         "min-h-[52px] rounded-[24px] border px-4 py-3 text-left text-sm font-semibold transition",
         active
           ? "border-neon bg-neon/10 text-sand"
-          : "border-line bg-ink/60 text-mist hover:border-neon/40 hover:text-sand",
-        disabled ? "cursor-not-allowed opacity-50" : ""
+          : "border-line bg-ink/60 text-mist hover:border-neon/40 hover:text-sand"
       ].join(" ")}
     >
       {children}
@@ -80,25 +81,74 @@ function SelectorButton({
   );
 }
 
+function buildCheckoutWhatsappMessage(input: {
+  customerName: string;
+  phone: string;
+  orderCode: string;
+  items: CartDto["items"];
+  total: number;
+  deliveryMethod: DeliveryMethod;
+  paymentMethod: PaymentMethod;
+  transferConfig: CheckoutFormProps["transferConfig"];
+}) {
+  const products = input.items.map((item) => `* ${item.name} x${item.quantity}`).join("\n");
+  const deliveryLabel =
+    input.deliveryMethod === DeliveryMethod.PICKUP
+      ? "Retiro en el local"
+      : "Envío a domicilio";
+
+  if (input.paymentMethod === PaymentMethod.BANK_TRANSFER) {
+    return [
+      `Hola, soy ${input.customerName}.`,
+      "",
+      `Quiero confirmar mi pedido #${input.orderCode}.`,
+      "",
+      "📦 Productos:",
+      products,
+      "",
+      `💰 Total: ${formatCurrency(input.total)}`,
+      `📱 Teléfono: ${input.phone}`,
+      `🚚 Entrega: ${deliveryLabel}`,
+      "💳 Pago: Transferencia",
+      "",
+      "🏦 Datos bancarios:",
+      `Alias: ${input.transferConfig?.alias ?? "josedlp3"}`,
+      `CVU: ${input.transferConfig?.cbu ?? "0000003100097110373230"}`,
+      `Nombre: ${input.transferConfig?.accountHolder ?? "Jose Ignacio de la Peña"}`
+    ].join("\n");
+  }
+
+  return [
+    `Hola, soy ${input.customerName}.`,
+    "",
+    `Quiero confirmar mi pedido #${input.orderCode}.`,
+    "",
+    "📦 Productos:",
+    products,
+    "",
+    `💰 Total: ${formatCurrency(input.total)}`,
+    `📱 Teléfono: ${input.phone}`,
+    `🚚 Entrega: ${deliveryLabel}`,
+    "💵 Pago: Efectivo"
+  ].join("\n");
+}
+
 export function CheckoutForm({
   user,
   cart,
   pickupAvailable,
   transferAvailable,
-  transferAlias
+  transferConfig
 }: CheckoutFormProps) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [successOrderCode, setSuccessOrderCode] = useState<string | null>(null);
   const [guestCart, setGuestCart] = useState<CartDto | null>(null);
   const [isPending, startTransition] = useTransition();
   const defaultAddress = user?.addresses[0];
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(
-    defaultAddress ? DeliveryMethod.SHIPMENT : DeliveryMethod.PICKUP
+    pickupAvailable ? DeliveryMethod.PICKUP : DeliveryMethod.SHIPMENT
   );
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    transferAvailable ? PaymentMethod.BANK_TRANSFER : PaymentMethod.CASH
-  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
 
   useEffect(() => {
     if (user) {
@@ -112,18 +162,6 @@ export function CheckoutForm({
     });
   }, [user]);
 
-  useEffect(() => {
-    if (!pickupAvailable && deliveryMethod === DeliveryMethod.PICKUP) {
-      setDeliveryMethod(DeliveryMethod.SHIPMENT);
-    }
-  }, [deliveryMethod, pickupAvailable]);
-
-  useEffect(() => {
-    if (!transferAvailable && paymentMethod === PaymentMethod.BANK_TRANSFER) {
-      setPaymentMethod(PaymentMethod.CASH);
-    }
-  }, [paymentMethod, transferAvailable]);
-
   const activeCart = user ? cart : guestCart;
 
   if (successOrderCode) {
@@ -135,7 +173,7 @@ export function CheckoutForm({
         </h2>
         <p className="mt-4 text-sm leading-6 text-mist sm:text-base">
           Tu código es <span className="font-semibold text-sand">{successOrderCode}</span>.
-          Te vamos a contactar por WhatsApp para coordinar la entrega.
+          Ya abrimos WhatsApp para que sigas la coordinación desde ahí.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link href="/catalogo" className="w-full sm:w-auto">
@@ -181,6 +219,10 @@ export function CheckoutForm({
       onSubmit={(event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
+        const pendingWhatsappWindow =
+          typeof window !== "undefined"
+            ? window.open("", "_blank", "noopener,noreferrer")
+            : null;
 
         startTransition(async () => {
           setError(null);
@@ -189,28 +231,33 @@ export function CheckoutForm({
           const fullName = String(formData.get("fullName") ?? "").trim();
 
           if (!isValidPhone(phone)) {
+            pendingWhatsappWindow?.close();
             setError("Ingresá un teléfono válido de al menos 8 dígitos.");
             return;
           }
 
           if (!fullName) {
+            pendingWhatsappWindow?.close();
             setError("Ingresá tu nombre.");
             return;
           }
 
-          if (!deliveryMethod) {
-            setError("Seleccioná una forma de entrega.");
+          if (deliveryMethod === DeliveryMethod.PICKUP && !pickupAvailable) {
+            pendingWhatsappWindow?.close();
+            setError("El retiro en el local no está disponible en este momento.");
             return;
           }
 
-          if (!paymentMethod) {
-            setError("Seleccioná una forma de pago.");
+          if (paymentMethod === PaymentMethod.BANK_TRANSFER && !transferAvailable) {
+            pendingWhatsappWindow?.close();
+            setError("La transferencia no está disponible en este momento.");
             return;
           }
 
           const { firstName, lastName } = splitFullName(fullName);
 
           if (!firstName) {
+            pendingWhatsappWindow?.close();
             setError("Ingresá tu nombre.");
             return;
           }
@@ -253,14 +300,31 @@ export function CheckoutForm({
           const payload = await response.json().catch(() => null);
 
           if (!response.ok) {
+            pendingWhatsappWindow?.close();
             setError(payload?.error ?? "No se pudo confirmar el pedido.");
             return;
           }
 
-          if (user) {
-            router.push(`/mis-pedidos?highlight=${payload.order.id}&created=1`);
-            router.refresh();
-            return;
+          const normalizedPhone = normalizePhone(phone);
+          const whatsappMessage = buildCheckoutWhatsappMessage({
+            customerName: fullName,
+            phone: normalizedPhone,
+            orderCode:
+              typeof payload?.order?.code === "string" ? payload.order.code : "pedido",
+            items: activeCart.items,
+            total: activeCart.subtotal,
+            deliveryMethod,
+            paymentMethod,
+            transferConfig
+          });
+          const whatsappUrl = `https://wa.me/${STORE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+            whatsappMessage
+          )}`;
+
+          if (pendingWhatsappWindow) {
+            pendingWhatsappWindow.location.href = whatsappUrl;
+          } else {
+            window.open(whatsappUrl, "_blank", "noopener,noreferrer");
           }
 
           clearGuestCart();
@@ -299,7 +363,6 @@ export function CheckoutForm({
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <SelectorButton
               active={deliveryMethod === DeliveryMethod.PICKUP}
-              disabled={!pickupAvailable}
               onClick={() => setDeliveryMethod(DeliveryMethod.PICKUP)}
             >
               Retiro en el local
@@ -365,7 +428,6 @@ export function CheckoutForm({
             </SelectorButton>
             <SelectorButton
               active={paymentMethod === PaymentMethod.BANK_TRANSFER}
-              disabled={!transferAvailable}
               onClick={() => setPaymentMethod(PaymentMethod.BANK_TRANSFER)}
             >
               Transferencia
@@ -374,7 +436,7 @@ export function CheckoutForm({
           {paymentMethod === PaymentMethod.BANK_TRANSFER && transferAvailable ? (
             <p className="mt-3 text-sm text-mist">
               Si querés, podés adelantar la transferencia. Alias:{" "}
-              <span className="font-semibold text-sand">{transferAlias}</span>
+              <span className="font-semibold text-sand">{transferConfig?.alias}</span>
             </p>
           ) : null}
         </section>
@@ -426,11 +488,11 @@ export function CheckoutForm({
         </div>
 
         <div className="mt-6 rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-          Confirmamos el pedido por WhatsApp con tu forma de entrega y pago elegida.
+          Primero registramos el pedido y después abrimos WhatsApp con el mensaje listo.
         </div>
 
         <Button className="mt-6 min-h-[52px] w-full text-base sm:text-sm" disabled={isPending}>
-          {isPending ? "Confirmando pedido..." : "Confirmar pedido"}
+          {isPending ? "Preparando WhatsApp..." : "Pedir por WhatsApp"}
         </Button>
       </aside>
     </form>
