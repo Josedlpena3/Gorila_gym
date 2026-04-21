@@ -51,6 +51,9 @@ const createOrderBaseSchema = z.object({
   phone: phoneSchema,
   deliveryMethod: z.nativeEnum(DeliveryMethod).default(DeliveryMethod.SHIPMENT),
   paymentMethod: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
+  discountCode: z.string().trim().max(80).optional(),
+  discountApplied: z.string().trim().max(80).nullable().optional(),
+  totalFinal: z.number().positive("Total inválido").optional(),
   notes: z.string().max(300).optional(),
   address: orderAddressSchema.optional()
 });

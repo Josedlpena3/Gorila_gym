@@ -6,6 +6,7 @@ import {
   Prisma
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { applyCheckoutDiscount } from "@/lib/checkout-discounts";
 import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -210,6 +211,8 @@ function buildManualPaymentData(input: {
   paymentMethod: PaymentMethod;
   total: number;
   orderCode: string;
+  discountCode?: string | null;
+  discountApplied?: string | null;
 }) {
   if (input.paymentMethod === PaymentMethod.BANK_TRANSFER) {
     const transferConfig = getBankTransferConfig();
@@ -228,6 +231,14 @@ function buildManualPaymentData(input: {
       externalReference: input.orderCode,
       metadata: {
         mode: "manual_transfer_whatsapp",
+        ...(input.discountCode || input.discountApplied
+          ? {
+              discount: {
+                code: input.discountCode ?? null,
+                applied: input.discountApplied ?? null
+              }
+            }
+          : {}),
         transfer: {
           alias: transferConfig.alias,
           cbu: transferConfig.cbu,
@@ -245,7 +256,15 @@ function buildManualPaymentData(input: {
     amount: input.total,
     externalReference: input.orderCode,
     metadata: {
-      mode: "manual_contact_whatsapp"
+      mode: "manual_contact_whatsapp",
+      ...(input.discountCode || input.discountApplied
+        ? {
+            discount: {
+              code: input.discountCode ?? null,
+              applied: input.discountApplied ?? null
+            }
+          }
+        : {})
     }
   } satisfies Prisma.PaymentCreateWithoutOrderInput;
 }
@@ -621,10 +640,15 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     address: data.address
   });
   const orderCode = generateOrderCode();
+  const discount = applyCheckoutDiscount(
+    data.discountCode,
+    cart.subtotal,
+    deliveryMethod
+  );
   const pricing = {
     shippingCost: 0,
-    discountAmount: 0,
-    total: cart.subtotal
+    discountAmount: discount.discountAmount,
+    total: discount.total
   };
 
   assertPositiveTotal(pricing.total);
@@ -731,7 +755,9 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
           create: buildManualPaymentData({
             paymentMethod,
             total: pricing.total,
-            orderCode
+            orderCode,
+            discountCode: discount.discountCode,
+            discountApplied: discount.discountApplied
           })
         }
       },
@@ -878,10 +904,11 @@ export async function createGuestOrder(input: unknown) {
     }
 
     const subtotal = resolvedItems.reduce((total, item) => total + item.subtotal, 0);
+    const discount = applyCheckoutDiscount(data.discountCode, subtotal, deliveryMethod);
     const pricing = {
       shippingCost: 0,
-      discountAmount: 0,
-      total: subtotal
+      discountAmount: discount.discountAmount,
+      total: discount.total
     };
 
     assertPositiveTotal(pricing.total);
@@ -922,7 +949,9 @@ export async function createGuestOrder(input: unknown) {
           create: buildManualPaymentData({
             paymentMethod,
             total: pricing.total,
-            orderCode
+            orderCode,
+            discountCode: discount.discountCode,
+            discountApplied: discount.discountApplied
           })
         }
       },

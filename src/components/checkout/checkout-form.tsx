@@ -10,6 +10,7 @@ import {
   getGuestCartSnapshot,
   subscribeToGuestCart
 } from "@/lib/guest-cart";
+import { applyCheckoutDiscount } from "@/lib/checkout-discounts";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { formatCurrency } from "@/lib/utils";
 import type { CartDto } from "@/types";
@@ -87,6 +88,7 @@ function buildCheckoutWhatsappMessage(input: {
   orderCode: string;
   items: CartDto["items"];
   total: number;
+  discountApplied: string | null;
   deliveryMethod: DeliveryMethod;
   paymentMethod: PaymentMethod;
   transferConfig: CheckoutFormProps["transferConfig"];
@@ -107,6 +109,9 @@ function buildCheckoutWhatsappMessage(input: {
       products,
       "",
       `💰 Total: ${formatCurrency(input.total)}`,
+      ...(input.discountApplied
+        ? [`🏷️ Código aplicado: ${input.discountApplied}`]
+        : []),
       `📱 Teléfono: ${input.phone}`,
       `🚚 Entrega: ${deliveryLabel}`,
       "💳 Pago: Transferencia",
@@ -127,6 +132,7 @@ function buildCheckoutWhatsappMessage(input: {
     products,
     "",
     `💰 Total: ${formatCurrency(input.total)}`,
+    ...(input.discountApplied ? [`🏷️ Código aplicado: ${input.discountApplied}`] : []),
     `📱 Teléfono: ${input.phone}`,
     `🚚 Entrega: ${deliveryLabel}`,
     "💵 Pago: Efectivo"
@@ -150,6 +156,7 @@ export function CheckoutForm({
     pickupAvailable ? DeliveryMethod.PICKUP : DeliveryMethod.SHIPMENT
   );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
+  const [discountCode, setDiscountCode] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -213,6 +220,12 @@ export function CheckoutForm({
       </div>
     );
   }
+
+  const discountPreview = applyCheckoutDiscount(
+    discountCode,
+    activeCart.subtotal,
+    deliveryMethod
+  );
 
   async function submitOrderToWhatsapp(pendingWhatsappWindow: Window | null) {
     if (!formRef.current) {
@@ -282,6 +295,9 @@ export function CheckoutForm({
       phone: normalizePhone(phone),
       deliveryMethod,
       paymentMethod,
+      discountCode: discountPreview.discountCode,
+      discountApplied: discountPreview.discountApplied,
+      totalFinal: discountPreview.total,
       address
     };
 
@@ -309,12 +325,15 @@ export function CheckoutForm({
     }
 
     const normalizedPhone = normalizePhone(phone);
+    const finalTotal =
+      typeof payload?.order?.total === "number" ? payload.order.total : discountPreview.total;
     const whatsappMessage = buildCheckoutWhatsappMessage({
       customerName: fullName,
       phone: normalizedPhone,
       orderCode: typeof payload?.order?.code === "string" ? payload.order.code : "pedido",
       items: activeCart.items,
-      total: activeCart.subtotal,
+      total: finalTotal,
+      discountApplied: discountPreview.discountApplied,
       deliveryMethod,
       paymentMethod,
       transferConfig
@@ -459,6 +478,36 @@ export function CheckoutForm({
           ) : null}
         </section>
 
+        <section className="section-card p-4 sm:p-6">
+          <p className="text-base font-semibold text-sand sm:text-lg">
+            Código de descuento
+          </p>
+          <div className="mt-4 space-y-2">
+            <label className="text-sm text-mist" htmlFor="discountCode">
+              Código promocional
+            </label>
+            <Input
+              id="discountCode"
+              type="text"
+              name="discountCode"
+              value={discountCode}
+              onChange={(event) => setDiscountCode(event.target.value)}
+              placeholder="Código de descuento (opcional)"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+            {discountPreview.discountApplied ? (
+              <p className="text-sm text-green-300">
+                Código aplicado: {discountPreview.discountApplied}
+              </p>
+            ) : null}
+            {discountCode.trim() && discountPreview.invalid ? (
+              <p className="text-sm text-amber-300">Código inválido</p>
+            ) : null}
+          </div>
+        </section>
+
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
       </div>
 
@@ -485,6 +534,18 @@ export function CheckoutForm({
             <span>Total de productos</span>
             <span>{formatCurrency(activeCart.subtotal)}</span>
           </div>
+          {discountPreview.discountApplied ? (
+            <div className="flex justify-between text-mist">
+              <span>Código aplicado</span>
+              <span>{discountPreview.discountApplied}</span>
+            </div>
+          ) : null}
+          {discountPreview.discountAmount > 0 ? (
+            <div className="flex justify-between text-green-300">
+              <span>Descuento</span>
+              <span>-{formatCurrency(discountPreview.discountAmount)}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between text-mist">
             <span>Entrega</span>
             <span>
@@ -501,7 +562,7 @@ export function CheckoutForm({
           </div>
           <div className="flex justify-between text-lg font-bold text-sand">
             <span>Total</span>
-            <span>{formatCurrency(activeCart.subtotal)}</span>
+            <span>{formatCurrency(discountPreview.total)}</span>
           </div>
         </div>
 
