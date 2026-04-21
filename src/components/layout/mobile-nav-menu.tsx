@@ -95,13 +95,6 @@ export function MobileNavMenu({ user }: MobileNavMenuProps) {
                 Catálogo
               </Link>
               <Link
-                href="/encontranos"
-                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
-                onClick={() => setIsOpen(false)}
-              >
-                Encontranos
-              </Link>
-              <Link
                 href="/carrito"
                 className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
                 onClick={() => setIsOpen(false)}
@@ -125,6 +118,13 @@ export function MobileNavMenu({ user }: MobileNavMenuProps) {
                   Admin
                 </Link>
               ) : null}
+              <Link
+                href="/encontranos"
+                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                onClick={() => setIsOpen(false)}
+              >
+                Encontranos
+              </Link>
             </nav>
 
             {user ? (

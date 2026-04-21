@@ -136,19 +136,19 @@ export function CatalogToolbar({
     <form
       method="GET"
       action="/catalogo"
-      className="section-card relative z-20 mx-auto max-w-5xl overflow-visible p-3 sm:p-4"
+      className="section-card relative z-20 mx-auto max-w-5xl overflow-visible px-3 py-2.5 sm:px-4 sm:py-4"
     >
       <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-neon/60 to-transparent" />
 
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-mist" />
+        <div className="mb-2 flex items-center gap-2 md:mb-4">
+          <div className="relative min-w-0 flex-1 max-w-sm md:max-w-md">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-mist" />
             <Input
               name="q"
               defaultValue={currentQuery ?? ""}
               placeholder="Proteina, creatina, shaker, marca..."
-              className="rounded-[20px] border-white/10 bg-black/20 pl-11 pr-4 text-base shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-neon/40 focus:border-neon/70 sm:text-sm"
+              className="h-[38px] min-h-[38px] rounded-[18px] border-white/10 bg-black/20 px-3 pl-8 pr-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-neon/40 focus:border-neon/70 md:h-[44px] md:min-h-[44px] md:px-4 md:pl-9 md:pr-4 md:text-base"
             />
           </div>
 
@@ -162,7 +162,7 @@ export function CatalogToolbar({
 
           <Button
             type="submit"
-            className="w-full shrink-0 rounded-[20px] px-4 text-sm shadow-[0_14px_34px_rgba(183,255,57,0.16)] sm:w-auto sm:px-5"
+            className="h-[38px] min-h-[38px] shrink-0 rounded-[18px] px-3 text-sm shadow-[0_14px_34px_rgba(183,255,57,0.16)] md:h-[44px] md:min-h-[44px] md:px-4"
           >
             Buscar
           </Button>

@@ -76,18 +76,18 @@ export function FindUsPageClient() {
   if (isLoading) {
     return (
       <div className="page-shell">
-        <div className="section-card p-6 sm:p-8">
+        <div className="section-card mx-auto max-w-5xl p-4 sm:p-8">
           <p className="text-xs uppercase tracking-[0.28em] text-mist">Encontranos</p>
-          <h1 className="mt-3 text-3xl font-black uppercase tracking-[0.08em] text-sand sm:text-4xl">
+          <h1 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-4xl">
             Cargando ubicación
           </h1>
-          <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr,1.05fr]">
-            <div className="space-y-4">
+          <div className="mt-6 flex flex-col gap-6 lg:grid lg:grid-cols-[0.95fr,1.05fr]">
+            <div className="mx-auto flex w-full max-w-md flex-col gap-4 lg:mx-0 lg:max-w-none">
               <div className="h-6 w-40 animate-pulse rounded-full bg-white/10" />
               <div className="h-24 animate-pulse rounded-[24px] bg-white/5" />
-              <div className="h-14 w-full animate-pulse rounded-full bg-neon/20 sm:w-72" />
+              <div className="h-[50px] w-full animate-pulse rounded-full bg-neon/20" />
             </div>
-            <div className="h-[340px] animate-pulse rounded-[28px] border border-line bg-white/5" />
+            <div className="h-[300px] animate-pulse rounded-[28px] border border-line bg-white/5 sm:h-[340px]" />
           </div>
         </div>
       </div>
@@ -115,21 +115,21 @@ export function FindUsPageClient() {
 
   return (
     <div className="page-shell">
-      <section className="section-card overflow-hidden p-6 sm:p-8">
-        <div className="grid gap-8 lg:grid-cols-[0.95fr,1.05fr] lg:items-start">
-          <div className="space-y-6">
+      <section className="section-card mx-auto max-w-5xl overflow-hidden p-4 sm:p-8">
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[0.95fr,1.05fr] lg:items-start lg:gap-8">
+          <div className="mx-auto flex w-full max-w-md flex-col gap-6 lg:mx-0 lg:max-w-none">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-mist">Encontranos</p>
-              <h1 className="mt-3 text-3xl font-black uppercase tracking-[0.08em] text-sand sm:text-4xl">
+              <h1 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-4xl">
                 Nuestro local
               </h1>
-              <p className="mt-4 max-w-xl text-sm leading-7 text-mist sm:text-base">
+              <p className="mt-4 text-sm leading-7 text-mist sm:text-base">
                 Coordiná tu visita o escribinos por WhatsApp para consultar stock,
                 recomendaciones y horarios de atención.
               </p>
             </div>
 
-            <div className="rounded-[28px] border border-line bg-ink/60 p-5">
+            <div className="rounded-[28px] border border-line bg-ink/60 p-4 sm:p-5">
               <div className="flex items-start gap-3">
                 <div className="mt-1 rounded-2xl bg-neon/15 p-2 text-neon">
                   <MapPin className="h-5 w-5" />
@@ -148,7 +148,7 @@ export function FindUsPageClient() {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-neon px-5 py-3 text-base font-semibold text-ink transition hover:bg-neon/90 sm:w-auto sm:px-8 sm:py-4"
+                className="inline-flex h-[50px] w-full items-center justify-center gap-2 rounded-full bg-neon px-5 py-3 text-base font-semibold text-ink transition hover:bg-neon/90"
               >
                 <MessageCircle className="h-5 w-5" />
                 Contactar por WhatsApp
@@ -157,7 +157,7 @@ export function FindUsPageClient() {
 
             <button
               type="button"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-line bg-white/5 px-5 py-3 text-sm font-semibold text-sand transition hover:border-neon/60 hover:bg-white/10 sm:w-auto"
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-line bg-white/5 px-5 py-3 text-sm font-semibold text-sand transition hover:border-neon/60 hover:bg-white/10"
               onClick={() => {
                 void loadSiteConfig();
               }}
@@ -173,7 +173,7 @@ export function FindUsPageClient() {
               title="Mapa del local Gorila Strong"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              className="block min-h-[320px] w-full border-0 sm:min-h-[360px]"
+              className="block h-[300px] w-full rounded-xl border-0 sm:h-[360px]"
               allowFullScreen
             />
           </div>

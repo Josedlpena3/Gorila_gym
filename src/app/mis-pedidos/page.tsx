@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ORDER_STATUS_BADGE_VARIANTS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { getSiteConfig } from "@/modules/site-config/site-config.service";
 import { listOrdersByUser } from "@/modules/orders/order.service";
 import { getCurrentUser } from "@/modules/users/user.service";
 
@@ -18,16 +19,24 @@ export default async function OrdersPage({
     redirect("/login?next=/mis-pedidos");
   }
 
-  const orders = await listOrdersByUser(user.id);
+  const [orders, siteConfig] = await Promise.all([
+    listOrdersByUser(user.id),
+    getSiteConfig().catch((error) => {
+      console.error("[mis-pedidos] no se pudo cargar site-config", error);
+      return null;
+    })
+  ]);
   const highlight =
     typeof searchParams.highlight === "string" ? searchParams.highlight : null;
   const created = typeof searchParams.created === "string" && searchParams.created === "1";
 
   return (
     <div className="page-shell space-y-6">
-      <div>
-        <p className="text-sm uppercase tracking-[0.3em] text-mist">Pedidos</p>
-        <h1 className="text-3xl font-black uppercase tracking-[0.08em] text-sand sm:text-4xl">
+      <div className="space-y-2">
+        <p className="text-xs uppercase tracking-[0.24em] text-mist sm:text-sm sm:tracking-[0.3em]">
+          Pedidos
+        </p>
+        <h1 className="text-2xl font-black uppercase tracking-[0.06em] text-sand sm:text-4xl">
           Historial y seguimiento
         </h1>
       </div>
@@ -52,49 +61,72 @@ export default async function OrdersPage({
           {orders.map((order) => (
             <article
               key={order.id}
-              className={`section-card p-4 sm:p-6 ${
+              className={`section-card overflow-hidden p-4 sm:p-6 ${
                 highlight === order.id ? "ring-2 ring-neon/60" : ""
               }`}
             >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-[0.2em] text-mist">Pedido</p>
+                    <h2 className="mt-2 text-xl font-black uppercase tracking-[0.08em] text-sand sm:text-2xl">
+                      {order.code}
+                    </h2>
+                    <p className="mt-2 text-sm text-mist">
+                      {formatDate(order.createdAt)} · {order.city}, {order.province}
+                    </p>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={ORDER_STATUS_BADGE_VARIANTS[order.status]}>
                       {ORDER_STATUS_LABELS[order.status]}
                     </Badge>
                   </div>
-                  <h2 className="mt-4 text-xl font-black uppercase tracking-[0.08em] text-sand sm:text-2xl">
-                    {order.code}
-                  </h2>
-                  <p className="mt-2 text-sm text-mist">
-                    {formatDate(order.createdAt)} · {order.city}, {order.province}
-                  </p>
                 </div>
-                <div className="text-left lg:text-right">
-                  <p className="text-sm text-mist">Contacto</p>
-                  <p className="text-sm font-semibold text-sand">{order.contactPhone}</p>
-                  <p className="mt-2 max-w-xs text-xs text-mist lg:ml-auto">
+
+                <div className="flex flex-col gap-3 rounded-[24px] border border-line bg-ink/50 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-mist">Contacto</p>
+                      <p className="text-sm font-semibold text-sand">{order.contactPhone}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-mist">Total</p>
+                      <p className="text-lg font-bold text-sand sm:text-2xl">
+                        {formatCurrency(order.total)}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-mist">
                     Nos comunicamos por WhatsApp para coordinar entrega y seguimiento.
                   </p>
-                  <p className="mt-3 text-2xl font-black text-sand sm:text-3xl">
-                    {formatCurrency(order.total)}
-                  </p>
+                  {siteConfig ? (
+                    <a
+                      href={`https://wa.me/${siteConfig.whatsappNumber}?text=${encodeURIComponent(
+                        `Hola, quiero consultar por mi pedido ${order.code}.`
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neon px-5 py-3 text-sm font-semibold text-ink transition hover:bg-neon/90"
+                    >
+                      Contactar por WhatsApp
+                    </a>
+                  ) : null}
                 </div>
-              </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-2">
-                {order.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-3xl border border-line bg-ink/60 p-4"
-                  >
-                    <p className="font-semibold text-sand">{item.name}</p>
-                    <p className="mt-1 text-sm text-mist">{item.brand}</p>
-                    <p className="mt-3 text-sm text-mist">
-                      {item.quantity} x {formatCurrency(item.price)}
-                    </p>
-                  </div>
-                ))}
+                <div className="grid gap-3">
+                  {order.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-3xl border border-line bg-ink/60 p-4"
+                    >
+                      <p className="font-semibold text-sand">{item.name}</p>
+                      <p className="mt-1 text-sm text-mist">{item.brand}</p>
+                      <p className="mt-3 text-sm text-mist">
+                        {item.quantity} x {formatCurrency(item.price)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </article>
           ))}

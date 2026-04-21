@@ -59,9 +59,9 @@ export default async function CartPage() {
             {cart.items.map((item) => (
               <article
                 key={item.id}
-                className="grid gap-4 rounded-[28px] border border-line bg-ink/60 p-4 sm:grid-cols-[120px,1fr]"
+                className="flex gap-3 rounded-[28px] border border-line bg-ink/60 p-4 sm:gap-4"
               >
-                <div className="relative h-40 overflow-hidden rounded-3xl sm:h-28">
+                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl sm:h-28 sm:w-28">
                   {item.image ? (
                     <Image
                       src={item.image}
@@ -75,7 +75,7 @@ export default async function CartPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col justify-between gap-3">
+                <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
                   <div>
                     <p className="text-sm uppercase tracking-[0.24em] text-mist">{item.brand}</p>
                     <h2 className="mt-2 text-lg font-semibold leading-tight text-sand sm:text-xl">
