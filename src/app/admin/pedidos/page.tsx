@@ -53,6 +53,13 @@ export default async function AdminOrdersPage() {
                   orderCode={order.code}
                   phone={order.customerPhone}
                   total={order.total}
+                  paymentMethod={order.paymentMethod}
+                  deliveryMethod={order.deliveryMethod}
+                  street={order.street}
+                  number={order.number}
+                  city={order.city}
+                  province={order.province}
+                  transfer={order.payment.transfer}
                   items={order.items}
                 />
                 <OrderStatusForm
@@ -68,6 +75,7 @@ export default async function AdminOrdersPage() {
                 </p>
                 <p className="mt-3 text-sand">Cliente: {order.customer}</p>
                 <p>Estado del pedido: {ORDER_STATUS_LABELS[order.status]}</p>
+                <p>Entrega: {order.deliveryDetail ?? "-"}</p>
                 <p>Celular: {order.customerPhone || order.contactPhone}</p>
                 <p>Ciudad: {order.city}</p>
                 <p>Provincia: {order.province}</p>

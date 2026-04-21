@@ -69,10 +69,18 @@ function isPublicApi(pathname: string) {
   );
 }
 
+function isGuestCheckoutApi(request: NextRequest) {
+  return request.nextUrl.pathname === "/api/orders" && request.method === "POST";
+}
+
 function requiresAuthenticatedWrite(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (!pathname.startsWith("/api/") || isPublicApi(pathname)) {
+  if (
+    !pathname.startsWith("/api/") ||
+    isPublicApi(pathname) ||
+    isGuestCheckoutApi(request)
+  ) {
     return false;
   }
 

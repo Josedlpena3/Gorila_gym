@@ -1,29 +1,29 @@
-const WHATSAPP_PHONE_ALLOWED_CHARS = /^[+\d\s()-]+$/;
+export function extractPhoneDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
 
-export function normalizeWhatsAppPhone(value: string) {
-  const trimmedValue = value.trim();
-  const digits = trimmedValue.replace(/\D/g, "");
+export function normalizePhone(phone: string): string {
+  const cleaned = extractPhoneDigits(phone);
 
-  if (digits.length === 0) {
+  if (!cleaned) {
     return "";
   }
 
-  return trimmedValue.startsWith("+") ? `+${digits}` : digits;
-}
-
-export function isValidWhatsAppPhone(value: string) {
-  const trimmedValue = value.trim();
-
-  if (!trimmedValue || !WHATSAPP_PHONE_ALLOWED_CHARS.test(trimmedValue)) {
-    return false;
+  if (cleaned.startsWith("54")) {
+    return cleaned;
   }
 
-  const plusMatches = trimmedValue.match(/\+/g) ?? [];
-
-  if (plusMatches.length > 1 || (plusMatches.length === 1 && !trimmedValue.startsWith("+"))) {
-    return false;
+  if (cleaned.startsWith("9")) {
+    return `54${cleaned}`;
   }
 
-  const digits = trimmedValue.replace(/\D/g, "");
-  return digits.length >= 10 && digits.length <= 15;
+  return `549${cleaned}`;
 }
+
+export function isValidPhone(value: string) {
+  const cleaned = extractPhoneDigits(value);
+  return cleaned.length >= 8;
+}
+
+export const normalizeWhatsAppPhone = normalizePhone;
+export const isValidWhatsAppPhone = isValidPhone;

@@ -1,13 +1,29 @@
 "use client";
 
+import type { DeliveryMethod, PaymentMethod } from "@prisma/client";
 import { MessageCircle } from "lucide-react";
-import { formatCurrency, normalizeWhatsappPhone } from "@/lib/utils";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
+import type { BankTransferDetailsDto } from "@/types";
+import { formatCurrency } from "@/lib/utils";
+
+const FALLBACK_TRANSFER_DETAILS = {
+  alias: "josedlp3",
+  cbu: "0000003100097110373230",
+  accountHolder: "Jose Ignacio de la Peña"
+} satisfies Pick<BankTransferDetailsDto, "alias" | "cbu" | "accountHolder">;
 
 type OrderWhatsappButtonProps = {
   customerName: string;
   orderCode: string;
   phone?: string | null;
   total: number;
+  paymentMethod: PaymentMethod;
+  deliveryMethod: DeliveryMethod;
+  street?: string | null;
+  number?: string | null;
+  city?: string | null;
+  province?: string | null;
+  transfer?: BankTransferDetailsDto | null;
   items: Array<{
     id: string;
     name: string;
@@ -15,29 +31,108 @@ type OrderWhatsappButtonProps = {
   }>;
 };
 
+function buildDeliveryText(input: {
+  deliveryMethod: DeliveryMethod;
+  street?: string | null;
+  number?: string | null;
+  city?: string | null;
+  province?: string | null;
+}) {
+  if (input.deliveryMethod === "PICKUP") {
+    return "Retiro por el local";
+  }
+
+  const address = [input.street, input.number].filter(Boolean).join(" ").trim();
+  const location = [address || null, input.city, input.province].filter(Boolean).join(", ");
+
+  return location.length > 0 ? `Envío a ${location}` : "Envío a domicilio";
+}
+
 function buildWhatsappMessage(input: {
   customerName: string;
   orderCode: string;
   total: number;
+  paymentMethod: PaymentMethod;
+  deliveryMethod: DeliveryMethod;
+  street?: string | null;
+  number?: string | null;
+  city?: string | null;
+  province?: string | null;
+  transfer?: BankTransferDetailsDto | null;
   items: Array<{
     name: string;
     quantity: number;
   }>;
 }) {
   const lines = input.items.map((item) => `* ${item.name} x${item.quantity}`);
+  const delivery = buildDeliveryText({
+    deliveryMethod: input.deliveryMethod,
+    street: input.street,
+    number: input.number,
+    city: input.city,
+    province: input.province
+  });
+
+  if (input.paymentMethod === "BANK_TRANSFER") {
+    const transfer = input.transfer ?? FALLBACK_TRANSFER_DETAILS;
+
+    return [
+      `Hola ${input.customerName}, soy de Gorila Strong 🦍`,
+      "",
+      `Te contacto por tu pedido #${input.orderCode}.`,
+      "",
+      "📦 Productos:",
+      ...lines,
+      "",
+      `💰 Total: ${formatCurrency(input.total)}`,
+      "",
+      "💳 Forma de pago: Transferencia",
+      "",
+      "🏦 Datos bancarios:",
+      `Alias: ${transfer.alias}`,
+      `CVU: ${transfer.cbu}`,
+      `Nombre: ${transfer.accountHolder}`,
+      "",
+      `🚚 Entrega: ${delivery}`,
+      "",
+      "📩 Cuando puedas, envianos el comprobante para confirmar tu pedido."
+    ].join("\n");
+  }
+
+  if (input.paymentMethod === "CASH") {
+    return [
+      `Hola ${input.customerName}, soy de Gorila Strong 🦍`,
+      "",
+      `Te contacto por tu pedido #${input.orderCode}.`,
+      "",
+      "📦 Productos:",
+      ...lines,
+      "",
+      `💰 Total: ${formatCurrency(input.total)}`,
+      "",
+      "💵 Forma de pago: Efectivo",
+      "",
+      `🚚 Entrega: ${delivery}`,
+      "",
+      "👍 Coordinamos por acá el horario o envío."
+    ].join("\n");
+  }
 
   return [
-    `Hola ${input.customerName}, soy de Gorila Strong 💪`,
+    `Hola ${input.customerName}, soy de Gorila Strong 🦍`,
     "",
     `Te contacto por tu pedido #${input.orderCode}.`,
     "",
-    "Productos:",
-    "",
+    "📦 Productos:",
     ...lines,
     "",
-    `Total: ${formatCurrency(input.total)}`,
+    `💰 Total: ${formatCurrency(input.total)}`,
     "",
-    "Cuando puedas confirmamos entrega o retiro 👍"
+    "💳 Forma de pago: Mercado Pago",
+    "",
+    `🚚 Entrega: ${delivery}`,
+    "",
+    "👍 Coordinamos por acá el horario o envío."
   ].join("\n");
 }
 
@@ -46,15 +141,30 @@ export function OrderWhatsappButton({
   orderCode,
   phone,
   total,
+  paymentMethod,
+  deliveryMethod,
+  street,
+  number,
+  city,
+  province,
+  transfer,
   items
 }: OrderWhatsappButtonProps) {
-  const normalizedPhone = normalizeWhatsappPhone(phone);
+  const normalizedPhone =
+    phone?.trim() && isValidPhone(phone) ? normalizePhone(phone) : null;
   const whatsappUrl = normalizedPhone
     ? `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(
         buildWhatsappMessage({
           customerName,
           orderCode,
           total,
+          paymentMethod,
+          deliveryMethod,
+          street,
+          number,
+          city,
+          province,
+          transfer,
           items
         })
       )}`

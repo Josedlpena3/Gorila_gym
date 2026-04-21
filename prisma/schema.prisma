@@ -199,8 +199,8 @@ model CartItem {
 model Order {
   id             String         @id @default(cuid())
   code           String         @unique
-  userId         String
-  user           User           @relation(fields: [userId], references: [id])
+  userId         String?
+  user           User?          @relation(fields: [userId], references: [id])
   addressId      String?
   address        Address?       @relation(fields: [addressId], references: [id])
   deliveryMethod DeliveryMethod

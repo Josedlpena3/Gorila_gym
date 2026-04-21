@@ -127,6 +127,7 @@ export type OrderSummaryDto = {
   status: OrderStatus;
   paymentMethod: PaymentMethod;
   deliveryMethod: DeliveryMethod;
+  deliveryDetail: string | null;
   subtotal: number;
   shippingCost: number;
   discountTotal: number;

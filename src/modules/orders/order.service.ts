@@ -19,6 +19,7 @@ import { decimalToNumber, generateOrderCode } from "@/lib/utils";
 import { getCartByUserId } from "@/modules/cart/cart.service";
 import {
   createOrderSchema,
+  createGuestOrderSchema,
   orderAdminActionSchema,
   orderStatusSchema,
   quoteCheckoutSchema
@@ -70,6 +71,11 @@ type UserContext = {
   }>;
 };
 
+type GuestOrderItemInput = {
+  productId: string;
+  quantity: number;
+};
+
 type TransferMetadata = {
   alias: string;
   cbu: string;
@@ -117,6 +123,12 @@ function parsePaymentMetadata(metadata: Prisma.JsonValue | null): PaymentMetadat
 
 function mapOrder(order: OrderRecord): OrderSummaryDto {
   const paymentMetadata = parsePaymentMetadata(order.payment?.metadata ?? null);
+  const deliveryDetail =
+    order.deliveryMethod === DeliveryMethod.PICKUP
+      ? "Retiro en sucursal"
+      : [order.street, order.number, order.city, order.province]
+          .filter((value): value is string => Boolean(value && value.trim().length > 0))
+          .join(", ") || null;
 
   return {
     id: order.id,
@@ -124,6 +136,7 @@ function mapOrder(order: OrderRecord): OrderSummaryDto {
     status: order.status,
     paymentMethod: order.paymentMethod,
     deliveryMethod: order.deliveryMethod,
+    deliveryDetail,
     subtotal: decimalToNumber(order.subtotal) ?? 0,
     shippingCost: decimalToNumber(order.shippingCost) ?? 0,
     discountTotal: decimalToNumber(order.discountTotal) ?? 0,
@@ -185,6 +198,63 @@ async function getOrderRecord(orderId: string) {
     where: { id: orderId },
     include: orderInclude
   });
+}
+
+function assertPositiveTotal(total: number) {
+  if (total <= 0) {
+    throw new AppError("Total inválido", 400);
+  }
+}
+
+function resolveCheckoutSnapshot(input: {
+  deliveryMethod: DeliveryMethod;
+  recipientName: string;
+  address?: {
+    street: string;
+    number: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
+}) {
+  if (input.deliveryMethod === DeliveryMethod.PICKUP) {
+    const pickupAddress = getStorePickupAddress();
+
+    if (!pickupAddress) {
+      throw new AppError(
+        "No está configurada la dirección de retiro. Completá STORE_PICKUP_*.",
+        503
+      );
+    }
+
+    return {
+      recipientName: input.recipientName,
+      street: pickupAddress.street,
+      number: pickupAddress.number,
+      floor: pickupAddress.floor,
+      apartment: pickupAddress.apartment,
+      city: pickupAddress.city,
+      province: pickupAddress.province,
+      postalCode: pickupAddress.postalCode,
+      country: pickupAddress.country
+    };
+  }
+
+  if (!input.address) {
+    throw new AppError("La dirección es obligatoria para envío", 400);
+  }
+
+  return {
+    recipientName: input.recipientName,
+    street: input.address.street,
+    number: input.address.number,
+    floor: null,
+    apartment: null,
+    city: input.address.city,
+    province: input.address.province,
+    postalCode: input.address.postalCode,
+    country: "Argentina"
+  };
 }
 
 async function restockOrderItems(tx: Prisma.TransactionClient, orderId: string) {
@@ -491,38 +561,27 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
 
   const data = createOrderSchema.parse(input);
 
-  if (!user.emailVerified) {
-    throw new AppError(
-      "Verificá tu email antes de completar una compra.",
-      403
-    );
-  }
-
   const cart = await getCartByUserId(user.id);
 
   if (cart.items.length === 0) {
     throw new AppError("Tu carrito está vacío");
   }
 
-  const deliveryMethod = DeliveryMethod.SHIPMENT;
+  const deliveryMethod = data.deliveryMethod;
   const recipientName = `${data.firstName} ${data.lastName}`.trim();
-  const snapshot = {
+  const snapshot = resolveCheckoutSnapshot({
+    deliveryMethod,
     recipientName,
-    street: data.address.street,
-    number: data.address.number,
-    floor: null,
-    apartment: null,
-    city: data.address.city,
-    province: data.address.province,
-    postalCode: data.address.postalCode,
-    country: "Argentina"
-  };
+    address: data.address
+  });
   const orderCode = generateOrderCode();
   const pricing = {
     shippingCost: 0,
     discountAmount: 0,
     total: cart.subtotal
   };
+
+  assertPositiveTotal(pricing.total);
 
   const createdOrder = await prisma.$transaction(async (tx) => {
     const productIds = cart.items.map((item) => item.productId);
@@ -558,40 +617,43 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
       }
     });
 
-    const savedAddress = existingDefaultAddress
-      ? await tx.address.update({
-          where: { id: existingDefaultAddress.id },
-          data: {
-            recipientName,
-            street: snapshot.street,
-            number: snapshot.number,
-            city: snapshot.city,
-            province: snapshot.province,
-            postalCode: snapshot.postalCode,
-            country: snapshot.country,
-            isDefault: true
-          }
-        })
-      : await tx.address.create({
-          data: {
-            userId: user.id,
-            label: "Principal",
-            recipientName,
-            street: snapshot.street,
-            number: snapshot.number,
-            city: snapshot.city,
-            province: snapshot.province,
-            postalCode: snapshot.postalCode,
-            country: snapshot.country,
-            isDefault: true
-          }
-        });
+    const savedAddress =
+      deliveryMethod === DeliveryMethod.SHIPMENT
+        ? existingDefaultAddress
+          ? await tx.address.update({
+              where: { id: existingDefaultAddress.id },
+              data: {
+                recipientName,
+                street: snapshot.street,
+                number: snapshot.number,
+                city: snapshot.city,
+                province: snapshot.province,
+                postalCode: snapshot.postalCode,
+                country: snapshot.country,
+                isDefault: true
+              }
+            })
+          : await tx.address.create({
+              data: {
+                userId: user.id,
+                label: "Principal",
+                recipientName,
+                street: snapshot.street,
+                number: snapshot.number,
+                city: snapshot.city,
+                province: snapshot.province,
+                postalCode: snapshot.postalCode,
+                country: snapshot.country,
+                isDefault: true
+              }
+            })
+        : null;
 
     const order = await tx.order.create({
       data: {
         code: orderCode,
         userId: user.id,
-        addressId: savedAddress.id,
+        addressId: savedAddress?.id,
         deliveryMethod,
         paymentMethod: PaymentMethod.CASH,
         status: OrderStatus.PENDING_CONFIRMATION,
@@ -712,6 +774,185 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
   };
 }
 
+export async function createGuestOrder(input: unknown) {
+  await releaseExpiredOrders();
+
+  const data = createGuestOrderSchema.parse(input);
+  const deliveryMethod = data.deliveryMethod;
+  const recipientName = `${data.firstName} ${data.lastName}`.trim();
+  const snapshot = resolveCheckoutSnapshot({
+    deliveryMethod,
+    recipientName,
+    address: data.address
+  });
+  const orderCode = generateOrderCode();
+
+  const createdOrder = await prisma.$transaction(async (tx) => {
+    const groupedItems = data.items.reduce<Map<string, number>>((acc, item) => {
+      acc.set(item.productId, (acc.get(item.productId) ?? 0) + item.quantity);
+      return acc;
+    }, new Map());
+    const productIds = [...groupedItems.keys()];
+    const products = await tx.product.findMany({
+      where: {
+        id: {
+          in: productIds
+        }
+      }
+    });
+
+    if (products.length !== productIds.length) {
+      throw new AppError("Hay productos del carrito que ya no están disponibles", 409);
+    }
+
+    const resolvedItems = productIds.map((productId) => {
+      const product = products.find((entry) => entry.id === productId);
+      const quantity = groupedItems.get(productId) ?? 0;
+
+      if (!product || !product.active || quantity <= 0) {
+        throw new AppError("Hay productos del carrito que ya no están disponibles", 409);
+      }
+
+      if (product.stock < quantity) {
+        throw new AppError(`Stock insuficiente para ${product.name}`, 409);
+      }
+
+      const unitPrice = decimalToNumber(product.price) ?? 0;
+
+      return {
+        productId,
+        quantity,
+        name: product.name,
+        brand: product.brand,
+        unitPrice,
+        subtotal: unitPrice * quantity
+      };
+    });
+
+    if (resolvedItems.length === 0) {
+      throw new AppError("Tu carrito está vacío", 400);
+    }
+
+    const subtotal = resolvedItems.reduce((total, item) => total + item.subtotal, 0);
+    const pricing = {
+      shippingCost: 0,
+      discountAmount: 0,
+      total: subtotal
+    };
+
+    assertPositiveTotal(pricing.total);
+
+    const order = await tx.order.create({
+      data: {
+        code: orderCode,
+        userId: null,
+        addressId: null,
+        deliveryMethod,
+        paymentMethod: PaymentMethod.CASH,
+        status: OrderStatus.PENDING_CONFIRMATION,
+        subtotal,
+        discountTotal: pricing.discountAmount,
+        shippingCost: pricing.shippingCost,
+        total: pricing.total,
+        notes: data.notes?.trim() || undefined,
+        recipientName,
+        contactPhone: data.phone,
+        street: snapshot.street,
+        number: snapshot.number,
+        floor: snapshot.floor,
+        apartment: snapshot.apartment,
+        city: snapshot.city,
+        province: snapshot.province,
+        postalCode: snapshot.postalCode,
+        items: {
+          create: resolvedItems.map((item) => ({
+            productId: item.productId,
+            nameSnapshot: item.name,
+            brandSnapshot: item.brand,
+            price: item.unitPrice,
+            quantity: item.quantity,
+            subtotal: item.subtotal
+          }))
+        },
+        payment: {
+          create: {
+            provider: PaymentMethod.CASH,
+            status: PaymentStatus.PENDING,
+            amount: pricing.total,
+            externalReference: orderCode,
+            metadata: {
+              mode: "manual_contact_whatsapp"
+            }
+          }
+        }
+      },
+      include: orderInclude
+    });
+
+    for (const item of resolvedItems) {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: {
+          stock: {
+            decrement: item.quantity
+          }
+        }
+      });
+    }
+
+    return order;
+  });
+
+  const finalizedOrder = await getOrderRecord(createdOrder.id);
+
+  if (!finalizedOrder) {
+    throw new AppError("No se pudo recuperar el pedido creado", 500);
+  }
+
+  const mappedOrder = mapOrder(finalizedOrder);
+
+  console.log("[ORDER][GUEST]", {
+    id: mappedOrder.id,
+    phone: mappedOrder.contactPhone,
+    total: mappedOrder.total
+  });
+
+  void sendAdminOrderNotificationEmail({
+    order: {
+      id: mappedOrder.id,
+      code: mappedOrder.code,
+      total: mappedOrder.total,
+      status: mappedOrder.status
+    },
+    customer: {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: "Compra sin login",
+      phone: data.phone
+    },
+    address: {
+      street: snapshot.street,
+      number: snapshot.number,
+      city: snapshot.city,
+      province: snapshot.province,
+      postalCode: snapshot.postalCode
+    },
+    items: finalizedOrder.items.map((item) => ({
+      name: item.nameSnapshot,
+      quantity: item.quantity
+    }))
+  }).catch((error) => {
+    console.error("No se pudo enviar la notificación interna del pedido", error);
+  });
+
+  revalidatePath("/admin/pedidos");
+
+  return {
+    order: mappedOrder,
+    checkoutUrl: mappedOrder.payment.checkoutUrl
+  };
+}
+
 export async function listOrdersByUser(userId: string) {
   const orders = await prisma.order.findMany({
     where: { userId },
@@ -756,9 +997,11 @@ export async function listAllOrders(): Promise<AdminOrderSummaryDto[]> {
 
   return orders.map((order) => ({
     ...mapOrder(order),
-    customer: `${order.user.firstName} ${order.user.lastName}`,
-    email: order.user.email,
-    customerPhone: order.user.phone
+    customer: order.user
+      ? `${order.user.firstName} ${order.user.lastName}`
+      : order.recipientName,
+    email: order.user?.email ?? "Compra sin login",
+    customerPhone: order.user?.phone ?? order.contactPhone
   }));
 }
 
@@ -831,7 +1074,7 @@ export async function updateOrderStatus(
 
   const mappedOrder = mapOrder(updatedOrder);
 
-  if (order.status !== mappedOrder.status) {
+  if (order.status !== mappedOrder.status && order.user) {
     const notify = sendOrderStatusChangedEmail({
       email: order.user.email,
       firstName: order.user.firstName,

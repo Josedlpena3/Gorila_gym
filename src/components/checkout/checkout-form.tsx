@@ -1,36 +1,109 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { isValidWhatsAppPhone, normalizeWhatsAppPhone } from "@/lib/phone";
+import {
+  clearGuestCart,
+  getGuestCartSnapshot,
+  subscribeToGuestCart
+} from "@/lib/guest-cart";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { formatCurrency } from "@/lib/utils";
 import type { CartDto } from "@/types";
 
+type CheckoutFormUser = {
+  firstName: string;
+  lastName: string;
+  emailVerified: boolean;
+  phone: string;
+  addresses: Array<{
+    street: string;
+    number: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  }>;
+};
+
 type CheckoutFormProps = {
-  user: {
-    firstName: string;
-    lastName: string;
-    emailVerified: boolean;
-    phone: string;
-    addresses: Array<{
-      street: string;
-      number: string;
-      city: string;
-      province: string;
-      postalCode: string;
-    }>;
-  };
-  cart: CartDto;
+  user: CheckoutFormUser | null;
+  cart: CartDto | null;
 };
 
 export function CheckoutForm({ user, cart }: CheckoutFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [successOrderCode, setSuccessOrderCode] = useState<string | null>(null);
+  const [guestCart, setGuestCart] = useState<CartDto | null>(null);
   const [isPending, startTransition] = useTransition();
-  const defaultAddress = user.addresses[0];
+  const defaultAddress = user?.addresses[0];
+
+  useEffect(() => {
+    if (user) {
+      return;
+    }
+
+    setGuestCart(getGuestCartSnapshot());
+
+    return subscribeToGuestCart(() => {
+      setGuestCart(getGuestCartSnapshot());
+    });
+  }, [user]);
+
+  const activeCart = user ? cart : guestCart;
+
+  if (successOrderCode) {
+    return (
+      <div className="section-card mx-auto max-w-2xl p-6 text-center sm:p-8">
+        <p className="text-sm uppercase tracking-[0.28em] text-mist">Pedido recibido</p>
+        <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-3xl">
+          Ya registramos tu compra
+        </h2>
+        <p className="mt-4 text-sm leading-6 text-mist sm:text-base">
+          Tu código es <span className="font-semibold text-sand">{successOrderCode}</span>.
+          Te vamos a contactar por WhatsApp para coordinar la entrega.
+        </p>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link href="/catalogo" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto">Seguir comprando</Button>
+          </Link>
+          <Link href="/encontranos" className="w-full sm:w-auto">
+            <Button variant="secondary" className="w-full sm:w-auto">
+              Ver información del local
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user && activeCart === null) {
+    return (
+      <div className="section-card p-6 text-center sm:p-8">
+        <p className="text-sm text-mist">Cargando tu carrito...</p>
+      </div>
+    );
+  }
+
+  if (!activeCart || activeCart.items.length === 0) {
+    return (
+      <div className="section-card p-6 text-center sm:p-8">
+        <h2 className="text-xl font-black uppercase tracking-[0.08em] text-sand sm:text-2xl">
+          Tu carrito está vacío
+        </h2>
+        <p className="mt-3 text-sm text-mist sm:text-base">
+          Agregá productos al carrito para continuar con la compra.
+        </p>
+        <Link href="/catalogo" className="mt-6 inline-flex w-full sm:w-auto">
+          <Button className="w-full sm:w-auto">Ir al catálogo</Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form
@@ -45,11 +118,30 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
           const phone = String(formData.get("phone") ?? "").trim();
           const notes = String(formData.get("notes") ?? "").trim();
 
-          if (!isValidWhatsAppPhone(phone)) {
-            setError(
-              "Ingresá un celular válido de WhatsApp con código de área. Ej.: +54 9 351 555 0000"
-            );
+          if (!isValidPhone(phone)) {
+            setError("Ingresá un teléfono válido de al menos 8 dígitos.");
             return;
+          }
+
+          const payloadBody: Record<string, unknown> = {
+            firstName: formData.get("firstName"),
+            lastName: formData.get("lastName"),
+            phone: normalizePhone(phone),
+            address: {
+              street: formData.get("street"),
+              number: formData.get("number"),
+              city: formData.get("city"),
+              province: formData.get("province"),
+              postalCode: formData.get("postalCode")
+            },
+            notes: notes.length > 0 ? notes : undefined
+          };
+
+          if (!user) {
+            payloadBody.items = activeCart.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity
+            }));
           }
 
           const response = await fetch("/api/orders", {
@@ -57,19 +149,7 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
             headers: {
               "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-              firstName: formData.get("firstName"),
-              lastName: formData.get("lastName"),
-              phone: normalizeWhatsAppPhone(phone),
-              address: {
-                street: formData.get("street"),
-                number: formData.get("number"),
-                city: formData.get("city"),
-                province: formData.get("province"),
-                postalCode: formData.get("postalCode")
-              },
-              notes: notes.length > 0 ? notes : undefined
-            })
+            body: JSON.stringify(payloadBody)
           });
 
           const payload = await response.json().catch(() => null);
@@ -79,8 +159,16 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
             return;
           }
 
-          router.push(`/mis-pedidos?highlight=${payload.order.id}&created=1`);
-          router.refresh();
+          if (user) {
+            router.push(`/mis-pedidos?highlight=${payload.order.id}&created=1`);
+            router.refresh();
+            return;
+          }
+
+          clearGuestCart();
+          setSuccessOrderCode(
+            typeof payload?.order?.code === "string" ? payload.order.code : "pedido"
+          );
         });
       }}
     >
@@ -90,25 +178,25 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm text-mist">Nombre</label>
-              <Input name="firstName" defaultValue={user.firstName} required />
+              <Input name="firstName" defaultValue={user?.firstName ?? ""} required />
             </div>
             <div className="space-y-2">
               <label className="text-sm text-mist">Apellido</label>
-              <Input name="lastName" defaultValue={user.lastName} required />
+              <Input name="lastName" defaultValue={user?.lastName ?? ""} required />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-mist">Celular</label>
               <Input
                 type="tel"
                 name="phone"
-                defaultValue={user.phone}
-                placeholder="+54 9 351 555 0000"
+                defaultValue={user?.phone ?? ""}
+                placeholder="5493515550000"
                 inputMode="tel"
                 autoComplete="tel"
                 required
               />
               <p className="text-xs text-mist">
-                Usá un número válido de WhatsApp con código de área.
+                Ingresá solo números. Ej.: 5493515550000
               </p>
             </div>
           </div>
@@ -165,7 +253,7 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
           Resumen de compra
         </p>
         <div className="mt-5 space-y-3 text-sm text-mist">
-          {cart.items.map((item) => (
+          {activeCart.items.map((item) => (
             <div key={item.id} className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium text-sand">{item.name}</p>
@@ -181,25 +269,20 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
         <div className="mt-6 space-y-3 border-t border-line pt-4 text-sm">
           <div className="flex justify-between text-mist">
             <span>Total de productos</span>
-            <span>{formatCurrency(cart.subtotal)}</span>
+            <span>{formatCurrency(activeCart.subtotal)}</span>
+          </div>
+          <div className="flex justify-between text-lg font-bold text-sand">
+            <span>Total</span>
+            <span>{formatCurrency(activeCart.subtotal)}</span>
           </div>
         </div>
 
         <div className="mt-6 rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-          {user.emailVerified
-            ? "Al confirmar el pedido, lo recibimos y te contactamos por WhatsApp para coordinar la entrega."
-            : "Primero necesitás verificar tu email. Después vas a poder confirmar el pedido normalmente."}
+          Confirmamos el pedido y te contactamos por WhatsApp para coordinar la entrega.
         </div>
 
-        <Button
-          className="mt-6 min-h-[52px] w-full text-base sm:text-sm"
-          disabled={isPending || !user.emailVerified}
-        >
-          {isPending
-            ? "Confirmando pedido..."
-            : user.emailVerified
-              ? "Confirmar pedido"
-              : "Verificá tu email para comprar"}
+        <Button className="mt-6 min-h-[52px] w-full text-base sm:text-sm" disabled={isPending}>
+          {isPending ? "Confirmando pedido..." : "Confirmar pedido"}
         </Button>
       </aside>
     </form>

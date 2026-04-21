@@ -118,7 +118,7 @@ export function LoginForm({ redirectTo = "/catalogo" }: { redirectTo?: string })
     >
       <div className="space-y-2">
         <label className="text-sm font-medium text-mist">Email</label>
-        <Input type="email" name="email" placeholder="vos@gorilastrong.com" required />
+        <Input type="email" name="email" placeholder="usuario@gmail.com" required />
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium text-mist">Contraseña</label>

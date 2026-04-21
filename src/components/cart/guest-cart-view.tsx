@@ -158,7 +158,7 @@ export function GuestCartView() {
               <span>{formatCurrency(cart.subtotal)}</span>
             </div>
           </div>
-          <Link href="/login?next=/checkout" className="mt-6 inline-flex w-full">
+          <Link href="/checkout" className="mt-6 inline-flex w-full">
             <Button className="min-h-[52px] w-full">Continuar con el pedido</Button>
           </Link>
         </aside>
