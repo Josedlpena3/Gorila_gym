@@ -2,7 +2,7 @@
 
 import { DeliveryMethod, PaymentMethod } from "@prisma/client";
 import Link from "next/link";
-import { type ReactNode, useEffect, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -140,6 +140,7 @@ export function CheckoutForm({
   transferAvailable,
   transferConfig
 }: CheckoutFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [successOrderCode, setSuccessOrderCode] = useState<string | null>(null);
   const [guestCart, setGuestCart] = useState<CartDto | null>(null);
@@ -213,125 +214,142 @@ export function CheckoutForm({
     );
   }
 
+  async function submitOrderToWhatsapp(pendingWhatsappWindow: Window | null) {
+    if (!formRef.current) {
+      pendingWhatsappWindow?.close();
+      setError("No se pudo preparar el pedido.");
+      return;
+    }
+
+    if (!activeCart || activeCart.items.length === 0) {
+      pendingWhatsappWindow?.close();
+      setError("Tu carrito está vacío.");
+      return;
+    }
+
+    setError(null);
+
+    const formData = new FormData(formRef.current);
+    const phone = String(formData.get("phone") ?? "").trim();
+    const fullName = String(formData.get("fullName") ?? "").trim();
+
+    if (!isValidPhone(phone)) {
+      pendingWhatsappWindow?.close();
+      setError("Ingresá un teléfono válido de al menos 8 dígitos.");
+      return;
+    }
+
+    if (!fullName) {
+      pendingWhatsappWindow?.close();
+      setError("Ingresá tu nombre.");
+      return;
+    }
+
+    if (deliveryMethod === DeliveryMethod.PICKUP && !pickupAvailable) {
+      pendingWhatsappWindow?.close();
+      setError("El retiro en el local no está disponible en este momento.");
+      return;
+    }
+
+    if (paymentMethod === PaymentMethod.BANK_TRANSFER && !transferAvailable) {
+      pendingWhatsappWindow?.close();
+      setError("La transferencia no está disponible en este momento.");
+      return;
+    }
+
+    const { firstName, lastName } = splitFullName(fullName);
+
+    if (!firstName) {
+      pendingWhatsappWindow?.close();
+      setError("Ingresá tu nombre.");
+      return;
+    }
+
+    const address =
+      deliveryMethod === DeliveryMethod.SHIPMENT
+        ? {
+            street: String(formData.get("street") ?? "").trim(),
+            number: String(formData.get("number") ?? "").trim(),
+            city: String(formData.get("city") ?? "").trim(),
+            province: String(formData.get("province") ?? "").trim(),
+            postalCode: String(formData.get("postalCode") ?? "").trim()
+          }
+        : undefined;
+
+    const payloadBody: Record<string, unknown> = {
+      firstName,
+      lastName,
+      phone: normalizePhone(phone),
+      deliveryMethod,
+      paymentMethod,
+      address
+    };
+
+    if (!user) {
+      payloadBody.items = activeCart.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity
+      }));
+    }
+
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payloadBody)
+    });
+
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      pendingWhatsappWindow?.close();
+      setError(payload?.error ?? "No se pudo confirmar el pedido.");
+      return;
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    const whatsappMessage = buildCheckoutWhatsappMessage({
+      customerName: fullName,
+      phone: normalizedPhone,
+      orderCode: typeof payload?.order?.code === "string" ? payload.order.code : "pedido",
+      items: activeCart.items,
+      total: activeCart.subtotal,
+      deliveryMethod,
+      paymentMethod,
+      transferConfig
+    });
+    const whatsappUrl = `https://wa.me/${STORE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      whatsappMessage
+    )}`;
+
+    if (pendingWhatsappWindow && !pendingWhatsappWindow.closed) {
+      pendingWhatsappWindow.location.href = whatsappUrl;
+    } else if (typeof window !== "undefined") {
+      window.location.href = whatsappUrl;
+    }
+
+    clearGuestCart();
+    setSuccessOrderCode(
+      typeof payload?.order?.code === "string" ? payload.order.code : "pedido"
+    );
+  }
+
+  function handleWhatsApp() {
+    const pendingWhatsappWindow =
+      typeof window !== "undefined" ? window.open("", "_blank") : null;
+
+    startTransition(() => {
+      void submitOrderToWhatsapp(pendingWhatsappWindow);
+    });
+  }
+
   return (
     <form
+      ref={formRef}
       className="grid gap-4 lg:grid-cols-[1.3fr,0.7fr] lg:gap-6"
       onSubmit={(event) => {
         event.preventDefault();
-        const formData = new FormData(event.currentTarget);
-        const pendingWhatsappWindow =
-          typeof window !== "undefined"
-            ? window.open("", "_blank", "noopener,noreferrer")
-            : null;
-
-        startTransition(async () => {
-          setError(null);
-
-          const phone = String(formData.get("phone") ?? "").trim();
-          const fullName = String(formData.get("fullName") ?? "").trim();
-
-          if (!isValidPhone(phone)) {
-            pendingWhatsappWindow?.close();
-            setError("Ingresá un teléfono válido de al menos 8 dígitos.");
-            return;
-          }
-
-          if (!fullName) {
-            pendingWhatsappWindow?.close();
-            setError("Ingresá tu nombre.");
-            return;
-          }
-
-          if (deliveryMethod === DeliveryMethod.PICKUP && !pickupAvailable) {
-            pendingWhatsappWindow?.close();
-            setError("El retiro en el local no está disponible en este momento.");
-            return;
-          }
-
-          if (paymentMethod === PaymentMethod.BANK_TRANSFER && !transferAvailable) {
-            pendingWhatsappWindow?.close();
-            setError("La transferencia no está disponible en este momento.");
-            return;
-          }
-
-          const { firstName, lastName } = splitFullName(fullName);
-
-          if (!firstName) {
-            pendingWhatsappWindow?.close();
-            setError("Ingresá tu nombre.");
-            return;
-          }
-
-          const address =
-            deliveryMethod === DeliveryMethod.SHIPMENT
-              ? {
-                  street: String(formData.get("street") ?? "").trim(),
-                  number: String(formData.get("number") ?? "").trim(),
-                  city: String(formData.get("city") ?? "").trim(),
-                  province: String(formData.get("province") ?? "").trim(),
-                  postalCode: String(formData.get("postalCode") ?? "").trim()
-                }
-              : undefined;
-
-          const payloadBody: Record<string, unknown> = {
-            firstName,
-            lastName,
-            phone: normalizePhone(phone),
-            deliveryMethod,
-            paymentMethod,
-            address
-          };
-
-          if (!user) {
-            payloadBody.items = activeCart.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity
-            }));
-          }
-
-          const response = await fetch("/api/orders", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payloadBody)
-          });
-
-          const payload = await response.json().catch(() => null);
-
-          if (!response.ok) {
-            pendingWhatsappWindow?.close();
-            setError(payload?.error ?? "No se pudo confirmar el pedido.");
-            return;
-          }
-
-          const normalizedPhone = normalizePhone(phone);
-          const whatsappMessage = buildCheckoutWhatsappMessage({
-            customerName: fullName,
-            phone: normalizedPhone,
-            orderCode:
-              typeof payload?.order?.code === "string" ? payload.order.code : "pedido",
-            items: activeCart.items,
-            total: activeCart.subtotal,
-            deliveryMethod,
-            paymentMethod,
-            transferConfig
-          });
-          const whatsappUrl = `https://wa.me/${STORE_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-            whatsappMessage
-          )}`;
-
-          if (pendingWhatsappWindow) {
-            pendingWhatsappWindow.location.href = whatsappUrl;
-          } else {
-            window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-          }
-
-          clearGuestCart();
-          setSuccessOrderCode(
-            typeof payload?.order?.code === "string" ? payload.order.code : "pedido"
-          );
-        });
       }}
     >
       <div className="space-y-4 sm:space-y-6">
@@ -491,7 +509,12 @@ export function CheckoutForm({
           Primero registramos el pedido y después abrimos WhatsApp con el mensaje listo.
         </div>
 
-        <Button className="mt-6 min-h-[52px] w-full text-base sm:text-sm" disabled={isPending}>
+        <Button
+          type="button"
+          className="mt-6 min-h-[52px] w-full text-base sm:text-sm"
+          disabled={isPending}
+          onClick={handleWhatsApp}
+        >
           {isPending ? "Preparando WhatsApp..." : "Pedir por WhatsApp"}
         </Button>
       </aside>
