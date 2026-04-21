@@ -52,6 +52,7 @@ function buildWhatsappMessage(input: {
   customerName: string;
   orderCode: string;
   total: number;
+  contactPhone?: string | null;
   paymentMethod: PaymentMethod;
   deliveryMethod: DeliveryMethod;
   street?: string | null;
@@ -85,6 +86,7 @@ function buildWhatsappMessage(input: {
       ...lines,
       "",
       `💰 Total: ${formatCurrency(input.total)}`,
+      input.contactPhone ? `📱 Teléfono: ${input.contactPhone}` : null,
       "",
       "💳 Forma de pago: Transferencia",
       "",
@@ -109,6 +111,7 @@ function buildWhatsappMessage(input: {
       ...lines,
       "",
       `💰 Total: ${formatCurrency(input.total)}`,
+      input.contactPhone ? `📱 Teléfono: ${input.contactPhone}` : null,
       "",
       "💵 Forma de pago: Efectivo",
       "",
@@ -127,6 +130,7 @@ function buildWhatsappMessage(input: {
     ...lines,
     "",
     `💰 Total: ${formatCurrency(input.total)}`,
+    input.contactPhone ? `📱 Teléfono: ${input.contactPhone}` : null,
     "",
     "💳 Forma de pago: Mercado Pago",
     "",
@@ -158,6 +162,7 @@ export function OrderWhatsappButton({
           customerName,
           orderCode,
           total,
+          contactPhone: phone,
           paymentMethod,
           deliveryMethod,
           street,

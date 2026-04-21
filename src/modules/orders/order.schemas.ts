@@ -21,6 +21,7 @@ const orderAddressSchema = z.object({
 function validateOrderAddressRequirement<
   T extends {
     deliveryMethod: DeliveryMethod;
+    paymentMethod: PaymentMethod;
     address?: unknown;
   }
 >(data: T, ctx: z.RefinementCtx) {
@@ -31,13 +32,25 @@ function validateOrderAddressRequirement<
       message: "La dirección es obligatoria para envío"
     });
   }
+
+  if (
+    data.paymentMethod !== PaymentMethod.CASH &&
+    data.paymentMethod !== PaymentMethod.BANK_TRANSFER
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["paymentMethod"],
+      message: "Forma de pago inválida"
+    });
+  }
 }
 
 const createOrderBaseSchema = z.object({
   firstName: z.string().trim().min(2, "Nombre inválido"),
-  lastName: z.string().trim().min(2, "Apellido inválido"),
+  lastName: z.string().trim().optional().default(""),
   phone: phoneSchema,
   deliveryMethod: z.nativeEnum(DeliveryMethod).default(DeliveryMethod.SHIPMENT),
+  paymentMethod: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
   notes: z.string().max(300).optional(),
   address: orderAddressSchema.optional()
 });

@@ -206,6 +206,50 @@ function assertPositiveTotal(total: number) {
   }
 }
 
+function buildManualPaymentData(input: {
+  paymentMethod: PaymentMethod;
+  total: number;
+  orderCode: string;
+}) {
+  if (input.paymentMethod === PaymentMethod.BANK_TRANSFER) {
+    const transferConfig = getBankTransferConfig();
+
+    if (!transferConfig) {
+      throw new AppError(
+        "La transferencia no está disponible en este momento.",
+        503
+      );
+    }
+
+    return {
+      provider: PaymentMethod.BANK_TRANSFER,
+      status: PaymentStatus.PENDING,
+      amount: input.total,
+      externalReference: input.orderCode,
+      metadata: {
+        mode: "manual_transfer_whatsapp",
+        transfer: {
+          alias: transferConfig.alias,
+          cbu: transferConfig.cbu,
+          accountHolder: transferConfig.accountHolder,
+          bankName: transferConfig.bankName,
+          instructions: transferConfig.instructions
+        }
+      }
+    } satisfies Prisma.PaymentCreateWithoutOrderInput;
+  }
+
+  return {
+    provider: PaymentMethod.CASH,
+    status: PaymentStatus.PENDING,
+    amount: input.total,
+    externalReference: input.orderCode,
+    metadata: {
+      mode: "manual_contact_whatsapp"
+    }
+  } satisfies Prisma.PaymentCreateWithoutOrderInput;
+}
+
 function resolveCheckoutSnapshot(input: {
   deliveryMethod: DeliveryMethod;
   recipientName: string;
@@ -560,6 +604,7 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
   await releaseExpiredOrders();
 
   const data = createOrderSchema.parse(input);
+  const recipientLastName = data.lastName.trim();
 
   const cart = await getCartByUserId(user.id);
 
@@ -568,7 +613,8 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
   }
 
   const deliveryMethod = data.deliveryMethod;
-  const recipientName = `${data.firstName} ${data.lastName}`.trim();
+  const paymentMethod = data.paymentMethod;
+  const recipientName = `${data.firstName} ${recipientLastName}`.trim();
   const snapshot = resolveCheckoutSnapshot({
     deliveryMethod,
     recipientName,
@@ -605,7 +651,7 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
       where: { id: user.id },
       data: {
         firstName: data.firstName,
-        lastName: data.lastName,
+        lastName: recipientLastName || user.lastName,
         phone: data.phone
       }
     });
@@ -655,7 +701,7 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
         userId: user.id,
         addressId: savedAddress?.id,
         deliveryMethod,
-        paymentMethod: PaymentMethod.CASH,
+        paymentMethod,
         status: OrderStatus.PENDING_CONFIRMATION,
         subtotal: cart.subtotal,
         discountTotal: pricing.discountAmount,
@@ -682,15 +728,11 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
           }))
         },
         payment: {
-          create: {
-            provider: PaymentMethod.CASH,
-            status: PaymentStatus.PENDING,
-            amount: pricing.total,
-            externalReference: orderCode,
-            metadata: {
-              mode: "manual_contact_whatsapp"
-            }
-          }
+          create: buildManualPaymentData({
+            paymentMethod,
+            total: pricing.total,
+            orderCode
+          })
         }
       },
       include: orderInclude
@@ -746,7 +788,7 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     },
     customer: {
       firstName: data.firstName,
-      lastName: data.lastName,
+      lastName: recipientLastName,
       email: user.email,
       phone: data.phone
     },
@@ -778,8 +820,10 @@ export async function createGuestOrder(input: unknown) {
   await releaseExpiredOrders();
 
   const data = createGuestOrderSchema.parse(input);
+  const recipientLastName = data.lastName.trim();
   const deliveryMethod = data.deliveryMethod;
-  const recipientName = `${data.firstName} ${data.lastName}`.trim();
+  const paymentMethod = data.paymentMethod;
+  const recipientName = `${data.firstName} ${recipientLastName}`.trim();
   const snapshot = resolveCheckoutSnapshot({
     deliveryMethod,
     recipientName,
@@ -848,7 +892,7 @@ export async function createGuestOrder(input: unknown) {
         userId: null,
         addressId: null,
         deliveryMethod,
-        paymentMethod: PaymentMethod.CASH,
+        paymentMethod,
         status: OrderStatus.PENDING_CONFIRMATION,
         subtotal,
         discountTotal: pricing.discountAmount,
@@ -875,15 +919,11 @@ export async function createGuestOrder(input: unknown) {
           }))
         },
         payment: {
-          create: {
-            provider: PaymentMethod.CASH,
-            status: PaymentStatus.PENDING,
-            amount: pricing.total,
-            externalReference: orderCode,
-            metadata: {
-              mode: "manual_contact_whatsapp"
-            }
-          }
+          create: buildManualPaymentData({
+            paymentMethod,
+            total: pricing.total,
+            orderCode
+          })
         }
       },
       include: orderInclude
@@ -926,7 +966,7 @@ export async function createGuestOrder(input: unknown) {
     },
     customer: {
       firstName: data.firstName,
-      lastName: data.lastName,
+      lastName: recipientLastName,
       email: "Compra sin login",
       phone: data.phone
     },

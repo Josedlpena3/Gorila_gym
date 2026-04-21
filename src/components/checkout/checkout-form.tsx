@@ -1,11 +1,11 @@
 "use client";
 
+import { DeliveryMethod, PaymentMethod } from "@prisma/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   clearGuestCart,
   getGuestCartSnapshot,
@@ -32,15 +32,73 @@ type CheckoutFormUser = {
 type CheckoutFormProps = {
   user: CheckoutFormUser | null;
   cart: CartDto | null;
+  pickupAvailable: boolean;
+  transferAvailable: boolean;
+  transferAlias: string | null;
 };
 
-export function CheckoutForm({ user, cart }: CheckoutFormProps) {
+function getFullName(user: CheckoutFormUser | null) {
+  return [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
+}
+
+function splitFullName(fullName: string) {
+  const normalized = fullName.trim().replace(/\s+/g, " ");
+  const [firstName = "", ...rest] = normalized.split(" ");
+
+  return {
+    firstName,
+    lastName: rest.join(" ")
+  };
+}
+
+function SelectorButton({
+  active,
+  children,
+  disabled,
+  onClick
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={[
+        "min-h-[52px] rounded-[24px] border px-4 py-3 text-left text-sm font-semibold transition",
+        active
+          ? "border-neon bg-neon/10 text-sand"
+          : "border-line bg-ink/60 text-mist hover:border-neon/40 hover:text-sand",
+        disabled ? "cursor-not-allowed opacity-50" : ""
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function CheckoutForm({
+  user,
+  cart,
+  pickupAvailable,
+  transferAvailable,
+  transferAlias
+}: CheckoutFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [successOrderCode, setSuccessOrderCode] = useState<string | null>(null);
   const [guestCart, setGuestCart] = useState<CartDto | null>(null);
   const [isPending, startTransition] = useTransition();
   const defaultAddress = user?.addresses[0];
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(
+    defaultAddress ? DeliveryMethod.SHIPMENT : DeliveryMethod.PICKUP
+  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    transferAvailable ? PaymentMethod.BANK_TRANSFER : PaymentMethod.CASH
+  );
 
   useEffect(() => {
     if (user) {
@@ -53,6 +111,18 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
       setGuestCart(getGuestCartSnapshot());
     });
   }, [user]);
+
+  useEffect(() => {
+    if (!pickupAvailable && deliveryMethod === DeliveryMethod.PICKUP) {
+      setDeliveryMethod(DeliveryMethod.SHIPMENT);
+    }
+  }, [deliveryMethod, pickupAvailable]);
+
+  useEffect(() => {
+    if (!transferAvailable && paymentMethod === PaymentMethod.BANK_TRANSFER) {
+      setPaymentMethod(PaymentMethod.CASH);
+    }
+  }, [paymentMethod, transferAvailable]);
 
   const activeCart = user ? cart : guestCart;
 
@@ -116,25 +186,53 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
           setError(null);
 
           const phone = String(formData.get("phone") ?? "").trim();
-          const notes = String(formData.get("notes") ?? "").trim();
+          const fullName = String(formData.get("fullName") ?? "").trim();
 
           if (!isValidPhone(phone)) {
             setError("Ingresá un teléfono válido de al menos 8 dígitos.");
             return;
           }
 
+          if (!fullName) {
+            setError("Ingresá tu nombre.");
+            return;
+          }
+
+          if (!deliveryMethod) {
+            setError("Seleccioná una forma de entrega.");
+            return;
+          }
+
+          if (!paymentMethod) {
+            setError("Seleccioná una forma de pago.");
+            return;
+          }
+
+          const { firstName, lastName } = splitFullName(fullName);
+
+          if (!firstName) {
+            setError("Ingresá tu nombre.");
+            return;
+          }
+
+          const address =
+            deliveryMethod === DeliveryMethod.SHIPMENT
+              ? {
+                  street: String(formData.get("street") ?? "").trim(),
+                  number: String(formData.get("number") ?? "").trim(),
+                  city: String(formData.get("city") ?? "").trim(),
+                  province: String(formData.get("province") ?? "").trim(),
+                  postalCode: String(formData.get("postalCode") ?? "").trim()
+                }
+              : undefined;
+
           const payloadBody: Record<string, unknown> = {
-            firstName: formData.get("firstName"),
-            lastName: formData.get("lastName"),
+            firstName,
+            lastName,
             phone: normalizePhone(phone),
-            address: {
-              street: formData.get("street"),
-              number: formData.get("number"),
-              city: formData.get("city"),
-              province: formData.get("province"),
-              postalCode: formData.get("postalCode")
-            },
-            notes: notes.length > 0 ? notes : undefined
+            deliveryMethod,
+            paymentMethod,
+            address
           };
 
           if (!user) {
@@ -174,17 +272,13 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
     >
       <div className="space-y-4 sm:space-y-6">
         <section className="section-card p-4 sm:p-6">
-          <p className="text-base font-semibold text-sand sm:text-lg">Datos de contacto</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <p className="text-base font-semibold text-sand sm:text-lg">Tus datos</p>
+          <div className="mt-4 grid gap-4">
             <div className="space-y-2">
               <label className="text-sm text-mist">Nombre</label>
-              <Input name="firstName" defaultValue={user?.firstName ?? ""} required />
+              <Input name="fullName" defaultValue={getFullName(user)} required />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-mist">Apellido</label>
-              <Input name="lastName" defaultValue={user?.lastName ?? ""} required />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
               <label className="text-sm text-mist">Celular</label>
               <Input
                 type="tel"
@@ -195,54 +289,94 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
                 autoComplete="tel"
                 required
               />
-              <p className="text-xs text-mist">
-                Ingresá solo números. Ej.: 5493515550000
-              </p>
+              <p className="text-xs text-mist">Solo números. Ej.: 5493515550000</p>
             </div>
           </div>
         </section>
 
         <section className="section-card p-4 sm:p-6">
-          <p className="text-base font-semibold text-sand sm:text-lg">Dirección</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <label className="text-sm text-mist">Calle</label>
-              <Input name="street" defaultValue={defaultAddress?.street ?? ""} required />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-mist">Número</label>
-              <Input name="number" defaultValue={defaultAddress?.number ?? ""} required />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-mist">Código postal</label>
-              <Input
-                name="postalCode"
-                defaultValue={defaultAddress?.postalCode ?? ""}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-mist">Ciudad</label>
-              <Input name="city" defaultValue={defaultAddress?.city ?? ""} required />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-mist">Provincia</label>
-              <Input
-                name="province"
-                defaultValue={defaultAddress?.province ?? ""}
-                required
-              />
-            </div>
+          <p className="text-base font-semibold text-sand sm:text-lg">Forma de entrega</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <SelectorButton
+              active={deliveryMethod === DeliveryMethod.PICKUP}
+              disabled={!pickupAvailable}
+              onClick={() => setDeliveryMethod(DeliveryMethod.PICKUP)}
+            >
+              Retiro en el local
+            </SelectorButton>
+            <SelectorButton
+              active={deliveryMethod === DeliveryMethod.SHIPMENT}
+              onClick={() => setDeliveryMethod(DeliveryMethod.SHIPMENT)}
+            >
+              Envío a domicilio
+            </SelectorButton>
           </div>
+          {deliveryMethod === DeliveryMethod.PICKUP ? (
+            <p className="mt-3 text-sm text-mist">
+              Coordinamos por WhatsApp el horario para retirar tu pedido.
+            </p>
+          ) : null}
+        </section>
 
-          <div className="mt-4 space-y-2">
-            <label className="text-sm text-mist">Notas del pedido</label>
-            <Textarea
-              name="notes"
-              placeholder="Horarios, referencias o aclaraciones para coordinar."
-              className="min-h-[100px] sm:min-h-[120px]"
-            />
+        {deliveryMethod === DeliveryMethod.SHIPMENT ? (
+          <section className="section-card p-4 sm:p-6">
+            <p className="text-base font-semibold text-sand sm:text-lg">Dirección</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <label className="text-sm text-mist">Calle</label>
+                <Input name="street" defaultValue={defaultAddress?.street ?? ""} required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-mist">Número</label>
+                <Input name="number" defaultValue={defaultAddress?.number ?? ""} required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-mist">Código postal</label>
+                <Input
+                  name="postalCode"
+                  defaultValue={defaultAddress?.postalCode ?? ""}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-mist">Ciudad</label>
+                <Input name="city" defaultValue={defaultAddress?.city ?? ""} required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-mist">Provincia</label>
+                <Input
+                  name="province"
+                  defaultValue={defaultAddress?.province ?? ""}
+                  required
+                />
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="section-card p-4 sm:p-6">
+          <p className="text-base font-semibold text-sand sm:text-lg">Forma de pago</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <SelectorButton
+              active={paymentMethod === PaymentMethod.CASH}
+              onClick={() => setPaymentMethod(PaymentMethod.CASH)}
+            >
+              Efectivo
+            </SelectorButton>
+            <SelectorButton
+              active={paymentMethod === PaymentMethod.BANK_TRANSFER}
+              disabled={!transferAvailable}
+              onClick={() => setPaymentMethod(PaymentMethod.BANK_TRANSFER)}
+            >
+              Transferencia
+            </SelectorButton>
           </div>
+          {paymentMethod === PaymentMethod.BANK_TRANSFER && transferAvailable ? (
+            <p className="mt-3 text-sm text-mist">
+              Si querés, podés adelantar la transferencia. Alias:{" "}
+              <span className="font-semibold text-sand">{transferAlias}</span>
+            </p>
+          ) : null}
         </section>
 
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
@@ -271,6 +405,20 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
             <span>Total de productos</span>
             <span>{formatCurrency(activeCart.subtotal)}</span>
           </div>
+          <div className="flex justify-between text-mist">
+            <span>Entrega</span>
+            <span>
+              {deliveryMethod === DeliveryMethod.PICKUP
+                ? "Retiro en el local"
+                : "Envío a domicilio"}
+            </span>
+          </div>
+          <div className="flex justify-between text-mist">
+            <span>Pago</span>
+            <span>
+              {paymentMethod === PaymentMethod.BANK_TRANSFER ? "Transferencia" : "Efectivo"}
+            </span>
+          </div>
           <div className="flex justify-between text-lg font-bold text-sand">
             <span>Total</span>
             <span>{formatCurrency(activeCart.subtotal)}</span>
@@ -278,7 +426,7 @@ export function CheckoutForm({ user, cart }: CheckoutFormProps) {
         </div>
 
         <div className="mt-6 rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-          Confirmamos el pedido y te contactamos por WhatsApp para coordinar la entrega.
+          Confirmamos el pedido por WhatsApp con tu forma de entrega y pago elegida.
         </div>
 
         <Button className="mt-6 min-h-[52px] w-full text-base sm:text-sm" disabled={isPending}>

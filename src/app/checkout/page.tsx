@@ -1,10 +1,13 @@
 import { CheckoutForm } from "@/components/checkout/checkout-form";
+import { getBankTransferConfig, getStorePickupAddress } from "@/lib/store-config";
 import { getCartByUserId } from "@/modules/cart/cart.service";
 import { getCurrentUser } from "@/modules/users/user.service";
 
 export default async function CheckoutPage() {
   const user = await getCurrentUser();
   const cart = user ? await getCartByUserId(user.id) : null;
+  const transferConfig = getBankTransferConfig();
+  const pickupAddress = getStorePickupAddress();
 
   return (
     <div className="page-shell space-y-6">
@@ -14,10 +17,16 @@ export default async function CheckoutPage() {
           Confirmá tu compra
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-mist sm:text-base">
-          Revisamos el pedido y te escribimos por WhatsApp para coordinar la entrega.
+          Elegí entrega y pago. Confirmamos todo por WhatsApp con la menor fricción posible.
         </p>
       </div>
-      <CheckoutForm user={user} cart={cart} />
+      <CheckoutForm
+        user={user}
+        cart={cart}
+        pickupAvailable={Boolean(pickupAddress)}
+        transferAvailable={Boolean(transferConfig)}
+        transferAlias={transferConfig?.alias ?? null}
+      />
     </div>
   );
 }
