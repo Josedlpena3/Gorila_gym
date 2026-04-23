@@ -78,7 +78,7 @@ function buildWhatsappMessage(input: {
     const transfer = input.transfer ?? FALLBACK_TRANSFER_DETAILS;
 
     return [
-      `Hola ${input.customerName}, soy de Gorila Strong 🦍`,
+      `Hola ${input.customerName}, soy de Gorilla Strong 🦍`,
       "",
       `Te contacto por tu pedido #${input.orderCode}.`,
       "",
@@ -103,7 +103,7 @@ function buildWhatsappMessage(input: {
 
   if (input.paymentMethod === "CASH") {
     return [
-      `Hola ${input.customerName}, soy de Gorila Strong 🦍`,
+      `Hola ${input.customerName}, soy de Gorilla Strong 🦍`,
       "",
       `Te contacto por tu pedido #${input.orderCode}.`,
       "",
@@ -122,7 +122,7 @@ function buildWhatsappMessage(input: {
   }
 
   return [
-    `Hola ${input.customerName}, soy de Gorila Strong 🦍`,
+    `Hola ${input.customerName}, soy de Gorilla Strong 🦍`,
     "",
     `Te contacto por tu pedido #${input.orderCode}.`,
     "",

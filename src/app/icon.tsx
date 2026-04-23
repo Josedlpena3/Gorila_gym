@@ -46,7 +46,7 @@ export default function Icon() {
         >
           <img
             src={logoDataUrl}
-            alt="Gorila Strong"
+            alt="Gorilla Strong"
             width="440"
             height="440"
             style={{

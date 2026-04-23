@@ -24,7 +24,7 @@ export default async function HomePage() {
           <div className="flex h-24 w-24 items-center justify-center rounded-[28px] border border-white/10 bg-white/5 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.35)] sm:h-32 sm:w-32">
             <Image
               src="/branding/logo-gorila.png"
-              alt="Gorila Strong"
+              alt="Gorilla Strong"
               width={512}
               height={512}
               priority
@@ -32,7 +32,7 @@ export default async function HomePage() {
             />
           </div>
           <p className="mt-6 text-[11px] font-black uppercase tracking-[0.32em] text-neon sm:mt-8 sm:text-sm">
-            Gorila Strong
+            Gorilla Strong
           </p>
           <h1 className="mt-4 text-3xl font-black uppercase tracking-[0.06em] text-sand sm:text-5xl lg:text-6xl">
             Suplementación premium

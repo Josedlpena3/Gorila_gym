@@ -21,7 +21,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           <div className="h-10 w-10 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 sm:h-12 sm:w-12">
             <Image
               src="/branding/logo-gorila.png"
-              alt="Gorila Strong"
+              alt="Gorilla Strong"
               width={1024}
               height={1024}
               priority
@@ -30,7 +30,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           </div>
           <div className="min-w-0 leading-tight">
             <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-sand sm:text-xs sm:tracking-[0.24em]">
-              Gorila Strong
+              Gorilla Strong
             </p>
             <p className="truncate text-[9px] uppercase tracking-[0.24em] text-mist sm:text-[10px] sm:tracking-[0.3em]">
               Suplementacion premium

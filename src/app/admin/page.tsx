@@ -20,7 +20,7 @@ export default async function AdminDashboardPage() {
       <div>
         <p className="text-sm uppercase tracking-[0.3em] text-mist">Dashboard</p>
         <h1 className="text-4xl font-black uppercase tracking-[0.08em] text-sand">
-          Operación Gorila Strong
+          Operación Gorilla Strong
         </h1>
       </div>
 

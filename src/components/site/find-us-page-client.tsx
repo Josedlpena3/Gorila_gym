@@ -127,6 +127,9 @@ export function FindUsPageClient() {
                 Coordiná tu visita o escribinos por WhatsApp para consultar stock,
                 recomendaciones y horarios de atención.
               </p>
+              <p className="mt-2 text-sm leading-7 text-mist sm:text-base">
+                Seguinos en Instagram: @gorillastrong.va
+              </p>
             </div>
 
             <div className="rounded-[28px] border border-line bg-ink/60 p-4 sm:p-5">
@@ -170,7 +173,7 @@ export function FindUsPageClient() {
           <div className="overflow-hidden rounded-[28px] border border-line bg-ink/60 shadow-premium">
             <iframe
               src={siteConfig.googleMapsUrl}
-              title="Mapa del local Gorila Strong"
+              title="Mapa del local Gorilla Strong"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               className="block h-[300px] w-full rounded-xl border-0 sm:h-[360px]"

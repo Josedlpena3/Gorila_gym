@@ -9,7 +9,7 @@ import { tryGetCurrentUser } from "@/modules/users/user.service";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Gorila Strong",
+  title: "Gorilla Strong",
   description:
     "Tienda virtual de suplementos premium con catálogo, carrito, checkout y panel administrativo."
 };

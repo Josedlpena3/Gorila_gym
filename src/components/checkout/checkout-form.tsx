@@ -41,7 +41,7 @@ type CheckoutFormProps = {
   } | null;
 };
 
-const STORE_WHATSAPP_NUMBER = "5493512288010";
+const STORE_WHATSAPP_NUMBER = "5493513552255";
 
 function getFullName(user: CheckoutFormUser | null) {
   return [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();

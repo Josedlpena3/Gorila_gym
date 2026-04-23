@@ -425,7 +425,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         </div>
         <div className="space-y-2">
           <label className="text-sm text-mist">Marca</label>
-          <Input name="brand" defaultValue={product?.brand ?? "Gorila Strong"} required />
+          <Input name="brand" defaultValue={product?.brand ?? "Gorilla Strong"} required />
         </div>
         <div className="space-y-2">
           <label className="text-sm text-mist">Categoría</label>

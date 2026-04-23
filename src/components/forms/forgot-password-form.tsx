@@ -59,7 +59,7 @@ export function ForgotPasswordForm() {
     >
       <div className="space-y-2">
         <label className="text-sm font-medium text-mist">Email de tu cuenta</label>
-        <Input type="email" name="email" placeholder="vos@gorilastrong.com" required />
+        <Input type="email" name="email" placeholder="vos@gorillastrong.com" required />
       </div>
 
       <Button className="w-full" disabled={isPending}>

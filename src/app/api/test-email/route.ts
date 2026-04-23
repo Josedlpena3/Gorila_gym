@@ -26,11 +26,11 @@ function buildTestEmailHtml(actionUrl: string) {
             <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.28em;text-transform:uppercase;color:#9aa4b2;">SMTP Gmail</p>
             <h1 style="margin:0 0 16px;font-size:28px;line-height:1.2;color:#f5f1e8;">Prueba de envío</h1>
             <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#c3cad5;">
-              Este email confirma que el mailer de Gorila Strong pudo conectarse y enviar correctamente usando Gmail SMTP.
+              Este email confirma que el mailer de Gorilla Strong pudo conectarse y enviar correctamente usando Gmail SMTP.
             </p>
             <div style="margin:0 0 24px;">
               <a href="${actionUrl}" style="display:inline-block;padding:14px 22px;border-radius:999px;background:#b7ff39;color:#0a0b0d;font-weight:800;text-decoration:none;">
-                Abrir Gorila Strong
+                Abrir Gorilla Strong
               </a>
             </div>
             <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:#c3cad5;">Si el botón no funciona, usá este enlace:</p>
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
     const result = await sendEmail(
       data.email,
-      "Prueba de email - Gorila Strong",
+      "Prueba de email - Gorilla Strong",
       buildTestEmailHtml(appUrl)
     );
 

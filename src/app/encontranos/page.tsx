@@ -4,9 +4,9 @@ import { FindUsPageClient } from "@/components/site/find-us-page-client";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Encontranos | Gorila Strong",
+  title: "Encontranos | Gorilla Strong",
   description:
-    "Ubicación del local, mapa y contacto directo por WhatsApp de Gorila Strong."
+    "Ubicación del local, mapa y contacto directo por WhatsApp de Gorilla Strong."
 };
 
 export default function FindUsPage() {

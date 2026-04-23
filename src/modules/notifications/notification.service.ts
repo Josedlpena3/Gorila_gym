@@ -100,7 +100,7 @@ export async function sendPasswordResetEmail(input: {
 
   return sendEmail(
     input.email,
-    "Recuperación de contraseña - Gorila Strong",
+    "Recuperación de contraseña - Gorilla Strong",
     html
   );
 }
@@ -122,7 +122,7 @@ export async function sendEmailVerificationEmail(input: {
     footer: `Este enlace vence ${formatDate(input.expiresAt)} y solo puede usarse una vez.`
   });
 
-  return sendEmail(input.email, "Verificá tu email - Gorila Strong", html);
+  return sendEmail(input.email, "Verificá tu email - Gorilla Strong", html);
 }
 
 export async function sendOrderCreatedEmail(input: {
