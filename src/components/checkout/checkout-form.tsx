@@ -243,6 +243,8 @@ export function CheckoutForm({
     const formData = new FormData(formRef.current);
     const phone = String(formData.get("phone") ?? "").trim();
     const fullName = String(formData.get("fullName") ?? "").trim();
+    const normalizedFullName = fullName.replace(/\s+/g, " ").trim();
+    const [firstName = ""] = normalizedFullName.split(" ");
 
     if (!/^[0-9]+$/.test(phone)) {
       pendingWhatsappWindow?.close();
@@ -259,6 +261,12 @@ export function CheckoutForm({
     if (!fullName) {
       pendingWhatsappWindow?.close();
       setError("Ingresá tu nombre.");
+      return;
+    }
+
+    if (firstName.length < 2) {
+      pendingWhatsappWindow?.close();
+      setError("Ingresá un nombre válido.");
       return;
     }
 
@@ -333,42 +341,74 @@ export function CheckoutForm({
       return;
     }
 
-    const payloadBody: Record<string, unknown> = {
-      name: fullName,
+    const shipmentAddress =
+      deliveryMethod === DeliveryMethod.SHIPMENT ? address ?? null : null;
+
+    if (
+      shipmentAddress &&
+      (shipmentAddress.street.length < 2 ||
+        shipmentAddress.city.length < 2 ||
+        shipmentAddress.province.length < 2 ||
+        shipmentAddress.postalCode.length < 3)
+    ) {
+      pendingWhatsappWindow?.close();
+      setError("Revisá la dirección. Hay campos incompletos o inválidos.");
+      return;
+    }
+
+    const payload: Record<string, unknown> = {
+      name: normalizedFullName,
       phone: extractPhoneDigits(phone),
       items,
       total: discountPreview.total,
       deliveryMethod: getOrderDeliveryMethodValue(deliveryMethod),
       paymentMethod: getOrderPaymentMethodValue(paymentMethod),
-      ...(discountPreview.discountCode ? { discountCode: discountPreview.discountCode } : {}),
-      ...(address ? { address } : {})
+      discountCode: discountPreview.discountCode,
+      ...(shipmentAddress ? { address: shipmentAddress } : {})
     };
 
-    console.log("BODY ENVIADO:", payloadBody);
+    if (!payload.discountCode) {
+      delete payload.discountCode;
+    }
+
+    console.log("PAYLOAD ENVIADO:", payload);
 
     const response = await fetch("/api/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(payloadBody)
+      body: JSON.stringify(payload)
     });
 
-    const payload = await response.json().catch(() => null);
+    const responsePayload = (await response.json().catch(() => null)) as
+      | {
+          error?: string;
+          order?: {
+            total?: number;
+            code?: string;
+          };
+        }
+      | null;
 
     if (!response.ok) {
       pendingWhatsappWindow?.close();
-      setError(payload?.error ?? "No se pudo confirmar el pedido.");
+      setError(responsePayload?.error ?? "No se pudo confirmar el pedido.");
       return;
     }
 
     const normalizedPhone = normalizePhone(phone);
     const finalTotal =
-      typeof payload?.order?.total === "number" ? payload.order.total : discountPreview.total;
+      typeof responsePayload?.order?.total === "number"
+        ? responsePayload.order.total
+        : discountPreview.total;
     const whatsappMessage = buildCheckoutWhatsappMessage({
       customerName: fullName,
       phone: normalizedPhone,
-      orderCode: typeof payload?.order?.code === "string" ? payload.order.code : "pedido",
+      orderCode:
+        typeof responsePayload?.order?.code === "string"
+          ? responsePayload.order.code
+          : "pedido",
       items: activeCart.items,
       total: finalTotal,
       discountApplied: discountPreview.discountApplied,
@@ -388,7 +428,9 @@ export function CheckoutForm({
 
     clearGuestCart();
     setSuccessOrderCode(
-      typeof payload?.order?.code === "string" ? payload.order.code : "pedido"
+      typeof responsePayload?.order?.code === "string"
+        ? responsePayload.order.code
+        : "pedido"
     );
   }
 
