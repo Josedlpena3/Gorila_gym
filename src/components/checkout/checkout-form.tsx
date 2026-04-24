@@ -41,17 +41,24 @@ type CheckoutFormProps = {
   } | null;
 };
 
+type OrderDeliveryMethodPayload = "retiro" | "envio";
+type OrderPaymentMethodPayload = "efectivo" | "transferencia";
+
 const STORE_WHATSAPP_NUMBER = "5493513552255";
 
 function getFullName(user: CheckoutFormUser | null) {
   return [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
 }
 
-function getOrderDeliveryMethodValue(deliveryMethod: DeliveryMethod) {
+function getOrderDeliveryMethodValue(
+  deliveryMethod: DeliveryMethod
+): OrderDeliveryMethodPayload {
   return deliveryMethod === DeliveryMethod.PICKUP ? "retiro" : "envio";
 }
 
-function getOrderPaymentMethodValue(paymentMethod: PaymentMethod) {
+function getOrderPaymentMethodValue(
+  paymentMethod: PaymentMethod
+): OrderPaymentMethodPayload {
   return paymentMethod === PaymentMethod.BANK_TRANSFER ? "transferencia" : "efectivo";
 }
 
