@@ -340,7 +340,7 @@ export function CheckoutForm({
       total: discountPreview.total,
       deliveryMethod: getOrderDeliveryMethodValue(deliveryMethod),
       paymentMethod: getOrderPaymentMethodValue(paymentMethod),
-      discountCode: discountPreview.discountCode,
+      ...(discountPreview.discountCode ? { discountCode: discountPreview.discountCode } : {}),
       ...(address ? { address } : {})
     };
 

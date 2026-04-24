@@ -117,7 +117,7 @@ const createOrderBaseObjectSchema = z.object({
     .array(z.union([orderItemSchema, legacyGuestOrderItemSchema]))
     .min(1, "Tu carrito está vacío")
     .optional(),
-  discountCode: z.string().trim().max(80).optional(),
+  discountCode: z.string().trim().max(80).optional().nullable(),
   discountApplied: z.string().trim().max(80).nullable().optional(),
   totalFinal: z.number().positive("Total inválido"),
   notes: z.string().max(300).optional(),

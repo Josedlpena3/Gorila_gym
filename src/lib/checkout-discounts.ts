@@ -12,6 +12,16 @@ function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+export function buildEmptyCheckoutDiscountResult(total: number): CheckoutDiscountResult {
+  return {
+    discountCode: null,
+    discountApplied: null,
+    discountAmount: 0,
+    total,
+    invalid: false
+  };
+}
+
 export function applyCheckoutDiscount(
   code: string | null | undefined,
   total: number,
@@ -20,13 +30,7 @@ export function applyCheckoutDiscount(
   const normalized = code?.trim().toLowerCase() ?? "";
 
   if (!normalized) {
-    return {
-      discountCode: null,
-      discountApplied: null,
-      discountAmount: 0,
-      total,
-      invalid: false
-    };
+    return buildEmptyCheckoutDiscountResult(total);
   }
 
   if (normalized === "gorillastrong") {

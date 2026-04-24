@@ -6,7 +6,10 @@ import {
   Prisma
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { applyCheckoutDiscount } from "@/lib/checkout-discounts";
+import {
+  applyCheckoutDiscount,
+  buildEmptyCheckoutDiscountResult
+} from "@/lib/checkout-discounts";
 import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -640,11 +643,10 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     address: data.address
   });
   const orderCode = generateOrderCode();
-  const discount = applyCheckoutDiscount(
-    data.discountCode,
-    cart.subtotal,
-    deliveryMethod
-  );
+  const discountCode = data.discountCode?.trim();
+  const discount = discountCode
+    ? applyCheckoutDiscount(discountCode, cart.subtotal, deliveryMethod)
+    : buildEmptyCheckoutDiscountResult(cart.subtotal);
   const pricing = {
     shippingCost: 0,
     discountAmount: discount.discountAmount,
@@ -904,7 +906,10 @@ export async function createGuestOrder(input: unknown) {
     }
 
     const subtotal = resolvedItems.reduce((total, item) => total + item.subtotal, 0);
-    const discount = applyCheckoutDiscount(data.discountCode, subtotal, deliveryMethod);
+    const discountCode = data.discountCode?.trim();
+    const discount = discountCode
+      ? applyCheckoutDiscount(discountCode, subtotal, deliveryMethod)
+      : buildEmptyCheckoutDiscountResult(subtotal);
     const pricing = {
       shippingCost: 0,
       discountAmount: discount.discountAmount,
