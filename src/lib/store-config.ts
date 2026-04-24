@@ -21,6 +21,14 @@ export type BankTransferConfig = {
   instructions: string | null;
 };
 
+const DEFAULT_BANK_TRANSFER_CONFIG: BankTransferConfig = {
+  alias: "josedlp3",
+  cbu: "0000003100097110373230",
+  accountHolder: "Jose Ignacio de la Peña",
+  bankName: null,
+  instructions: null
+};
+
 function hasValues(values: string[]) {
   return values.every((value) => value.trim().length > 0);
 }
@@ -54,22 +62,22 @@ export function getStorePickupAddress(): AddressSnapshot | null {
 
 export function getBankTransferConfig(): BankTransferConfig | null {
   if (
-    !hasValues([
+    hasValues([
       env.bankTransferAlias,
       env.bankTransferCbu,
       env.bankTransferAccountHolder
     ])
   ) {
-    return null;
+    return {
+      alias: env.bankTransferAlias,
+      cbu: env.bankTransferCbu,
+      accountHolder: env.bankTransferAccountHolder,
+      bankName: env.bankTransferBankName || null,
+      instructions: env.bankTransferInstructions || null
+    };
   }
 
-  return {
-    alias: env.bankTransferAlias,
-    cbu: env.bankTransferCbu,
-    accountHolder: env.bankTransferAccountHolder,
-    bankName: env.bankTransferBankName || null,
-    instructions: env.bankTransferInstructions || null
-  };
+  return DEFAULT_BANK_TRANSFER_CONFIG;
 }
 
 export function isMercadoPagoConfigured() {

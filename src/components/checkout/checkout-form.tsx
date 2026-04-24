@@ -98,49 +98,49 @@ function buildCheckoutWhatsappMessage(input: {
   paymentMethod: PaymentMethod;
   transferConfig: CheckoutFormProps["transferConfig"];
 }) {
-  const products = input.items.map((item) => `* ${item.name} x${item.quantity}`).join("\n");
+  const products = input.items.map((item) => `- ${item.name} x${item.quantity}`).join("\n");
   const deliveryLabel =
     input.deliveryMethod === DeliveryMethod.PICKUP
       ? "Retiro en el local"
       : "Envío a domicilio";
+  const transferDetails = input.transferConfig ?? {
+    alias: "josedlp3",
+    cbu: "0000003100097110373230",
+    accountHolder: "Jose Ignacio de la Peña"
+  };
+  const baseMessage = [
+    `Hola, soy ${input.customerName}.`,
+    "",
+    `Te contacto por mi pedido #${input.orderCode}.`,
+    "",
+    "Productos:",
+    products,
+    "",
+    `Total: ${formatCurrency(input.total)}`,
+    ...(input.discountApplied ? [`Descuento aplicado: ${input.discountApplied}`] : []),
+    `Teléfono: ${input.phone}`,
+    `Forma de entrega: ${deliveryLabel}`
+  ];
 
   if (input.paymentMethod === PaymentMethod.BANK_TRANSFER) {
     return [
-      `Hola, soy ${input.customerName}.`,
+      ...baseMessage,
       "",
-      `Quiero confirmar mi pedido #${input.orderCode}.`,
+      "Elegiste la opción: Transferencia",
       "",
-      "📦 Productos:",
-      products,
+      "Datos bancarios:",
+      `Alias: ${transferDetails.alias}`,
+      `CVU: ${transferDetails.cbu}`,
+      `Nombre: ${transferDetails.accountHolder}`,
       "",
-      `💰 Total: ${formatCurrency(input.total)}`,
-      ...(input.discountApplied
-        ? [`🏷️ Código aplicado: ${input.discountApplied}`]
-        : []),
-      `📱 Teléfono: ${input.phone}`,
-      `🚚 Entrega: ${deliveryLabel}`,
-      "💳 Pago: Transferencia",
-      "",
-      "🏦 Datos bancarios:",
-      `Alias: ${input.transferConfig?.alias ?? "josedlp3"}`,
-      `CVU: ${input.transferConfig?.cbu ?? "0000003100097110373230"}`,
-      `Nombre: ${input.transferConfig?.accountHolder ?? "Jose Ignacio de la Peña"}`
+      "Mandanos el comprobante para confirmar tu pedido."
     ].join("\n");
   }
 
   return [
-    `Hola, soy ${input.customerName}.`,
+    ...baseMessage,
     "",
-    `Quiero confirmar mi pedido #${input.orderCode}.`,
-    "",
-    "📦 Productos:",
-    products,
-    "",
-    `💰 Total: ${formatCurrency(input.total)}`,
-    ...(input.discountApplied ? [`🏷️ Código aplicado: ${input.discountApplied}`] : []),
-    `📱 Teléfono: ${input.phone}`,
-    `🚚 Entrega: ${deliveryLabel}`,
-    "💵 Pago: Efectivo"
+    "Elegiste la opción: Efectivo"
   ].join("\n");
 }
 
