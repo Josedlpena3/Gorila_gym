@@ -17,30 +17,26 @@ export function ProductCard({
   console.log("Imagen catálogo:", product.image);
 
   return (
-    <article className="section-card group overflow-hidden">
-      <div className="relative aspect-square overflow-hidden bg-steel/70">
+    <article className="section-card group flex h-full flex-col overflow-hidden">
+      <div className="relative aspect-square overflow-hidden bg-steel/60">
         {product.image ? (
           <Image
             src={product.image}
             alt={product.name}
             fill
             sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 50vw"
-            className="object-contain p-4 transition duration-500 group-hover:scale-[1.03] sm:p-5"
+            className="object-contain object-center p-5 transition duration-500 group-hover:scale-[1.03] sm:p-6"
           />
         ) : (
           <div className="flex h-full items-center justify-center px-4 text-center text-xs text-mist sm:text-sm">
             Sin imagen
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
-        <div className="absolute left-3 top-3 flex flex-wrap gap-2 sm:left-4 sm:top-4">
-          {product.featured ? <Badge variant="success">Destacado</Badge> : null}
-          <Badge>{product.category}</Badge>
-        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-ink/35 via-transparent to-transparent" />
       </div>
 
-      <div className="space-y-3 p-3 sm:space-y-4 sm:p-5">
-        <div>
+      <div className="flex flex-1 flex-col space-y-4 p-4 sm:space-y-5 sm:p-5">
+        <div className="space-y-3">
           <p className="text-[11px] uppercase tracking-[0.24em] text-mist sm:text-xs sm:tracking-[0.28em]">
             {product.brand}
           </p>
@@ -52,7 +48,7 @@ export function ProductCard({
           ) : null}
           <Link
             href={`/productos/${product.slug}`}
-            className="mt-2 block text-base font-black leading-tight sm:text-lg lg:text-xl"
+            className="mt-3 block min-h-[2.8rem] text-[1.05rem] font-black leading-tight text-sand sm:min-h-[3.2rem] sm:text-[1.18rem] lg:text-[1.28rem]"
           >
             {product.name}
           </Link>
@@ -67,9 +63,9 @@ export function ProductCard({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xl font-black text-sand sm:text-2xl">
+        <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <p className="text-2xl font-black tracking-[-0.03em] text-sand sm:text-[2rem]">
               {formatCurrency(product.price)}
             </p>
             <p className="text-xs text-mist sm:text-sm">
