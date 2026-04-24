@@ -210,6 +210,26 @@ function assertPositiveTotal(total: number) {
   }
 }
 
+function hasDiscountCode(discountCode: string | null | undefined) {
+  return Boolean(discountCode && discountCode.trim() !== "");
+}
+
+function resolveCheckoutDiscount(input: {
+  discountCode: string | null | undefined;
+  total: number;
+  deliveryMethod: DeliveryMethod;
+}) {
+  console.log("discountCode recibido:", input.discountCode);
+
+  const discountCode = input.discountCode?.trim() ?? null;
+
+  if (!hasDiscountCode(discountCode)) {
+    return buildEmptyCheckoutDiscountResult(input.total);
+  }
+
+  return applyCheckoutDiscount(discountCode, input.total, input.deliveryMethod);
+}
+
 function buildManualPaymentData(input: {
   paymentMethod: PaymentMethod;
   total: number;
@@ -643,10 +663,11 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     address: data.address
   });
   const orderCode = generateOrderCode();
-  const discountCode = data.discountCode?.trim();
-  const discount = discountCode
-    ? applyCheckoutDiscount(discountCode, cart.subtotal, deliveryMethod)
-    : buildEmptyCheckoutDiscountResult(cart.subtotal);
+  const discount = resolveCheckoutDiscount({
+    discountCode: data.discountCode,
+    total: cart.subtotal,
+    deliveryMethod
+  });
   const pricing = {
     shippingCost: 0,
     discountAmount: discount.discountAmount,
@@ -906,10 +927,11 @@ export async function createGuestOrder(input: unknown) {
     }
 
     const subtotal = resolvedItems.reduce((total, item) => total + item.subtotal, 0);
-    const discountCode = data.discountCode?.trim();
-    const discount = discountCode
-      ? applyCheckoutDiscount(discountCode, subtotal, deliveryMethod)
-      : buildEmptyCheckoutDiscountResult(subtotal);
+    const discount = resolveCheckoutDiscount({
+      discountCode: data.discountCode,
+      total: subtotal,
+      deliveryMethod
+    });
     const pricing = {
       shippingCost: 0,
       discountAmount: discount.discountAmount,
