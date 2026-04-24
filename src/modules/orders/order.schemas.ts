@@ -1,13 +1,12 @@
 import { DeliveryMethod, OrderStatus, PaymentMethod } from "@prisma/client";
 import { z } from "zod";
-import { extractPhoneDigits, normalizePhone } from "@/lib/phone";
+import { normalizePhone } from "@/lib/phone";
 
 const phoneSchema = z
   .string()
   .trim()
-  .transform(extractPhoneDigits)
-  .refine((value) => value.length >= 8, "Teléfono inválido")
   .refine((value) => /^[0-9]+$/.test(value), "Solo números")
+  .refine((value) => value.length >= 8, "Teléfono inválido")
   .transform(normalizePhone);
 
 const orderAddressSchema = z.object({
@@ -18,10 +17,84 @@ const orderAddressSchema = z.object({
   postalCode: z.string().trim().min(3, "Código postal inválido")
 });
 
-function validateOrderAddressRequirement<
+const normalizedAddressSchema = z.preprocess(
+  (value) => (value == null ? undefined : value),
+  orderAddressSchema.optional()
+);
+
+const deliveryMethodSchema = z
+  .union([
+    z.literal("retiro"),
+    z.literal("envio"),
+    z.literal(DeliveryMethod.PICKUP),
+    z.literal(DeliveryMethod.SHIPMENT)
+  ])
+  .transform((value) =>
+    value === "retiro" || value === DeliveryMethod.PICKUP
+      ? DeliveryMethod.PICKUP
+      : DeliveryMethod.SHIPMENT
+  );
+
+const paymentMethodSchema = z
+  .union([
+    z.literal("efectivo"),
+    z.literal("transferencia"),
+    z.literal(PaymentMethod.CASH),
+    z.literal(PaymentMethod.BANK_TRANSFER)
+  ])
+  .transform((value) =>
+    value === "efectivo" || value === PaymentMethod.CASH
+      ? PaymentMethod.CASH
+      : PaymentMethod.BANK_TRANSFER
+  );
+
+const orderItemSchema = z.object({
+  productId: z.string().trim().min(1, "Producto inválido"),
+  name: z.string().trim().min(1, "Nombre de producto inválido"),
+  quantity: z.number().int().min(1, "Cantidad inválida"),
+  price: z.number().positive("Precio inválido")
+});
+
+const legacyGuestOrderItemSchema = z.object({
+  productId: z.string().trim().min(1, "Producto inválido"),
+  quantity: z.number().int().min(1, "Cantidad inválida")
+});
+
+function splitName(name: string) {
+  const normalized = name.trim().replace(/\s+/g, " ");
+  const [firstName = "", ...rest] = normalized.split(" ");
+
+  return {
+    firstName,
+    lastName: rest.join(" ")
+  };
+}
+
+function normalizeOrderInput(raw: unknown) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return raw;
+  }
+
+  const input = raw as Record<string, unknown>;
+  const name = typeof input.name === "string" ? input.name.trim() : "";
+  const firstName = typeof input.firstName === "string" ? input.firstName.trim() : "";
+  const lastName = typeof input.lastName === "string" ? input.lastName.trim() : "";
+  const split = !firstName && name ? splitName(name) : null;
+
+  return {
+    ...input,
+    firstName: firstName || split?.firstName || "",
+    lastName: lastName || split?.lastName || "",
+    totalFinal: input.totalFinal ?? input.total,
+    address: input.address ?? undefined,
+    deliveryMethod: input.deliveryMethod ?? "envio",
+    paymentMethod: input.paymentMethod ?? "efectivo"
+  };
+}
+
+function validateOrderRequest<
   T extends {
     deliveryMethod: DeliveryMethod;
-    paymentMethod: PaymentMethod;
     address?: unknown;
   }
 >(data: T, ctx: z.RefinementCtx) {
@@ -32,48 +105,40 @@ function validateOrderAddressRequirement<
       message: "La dirección es obligatoria para envío"
     });
   }
-
-  if (
-    data.paymentMethod !== PaymentMethod.CASH &&
-    data.paymentMethod !== PaymentMethod.BANK_TRANSFER
-  ) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["paymentMethod"],
-      message: "Forma de pago inválida"
-    });
-  }
 }
 
-const createOrderBaseSchema = z.object({
+const createOrderBaseObjectSchema = z.object({
   firstName: z.string().trim().min(2, "Nombre inválido"),
   lastName: z.string().trim().optional().default(""),
   phone: phoneSchema,
-  deliveryMethod: z.nativeEnum(DeliveryMethod).default(DeliveryMethod.SHIPMENT),
-  paymentMethod: z.nativeEnum(PaymentMethod).default(PaymentMethod.CASH),
+  deliveryMethod: deliveryMethodSchema,
+  paymentMethod: paymentMethodSchema,
+  items: z
+    .array(z.union([orderItemSchema, legacyGuestOrderItemSchema]))
+    .min(1, "Tu carrito está vacío")
+    .optional(),
   discountCode: z.string().trim().max(80).optional(),
   discountApplied: z.string().trim().max(80).nullable().optional(),
-  totalFinal: z.number().positive("Total inválido").optional(),
+  totalFinal: z.number().positive("Total inválido"),
   notes: z.string().max(300).optional(),
-  address: orderAddressSchema.optional()
+  address: normalizedAddressSchema
 });
 
-export const createOrderSchema = createOrderBaseSchema.superRefine(
-  validateOrderAddressRequirement
+export const createOrderSchema = z.preprocess(
+  normalizeOrderInput,
+  createOrderBaseObjectSchema.superRefine(validateOrderRequest)
 );
 
-export const createGuestOrderSchema = createOrderBaseSchema
-  .extend({
-    items: z
-      .array(
-        z.object({
-          productId: z.string().trim().min(1, "Producto inválido"),
-          quantity: z.number().int().min(1, "Cantidad inválida")
-        })
-      )
-      .min(1, "Tu carrito está vacío")
-  })
-  .superRefine(validateOrderAddressRequirement);
+export const createGuestOrderSchema = z.preprocess(
+  normalizeOrderInput,
+  createOrderBaseObjectSchema
+    .extend({
+      items: z
+        .array(z.union([orderItemSchema, legacyGuestOrderItemSchema]))
+        .min(1, "Tu carrito está vacío")
+    })
+    .superRefine(validateOrderRequest)
+);
 
 export const quoteCheckoutSchema = z.object({
   deliveryMethod: z.nativeEnum(DeliveryMethod),

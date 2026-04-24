@@ -11,7 +11,7 @@ import {
   subscribeToGuestCart
 } from "@/lib/guest-cart";
 import { applyCheckoutDiscount } from "@/lib/checkout-discounts";
-import { isValidPhone, normalizePhone } from "@/lib/phone";
+import { extractPhoneDigits, normalizePhone } from "@/lib/phone";
 import { formatCurrency } from "@/lib/utils";
 import type { CartDto } from "@/types";
 
@@ -47,14 +47,12 @@ function getFullName(user: CheckoutFormUser | null) {
   return [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
 }
 
-function splitFullName(fullName: string) {
-  const normalized = fullName.trim().replace(/\s+/g, " ");
-  const [firstName = "", ...rest] = normalized.split(" ");
+function getOrderDeliveryMethodValue(deliveryMethod: DeliveryMethod) {
+  return deliveryMethod === DeliveryMethod.PICKUP ? "retiro" : "envio";
+}
 
-  return {
-    firstName,
-    lastName: rest.join(" ")
-  };
+function getOrderPaymentMethodValue(paymentMethod: PaymentMethod) {
+  return paymentMethod === PaymentMethod.BANK_TRANSFER ? "transferencia" : "efectivo";
 }
 
 function SelectorButton({
@@ -246,7 +244,13 @@ export function CheckoutForm({
     const phone = String(formData.get("phone") ?? "").trim();
     const fullName = String(formData.get("fullName") ?? "").trim();
 
-    if (!isValidPhone(phone)) {
+    if (!/^[0-9]+$/.test(phone)) {
+      pendingWhatsappWindow?.close();
+      setError("El teléfono debe tener solo números.");
+      return;
+    }
+
+    if (phone.length < 8) {
       pendingWhatsappWindow?.close();
       setError("Ingresá un teléfono válido de al menos 8 dígitos.");
       return;
@@ -270,11 +274,37 @@ export function CheckoutForm({
       return;
     }
 
-    const { firstName, lastName } = splitFullName(fullName);
+    const items = activeCart.items.map((item) => ({
+      productId: item.productId,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.unitPrice
+    }));
 
-    if (!firstName) {
+    if (items.length === 0) {
       pendingWhatsappWindow?.close();
-      setError("Ingresá tu nombre.");
+      setError("Tu carrito está vacío.");
+      return;
+    }
+
+    if (
+      items.some(
+        (item) =>
+          !item.name.trim() ||
+          !Number.isInteger(item.quantity) ||
+          item.quantity <= 0 ||
+          !Number.isFinite(item.price) ||
+          item.price <= 0
+      )
+    ) {
+      pendingWhatsappWindow?.close();
+      setError("Hay productos inválidos en el pedido.");
+      return;
+    }
+
+    if (!Number.isFinite(discountPreview.total) || discountPreview.total <= 0) {
+      pendingWhatsappWindow?.close();
+      setError("El total del pedido es inválido.");
       return;
     }
 
@@ -289,24 +319,32 @@ export function CheckoutForm({
           }
         : undefined;
 
+    if (
+      deliveryMethod === DeliveryMethod.SHIPMENT &&
+      (!address ||
+        !address.street ||
+        !address.number ||
+        !address.city ||
+        !address.province ||
+        !address.postalCode)
+    ) {
+      pendingWhatsappWindow?.close();
+      setError("Completá la dirección para envío.");
+      return;
+    }
+
     const payloadBody: Record<string, unknown> = {
-      firstName,
-      lastName,
-      phone: normalizePhone(phone),
-      deliveryMethod,
-      paymentMethod,
+      name: fullName,
+      phone: extractPhoneDigits(phone),
+      items,
+      total: discountPreview.total,
+      deliveryMethod: getOrderDeliveryMethodValue(deliveryMethod),
+      paymentMethod: getOrderPaymentMethodValue(paymentMethod),
       discountCode: discountPreview.discountCode,
-      discountApplied: discountPreview.discountApplied,
-      totalFinal: discountPreview.total,
-      address
+      ...(address ? { address } : {})
     };
 
-    if (!user) {
-      payloadBody.items = activeCart.items.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity
-      }));
-    }
+    console.log("BODY ENVIADO:", payloadBody);
 
     const response = await fetch("/api/orders", {
       method: "POST",

@@ -53,6 +53,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log("BODY RECIBIDO:", body);
     const user = await getCurrentUser();
     if (!user) {
       await guardGuestOrderRequest(request);
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
+    console.log("ERROR ORDER:", error);
     return handleRouteError(error);
   }
 }
