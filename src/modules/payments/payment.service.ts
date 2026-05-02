@@ -2,11 +2,13 @@ import { createHmac, timingSafeEqual } from "crypto";
 import {
   Discount,
   DiscountType,
+  DeliveryMethod,
   OrderStatus,
   PaymentMethod,
   PaymentStatus
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { applyPaymentSurcharge } from "@/lib/checkout-pricing";
 import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -28,7 +30,10 @@ function mapDiscount(discount: Discount, subtotal: number): DiscountSummaryDto {
   };
 }
 
-export function getAvailablePaymentMethods(province?: string | null) {
+export function getAvailablePaymentMethods(input: {
+  province?: string | null;
+  deliveryMethod?: DeliveryMethod | null;
+}) {
   const methods: PaymentMethod[] = [];
 
   if (isMercadoPagoConfigured()) {
@@ -39,8 +44,12 @@ export function getAvailablePaymentMethods(province?: string | null) {
     methods.push(PaymentMethod.BANK_TRANSFER);
   }
 
-  if (isCordobaProvince(province)) {
+  if (isCordobaProvince(input.province)) {
     methods.push(PaymentMethod.CASH);
+  }
+
+  if (input.deliveryMethod === DeliveryMethod.PICKUP) {
+    methods.push(PaymentMethod.CARD);
   }
 
   return methods;
@@ -121,16 +130,23 @@ export async function buildCheckoutPricing(input: {
   return {
     shippingCost: input.shippingCost,
     discountAmount,
-    total: input.subtotal + input.shippingCost - discountAmount,
+    total: applyPaymentSurcharge(
+      input.subtotal + input.shippingCost - discountAmount,
+      input.paymentMethod
+    ),
     appliedDiscount: discount ? mapDiscount(discount, input.subtotal) : null
   };
 }
 
 export function buildPaymentMethodOptions(input: {
   province?: string | null;
+  deliveryMethod?: DeliveryMethod | null;
   transferDiscount: DiscountSummaryDto | null;
 }) {
-  const methods = getAvailablePaymentMethods(input.province);
+  const methods = getAvailablePaymentMethods({
+    province: input.province,
+    deliveryMethod: input.deliveryMethod
+  });
 
   return methods.map((method): PaymentMethodOptionDto => {
     if (method === PaymentMethod.MERCADO_PAGO) {
@@ -150,6 +166,14 @@ export function buildPaymentMethodOptions(input: {
               input.transferDiscount.amount
             )} de descuento. Verificación manual del pago.`
           : "Pago por transferencia con verificación manual."
+      };
+    }
+
+    if (method === PaymentMethod.CARD) {
+      return {
+        method,
+        label: "Tarjeta",
+        description: "Disponible solo para retiro en el local. Recargo del 10%."
       };
     }
 

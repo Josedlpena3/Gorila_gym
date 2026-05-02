@@ -28,7 +28,8 @@ export const ORDER_STATUS_BADGE_VARIANTS: Record<
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   MERCADO_PAGO: "Mercado Pago",
   BANK_TRANSFER: "Transferencia",
-  CASH: "Efectivo"
+  CASH: "Efectivo",
+  CARD: "Tarjeta"
 };
 
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {

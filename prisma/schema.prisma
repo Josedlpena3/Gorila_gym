@@ -29,6 +29,7 @@ enum PaymentMethod {
   MERCADO_PAGO
   BANK_TRANSFER
   CASH
+  CARD
 }
 
 enum OrderStatus {

@@ -6,6 +6,10 @@ import { type ReactNode, useEffect, useRef, useState, useTransition } from "reac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  applyPaymentSurcharge,
+  getPaymentSurchargeAmount
+} from "@/lib/checkout-pricing";
+import {
   clearGuestCart,
   getGuestCartSnapshot,
   subscribeToGuestCart
@@ -42,13 +46,9 @@ type CheckoutFormProps = {
 };
 
 type OrderDeliveryMethodPayload = "retiro" | "envio";
-type OrderPaymentMethodPayload = "efectivo" | "transferencia";
+type OrderPaymentMethodPayload = "efectivo" | "transferencia" | "tarjeta";
 
 const STORE_WHATSAPP_NUMBER = "5493513552255";
-
-function getFullName(user: CheckoutFormUser | null) {
-  return [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
-}
 
 function getOrderDeliveryMethodValue(
   deliveryMethod: DeliveryMethod
@@ -59,7 +59,27 @@ function getOrderDeliveryMethodValue(
 function getOrderPaymentMethodValue(
   paymentMethod: PaymentMethod
 ): OrderPaymentMethodPayload {
-  return paymentMethod === PaymentMethod.BANK_TRANSFER ? "transferencia" : "efectivo";
+  if (paymentMethod === PaymentMethod.BANK_TRANSFER) {
+    return "transferencia";
+  }
+
+  if (paymentMethod === PaymentMethod.CARD) {
+    return "tarjeta";
+  }
+
+  return "efectivo";
+}
+
+function getPaymentMethodLabel(paymentMethod: PaymentMethod) {
+  if (paymentMethod === PaymentMethod.BANK_TRANSFER) {
+    return "Transferencia";
+  }
+
+  if (paymentMethod === PaymentMethod.CARD) {
+    return "Tarjeta (+10%)";
+  }
+
+  return "Efectivo";
 }
 
 function SelectorButton({
@@ -137,6 +157,14 @@ function buildCheckoutWhatsappMessage(input: {
     ].join("\n");
   }
 
+  if (input.paymentMethod === PaymentMethod.CARD) {
+    return [
+      ...baseMessage,
+      "",
+      "Elegiste la opción: Tarjeta (recargo del 10%)"
+    ].join("\n");
+  }
+
   return [
     ...baseMessage,
     "",
@@ -161,6 +189,7 @@ export function CheckoutForm({
     pickupAvailable ? DeliveryMethod.PICKUP : DeliveryMethod.SHIPMENT
   );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
+  const [customerName, setCustomerName] = useState("");
   const [discountCode, setDiscountCode] = useState("");
 
   useEffect(() => {
@@ -174,6 +203,15 @@ export function CheckoutForm({
       setGuestCart(getGuestCartSnapshot());
     });
   }, [user]);
+
+  useEffect(() => {
+    if (
+      deliveryMethod === DeliveryMethod.SHIPMENT &&
+      paymentMethod === PaymentMethod.CARD
+    ) {
+      setPaymentMethod(PaymentMethod.CASH);
+    }
+  }, [deliveryMethod, paymentMethod]);
 
   const activeCart = user ? cart : guestCart;
 
@@ -231,6 +269,8 @@ export function CheckoutForm({
     activeCart.subtotal,
     deliveryMethod
   );
+  const paymentSurcharge = getPaymentSurchargeAmount(discountPreview.total, paymentMethod);
+  const checkoutTotal = applyPaymentSurcharge(discountPreview.total, paymentMethod);
 
   async function submitOrderToWhatsapp(pendingWhatsappWindow: Window | null) {
     if (!formRef.current) {
@@ -277,15 +317,18 @@ export function CheckoutForm({
       return;
     }
 
-    if (deliveryMethod === DeliveryMethod.PICKUP && !pickupAvailable) {
-      pendingWhatsappWindow?.close();
-      setError("El retiro en el local no está disponible en este momento.");
-      return;
-    }
-
     if (paymentMethod === PaymentMethod.BANK_TRANSFER && !transferAvailable) {
       pendingWhatsappWindow?.close();
       setError("La transferencia no está disponible en este momento.");
+      return;
+    }
+
+    if (
+      paymentMethod === PaymentMethod.CARD &&
+      deliveryMethod !== DeliveryMethod.PICKUP
+    ) {
+      pendingWhatsappWindow?.close();
+      setError("La tarjeta solo está disponible para retiro en el local.");
       return;
     }
 
@@ -317,7 +360,7 @@ export function CheckoutForm({
       return;
     }
 
-    if (!Number.isFinite(discountPreview.total) || discountPreview.total <= 0) {
+    if (!Number.isFinite(checkoutTotal) || checkoutTotal <= 0) {
       pendingWhatsappWindow?.close();
       setError("El total del pedido es inválido.");
       return;
@@ -367,7 +410,7 @@ export function CheckoutForm({
       name: normalizedFullName,
       phone: extractPhoneDigits(phone),
       items,
-      total: discountPreview.total,
+      total: checkoutTotal,
       deliveryMethod: getOrderDeliveryMethodValue(deliveryMethod),
       paymentMethod: getOrderPaymentMethodValue(paymentMethod),
       discountCode: discountPreview.discountCode,
@@ -408,9 +451,9 @@ export function CheckoutForm({
     const finalTotal =
       typeof responsePayload?.order?.total === "number"
         ? responsePayload.order.total
-        : discountPreview.total;
+        : checkoutTotal;
     const whatsappMessage = buildCheckoutWhatsappMessage({
-      customerName: fullName,
+      customerName: normalizedFullName,
       phone: normalizedPhone,
       orderCode:
         typeof responsePayload?.order?.code === "string"
@@ -434,6 +477,7 @@ export function CheckoutForm({
     }
 
     clearGuestCart();
+    setCustomerName("");
     setSuccessOrderCode(
       typeof responsePayload?.order?.code === "string"
         ? responsePayload.order.code
@@ -464,7 +508,13 @@ export function CheckoutForm({
           <div className="mt-4 grid gap-4">
             <div className="space-y-2">
               <label className="text-sm text-mist">Nombre</label>
-              <Input name="fullName" defaultValue={getFullName(user)} required />
+              <Input
+                name="fullName"
+                value={customerName}
+                onChange={(event) => setCustomerName(event.target.value)}
+                autoComplete="off"
+                required
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm text-mist">Celular</label>
@@ -543,7 +593,12 @@ export function CheckoutForm({
 
         <section className="section-card p-4 sm:p-6">
           <p className="text-base font-semibold text-sand sm:text-lg">Forma de pago</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div
+            className={[
+              "mt-4 grid gap-3",
+              deliveryMethod === DeliveryMethod.PICKUP ? "sm:grid-cols-3" : "sm:grid-cols-2"
+            ].join(" ")}
+          >
             <SelectorButton
               active={paymentMethod === PaymentMethod.CASH}
               onClick={() => setPaymentMethod(PaymentMethod.CASH)}
@@ -556,11 +611,24 @@ export function CheckoutForm({
             >
               Transferencia
             </SelectorButton>
+            {deliveryMethod === DeliveryMethod.PICKUP ? (
+              <SelectorButton
+                active={paymentMethod === PaymentMethod.CARD}
+                onClick={() => setPaymentMethod(PaymentMethod.CARD)}
+              >
+                Pago con tarjeta (+10%)
+              </SelectorButton>
+            ) : null}
           </div>
           {paymentMethod === PaymentMethod.BANK_TRANSFER && transferAvailable ? (
             <p className="mt-3 text-sm text-mist">
               Si querés, podés adelantar la transferencia. Alias:{" "}
               <span className="font-semibold text-sand">{transferConfig?.alias}</span>
+            </p>
+          ) : null}
+          {paymentMethod === PaymentMethod.CARD ? (
+            <p className="mt-3 text-sm text-mist">
+              El recargo del 10% ya está incluido en el total final.
             </p>
           ) : null}
         </section>
@@ -633,6 +701,12 @@ export function CheckoutForm({
               <span>-{formatCurrency(discountPreview.discountAmount)}</span>
             </div>
           ) : null}
+          {paymentSurcharge > 0 ? (
+            <div className="flex justify-between text-mist">
+              <span>Recargo por tarjeta</span>
+              <span>{formatCurrency(paymentSurcharge)}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between text-mist">
             <span>Entrega</span>
             <span>
@@ -643,13 +717,11 @@ export function CheckoutForm({
           </div>
           <div className="flex justify-between text-mist">
             <span>Pago</span>
-            <span>
-              {paymentMethod === PaymentMethod.BANK_TRANSFER ? "Transferencia" : "Efectivo"}
-            </span>
+            <span>{getPaymentMethodLabel(paymentMethod)}</span>
           </div>
           <div className="flex justify-between text-lg font-bold text-sand">
             <span>Total</span>
-            <span>{formatCurrency(discountPreview.total)}</span>
+            <span>{formatCurrency(checkoutTotal)}</span>
           </div>
         </div>
 

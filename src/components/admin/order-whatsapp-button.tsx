@@ -121,6 +121,26 @@ function buildWhatsappMessage(input: {
     ].join("\n");
   }
 
+  if (input.paymentMethod === "CARD") {
+    return [
+      `Hola ${input.customerName}, soy de Gorilla Strong 🦍`,
+      "",
+      `Te contacto por tu pedido #${input.orderCode}.`,
+      "",
+      "📦 Productos:",
+      ...lines,
+      "",
+      `💰 Total: ${formatCurrency(input.total)}`,
+      input.contactPhone ? `📱 Teléfono: ${input.contactPhone}` : null,
+      "",
+      "💳 Forma de pago: Tarjeta (+10%)",
+      "",
+      `🚚 Entrega: ${delivery}`,
+      "",
+      "👍 El recargo del 10% ya está incluido en el total."
+    ].join("\n");
+  }
+
   return [
     `Hola ${input.customerName}, soy de Gorilla Strong 🦍`,
     "",

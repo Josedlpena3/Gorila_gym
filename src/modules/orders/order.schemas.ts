@@ -39,14 +39,22 @@ const paymentMethodSchema = z
   .union([
     z.literal("efectivo"),
     z.literal("transferencia"),
+    z.literal("tarjeta"),
     z.literal(PaymentMethod.CASH),
-    z.literal(PaymentMethod.BANK_TRANSFER)
+    z.literal(PaymentMethod.BANK_TRANSFER),
+    z.literal(PaymentMethod.CARD)
   ])
-  .transform((value) =>
-    value === "efectivo" || value === PaymentMethod.CASH
-      ? PaymentMethod.CASH
-      : PaymentMethod.BANK_TRANSFER
-  );
+  .transform((value) => {
+    if (value === "efectivo" || value === PaymentMethod.CASH) {
+      return PaymentMethod.CASH;
+    }
+
+    if (value === "transferencia" || value === PaymentMethod.BANK_TRANSFER) {
+      return PaymentMethod.BANK_TRANSFER;
+    }
+
+    return PaymentMethod.CARD;
+  });
 
 const orderItemSchema = z.object({
   productId: z.string().trim().min(1, "Producto inválido"),
@@ -92,21 +100,6 @@ function normalizeOrderInput(raw: unknown) {
   };
 }
 
-function validateOrderRequest<
-  T extends {
-    deliveryMethod: DeliveryMethod;
-    address?: unknown;
-  }
->(data: T, ctx: z.RefinementCtx) {
-  if (data.deliveryMethod === DeliveryMethod.SHIPMENT && !data.address) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["address"],
-      message: "La dirección es obligatoria para envío"
-    });
-  }
-}
-
 const createOrderBaseObjectSchema = z.object({
   firstName: z.string().trim().min(2, "Nombre inválido"),
   lastName: z.string().trim().optional().default(""),
@@ -123,6 +116,29 @@ const createOrderBaseObjectSchema = z.object({
   notes: z.string().max(300).optional(),
   address: normalizedAddressSchema
 });
+
+type CreateOrderBaseObject = z.infer<typeof createOrderBaseObjectSchema>;
+
+function validateOrderRequest(data: CreateOrderBaseObject, ctx: z.RefinementCtx) {
+  if (data.deliveryMethod === DeliveryMethod.SHIPMENT && !data.address) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["address"],
+      message: "La dirección es obligatoria para envío"
+    });
+  }
+
+  if (
+    data.paymentMethod === PaymentMethod.CARD &&
+    data.deliveryMethod !== DeliveryMethod.PICKUP
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["paymentMethod"],
+      message: "La tarjeta solo está disponible para retiro en el local"
+    });
+  }
+}
 
 export const createOrderSchema = z.preprocess(
   normalizeOrderInput,

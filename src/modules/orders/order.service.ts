@@ -10,6 +10,7 @@ import {
   applyCheckoutDiscount,
   buildEmptyCheckoutDiscountResult
 } from "@/lib/checkout-discounts";
+import { applyPaymentSurcharge } from "@/lib/checkout-pricing";
 import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -154,7 +155,7 @@ function mapOrder(order: OrderRecord): OrderSummaryDto {
     apartment: order.apartment,
     province: order.province,
     city: order.city,
-    postalCode: order.postalCode,
+    postalCode: order.postalCode?.trim() || null,
     paymentStatus: order.payment?.status ?? PaymentStatus.PENDING,
     payment: {
       provider: order.payment?.provider ?? order.paymentMethod,
@@ -237,6 +238,27 @@ function buildManualPaymentData(input: {
   discountCode?: string | null;
   discountApplied?: string | null;
 }) {
+  if (input.paymentMethod === PaymentMethod.CARD) {
+    return {
+      provider: PaymentMethod.CARD,
+      status: PaymentStatus.PENDING,
+      amount: input.total,
+      externalReference: input.orderCode,
+      metadata: {
+        mode: "manual_card_whatsapp",
+        surchargePercentage: 10,
+        ...(input.discountCode || input.discountApplied
+          ? {
+              discount: {
+                code: input.discountCode ?? null,
+                applied: input.discountApplied ?? null
+              }
+            }
+          : {})
+      }
+    } satisfies Prisma.PaymentCreateWithoutOrderInput;
+  }
+
   if (input.paymentMethod === PaymentMethod.BANK_TRANSFER) {
     const transferConfig = getBankTransferConfig();
 
@@ -587,7 +609,10 @@ export async function getCheckoutQuote(
       ? delivery.pickupAddress?.province ?? null
       : data.province?.trim() || user.addresses[0]?.province || null;
 
-  const availablePaymentMethods = getAvailablePaymentMethods(province);
+  const availablePaymentMethods = getAvailablePaymentMethods({
+    province,
+    deliveryMethod: data.deliveryMethod
+  });
   const fallbackPaymentMethod =
     availablePaymentMethods[0] ?? PaymentMethod.CASH;
   const paymentMethod =
@@ -623,6 +648,7 @@ export async function getCheckoutQuote(
     total: pricing.total,
     availablePaymentMethods: buildPaymentMethodOptions({
       province,
+      deliveryMethod: data.deliveryMethod,
       transferDiscount: transferPricing?.appliedDiscount ?? null
     }),
     appliedDiscount: pricing.appliedDiscount,
@@ -671,7 +697,7 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
   const pricing = {
     shippingCost: 0,
     discountAmount: discount.discountAmount,
-    total: discount.total
+    total: applyPaymentSurcharge(discount.total, paymentMethod)
   };
 
   assertPositiveTotal(pricing.total);
@@ -697,8 +723,6 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     await tx.user.update({
       where: { id: user.id },
       data: {
-        firstName: data.firstName,
-        lastName: recipientLastName || user.lastName,
         phone: data.phone
       }
     });
@@ -935,7 +959,7 @@ export async function createGuestOrder(input: unknown) {
     const pricing = {
       shippingCost: 0,
       discountAmount: discount.discountAmount,
-      total: discount.total
+      total: applyPaymentSurcharge(discount.total, paymentMethod)
     };
 
     assertPositiveTotal(pricing.total);

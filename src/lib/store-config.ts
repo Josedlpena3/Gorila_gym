@@ -29,35 +29,46 @@ const DEFAULT_BANK_TRANSFER_CONFIG: BankTransferConfig = {
   instructions: null
 };
 
+const DEFAULT_STORE_PICKUP_ADDRESS: AddressSnapshot = {
+  recipientName: "Gorila Strong",
+  street: "Rio de Janeiro",
+  number: "1725",
+  floor: null,
+  apartment: null,
+  city: "Villa Allende",
+  province: "Córdoba",
+  postalCode: "",
+  country: "Argentina"
+};
+
 function hasValues(values: string[]) {
   return values.every((value) => value.trim().length > 0);
 }
 
 export function getStorePickupAddress(): AddressSnapshot | null {
   if (
-    !hasValues([
+    hasValues([
       env.storePickupRecipientName,
       env.storePickupStreet,
       env.storePickupNumber,
       env.storePickupCity,
-      env.storePickupProvince,
-      env.storePickupPostalCode
+      env.storePickupProvince
     ])
   ) {
-    return null;
+    return {
+      recipientName: env.storePickupRecipientName,
+      street: env.storePickupStreet,
+      number: env.storePickupNumber,
+      floor: env.storePickupFloor || null,
+      apartment: env.storePickupApartment || null,
+      city: env.storePickupCity,
+      province: env.storePickupProvince,
+      postalCode: env.storePickupPostalCode,
+      country: env.storePickupCountry
+    };
   }
 
-  return {
-    recipientName: env.storePickupRecipientName,
-    street: env.storePickupStreet,
-    number: env.storePickupNumber,
-    floor: env.storePickupFloor || null,
-    apartment: env.storePickupApartment || null,
-    city: env.storePickupCity,
-    province: env.storePickupProvince,
-    postalCode: env.storePickupPostalCode,
-    country: env.storePickupCountry
-  };
+  return DEFAULT_STORE_PICKUP_ADDRESS;
 }
 
 export function getBankTransferConfig(): BankTransferConfig | null {
