@@ -152,3 +152,7 @@ export const orderStatusSchema = z.nativeEnum(OrderStatus);
 export const orderAdminActionSchema = z.object({
   status: orderStatusSchema
 });
+
+export const orderDiscountUpdateSchema = z.object({
+  discountCode: z.string().trim().max(80).nullable().optional()
+});

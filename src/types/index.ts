@@ -131,6 +131,8 @@ export type OrderSummaryDto = {
   subtotal: number;
   shippingCost: number;
   discountTotal: number;
+  discountCode: string | null;
+  discountApplied: string | null;
   total: number;
   createdAt: string;
   recipientName: string;

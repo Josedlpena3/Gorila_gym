@@ -26,6 +26,7 @@ import {
   createOrderSchema,
   createGuestOrderSchema,
   orderAdminActionSchema,
+  orderDiscountUpdateSchema,
   orderStatusSchema,
   quoteCheckoutSchema
 } from "@/modules/orders/order.schemas";
@@ -96,19 +97,33 @@ type TransferMetadata = {
   } | null;
 };
 
+type DiscountMetadata = {
+  code?: string | null;
+  applied?: string | null;
+};
+
 type PaymentMetadata = {
   preferenceId?: string | null;
   checkoutUrl?: string | null;
   mode?: string | null;
   transfer?: TransferMetadata | null;
+  discount?: DiscountMetadata | null;
 };
+
+function parseJsonRecord(metadata: Prisma.JsonValue | null) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return {};
+  }
+
+  return metadata as Record<string, unknown>;
+}
 
 function parsePaymentMetadata(metadata: Prisma.JsonValue | null): PaymentMetadata {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
     return {};
   }
 
-  const record = metadata as Record<string, unknown>;
+  const record = parseJsonRecord(metadata);
   const transferValue = record.transfer;
   const transfer =
     transferValue &&
@@ -116,13 +131,21 @@ function parsePaymentMetadata(metadata: Prisma.JsonValue | null): PaymentMetadat
     !Array.isArray(transferValue)
       ? (transferValue as TransferMetadata)
       : null;
+  const discountValue = record.discount;
+  const discount =
+    discountValue &&
+    typeof discountValue === "object" &&
+    !Array.isArray(discountValue)
+      ? (discountValue as DiscountMetadata)
+      : null;
 
   return {
     preferenceId:
       typeof record.preferenceId === "string" ? record.preferenceId : null,
     checkoutUrl: typeof record.checkoutUrl === "string" ? record.checkoutUrl : null,
     mode: typeof record.mode === "string" ? record.mode : null,
-    transfer
+    transfer,
+    discount
   };
 }
 
@@ -145,6 +168,8 @@ function mapOrder(order: OrderRecord): OrderSummaryDto {
     subtotal: decimalToNumber(order.subtotal) ?? 0,
     shippingCost: decimalToNumber(order.shippingCost) ?? 0,
     discountTotal: decimalToNumber(order.discountTotal) ?? 0,
+    discountCode: paymentMetadata.discount?.code?.trim() || null,
+    discountApplied: paymentMetadata.discount?.applied?.trim() || null,
     total: decimalToNumber(order.total) ?? 0,
     createdAt: order.createdAt.toISOString(),
     recipientName: order.recipientName,
@@ -238,6 +263,55 @@ function splitOrderRecipientName(name: string) {
   return {
     firstName,
     lastName: rest.join(" ")
+  };
+}
+
+function buildPaymentMetadataWithDiscount(
+  metadata: Prisma.JsonValue | null,
+  input: {
+    discountCode: string | null;
+    discountApplied: string | null;
+  }
+) {
+  const nextMetadata = {
+    ...parseJsonRecord(metadata)
+  };
+
+  if (!input.discountCode && !input.discountApplied) {
+    delete nextMetadata.discount;
+  } else {
+    nextMetadata.discount = {
+      code: input.discountCode,
+      applied: input.discountApplied
+    };
+  }
+
+  return nextMetadata as Prisma.InputJsonValue;
+}
+
+function recalculateOrderTotals(input: {
+  subtotal: number;
+  shippingCost: number;
+  paymentMethod: PaymentMethod;
+  deliveryMethod: DeliveryMethod;
+  discountCode: string | null | undefined;
+}) {
+  const baseTotal = input.subtotal + input.shippingCost;
+  const discount = resolveCheckoutDiscount({
+    discountCode: input.discountCode,
+    total: baseTotal,
+    deliveryMethod: input.deliveryMethod
+  });
+
+  if (discount.invalid) {
+    throw new AppError("Código de descuento inválido", 400);
+  }
+
+  return {
+    discountCode: discount.discountCode,
+    discountApplied: discount.discountApplied,
+    discountAmount: discount.discountAmount,
+    total: applyPaymentSurcharge(discount.total, input.paymentMethod)
   };
 }
 
@@ -1270,6 +1344,89 @@ export async function deleteCancelledOrder(orderId: string, adminUserId: string)
   revalidatePath("/mis-pedidos");
 }
 
+export async function updateOrderDiscount(
+  orderId: string,
+  input: {
+    discountCode?: string | null;
+  },
+  adminUserId: string
+) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      payment: true
+    }
+  });
+
+  if (!order) {
+    throw new AppError("Pedido no encontrado", 404);
+  }
+
+  if (!order.payment) {
+    throw new AppError("El pedido no tiene información de pago", 400);
+  }
+
+  const nextDiscountCode = input.discountCode?.trim() || null;
+  const currentMetadata = parsePaymentMetadata(order.payment.metadata ?? null);
+  const pricing = recalculateOrderTotals({
+    subtotal: decimalToNumber(order.subtotal) ?? 0,
+    shippingCost: decimalToNumber(order.shippingCost) ?? 0,
+    paymentMethod: order.paymentMethod,
+    deliveryMethod: order.deliveryMethod,
+    discountCode: nextDiscountCode
+  });
+  assertPositiveTotal(pricing.total);
+
+  const updatedOrder = await prisma.$transaction(async (tx) => {
+    await tx.payment.update({
+      where: { orderId },
+      data: {
+        amount: pricing.total,
+        metadata: buildPaymentMetadataWithDiscount(order.payment?.metadata ?? null, {
+          discountCode: pricing.discountCode,
+          discountApplied: pricing.discountApplied
+        })
+      }
+    });
+
+    return tx.order.update({
+      where: { id: orderId },
+      data: {
+        discountTotal: pricing.discountAmount,
+        total: pricing.total
+      },
+      include: orderInclude
+    });
+  });
+
+  await logAdminAction({
+    adminUserId,
+    action: "ORDER_DISCOUNT_UPDATED",
+    entity: "order",
+    entityId: orderId,
+    metadata: {
+      previousDiscountCode: currentMetadata.discount?.code?.trim() || null,
+      previousDiscountApplied: currentMetadata.discount?.applied?.trim() || null,
+      previousDiscountTotal: decimalToNumber(order.discountTotal) ?? 0,
+      previousTotal: decimalToNumber(order.total) ?? 0,
+      discountCode: pricing.discountCode,
+      discountApplied: pricing.discountApplied,
+      discountTotal: pricing.discountAmount,
+      total: pricing.total
+    }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/pedidos");
+  revalidatePath("/mis-pedidos");
+
+  return mapOrder(updatedOrder);
+}
+
 export function parseAdminOrderAction(input: unknown) {
   return orderAdminActionSchema.parse(input);
+}
+
+export function parseAdminOrderDiscountUpdate(input: unknown) {
+  return orderDiscountUpdateSchema.parse(input);
 }

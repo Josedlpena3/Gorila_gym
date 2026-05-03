@@ -207,6 +207,11 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
   const [pendingDeleteOrderId, setPendingDeleteOrderId] = useState<string | null>(null);
   const [deleteErrorOrderId, setDeleteErrorOrderId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [editingDiscountOrderId, setEditingDiscountOrderId] = useState<string | null>(null);
+  const [discountDrafts, setDiscountDrafts] = useState<Record<string, string>>({});
+  const [savingDiscountOrderId, setSavingDiscountOrderId] = useState<string | null>(null);
+  const [discountErrorOrderId, setDiscountErrorOrderId] = useState<string | null>(null);
+  const [discountError, setDiscountError] = useState<string | null>(null);
 
   const groupedOrders = buildGroupedOrders(orders, grouping);
   const metrics = getMetrics(orders);
@@ -246,6 +251,55 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
       setDeleteError("No se pudo eliminar el pedido.");
     } finally {
       setPendingDeleteOrderId(null);
+    }
+  }
+
+  function startDiscountEdit(orderId: string, currentDiscountCode: string | null) {
+    setEditingDiscountOrderId(orderId);
+    setDiscountDrafts((current) => ({
+      ...current,
+      [orderId]: currentDiscountCode ?? ""
+    }));
+    setDiscountErrorOrderId(null);
+    setDiscountError(null);
+  }
+
+  function cancelDiscountEdit() {
+    setEditingDiscountOrderId(null);
+    setDiscountErrorOrderId(null);
+    setDiscountError(null);
+  }
+
+  async function handleDiscountSave(orderId: string) {
+    setSavingDiscountOrderId(orderId);
+    setDiscountErrorOrderId(null);
+    setDiscountError(null);
+
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/discount`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          discountCode: discountDrafts[orderId]?.trim() || null
+        })
+      });
+      const result = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        setDiscountErrorOrderId(orderId);
+        setDiscountError(result?.error ?? "No se pudo actualizar el descuento.");
+        return;
+      }
+
+      setEditingDiscountOrderId(null);
+      router.refresh();
+    } catch {
+      setDiscountErrorOrderId(orderId);
+      setDiscountError("No se pudo actualizar el descuento.");
+    } finally {
+      setSavingDiscountOrderId(null);
     }
   }
 
@@ -336,6 +390,8 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
               {group.orders.map((order) => {
                 const isExpanded = expandedOrderIds.includes(order.id);
                 const isDeleting = pendingDeleteOrderId === order.id;
+                const isEditingDiscount = editingDiscountOrderId === order.id;
+                const isSavingDiscount = savingDiscountOrderId === order.id;
 
                 return (
                   <article key={order.id} className="section-card p-4 sm:p-5">
@@ -424,6 +480,69 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                               <p>
                                 Ubicación: {order.city}, {order.province}
                               </p>
+                            </div>
+                            <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist sm:col-span-2">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="space-y-1">
+                                  <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                                    Descuento
+                                  </p>
+                                  <p className="mt-2 text-sand">
+                                    Código de descuento:{" "}
+                                    {order.discountCode ? order.discountCode : "No aplicado"}
+                                  </p>
+                                  <p>
+                                    Descuento aplicado: {formatCurrency(order.discountTotal)}
+                                  </p>
+                                  {order.discountApplied ? (
+                                    <p>Beneficio: {order.discountApplied}</p>
+                                  ) : null}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  className="w-full sm:w-auto"
+                                  onClick={() =>
+                                    startDiscountEdit(order.id, order.discountCode)
+                                  }
+                                >
+                                  Editar descuento
+                                </Button>
+                              </div>
+
+                              {isEditingDiscount ? (
+                                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                                  <input
+                                    value={discountDrafts[order.id] ?? ""}
+                                    onChange={(event) =>
+                                      setDiscountDrafts((current) => ({
+                                        ...current,
+                                        [order.id]: event.target.value
+                                      }))
+                                    }
+                                    placeholder="Ingresar código..."
+                                    className="w-full rounded-2xl border border-line bg-ink/70 px-4 py-3 text-sm text-sand focus:border-neon/70 focus:outline-none"
+                                  />
+                                  <Button
+                                    type="button"
+                                    disabled={isSavingDiscount}
+                                    onClick={() => void handleDiscountSave(order.id)}
+                                  >
+                                    {isSavingDiscount ? "Guardando..." : "Guardar"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled={isSavingDiscount}
+                                    onClick={cancelDiscountEdit}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              ) : null}
+                              {discountErrorOrderId === order.id && discountError ? (
+                                <p className="mt-3 text-sm text-red-300">{discountError}</p>
+                              ) : null}
                             </div>
                           </div>
 

@@ -2,6 +2,7 @@
 
 import { DeliveryMethod, PaymentMethod } from "@prisma/client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -176,6 +177,7 @@ export function CheckoutForm({
   transferAvailable,
   transferConfig
 }: CheckoutFormProps) {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [successOrderCode, setSuccessOrderCode] = useState<string | null>(null);
@@ -210,6 +212,20 @@ export function CheckoutForm({
     }
   }, [deliveryMethod, paymentMethod]);
 
+  useEffect(() => {
+    if (!successOrderCode) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      router.push("/catalogo");
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [router, successOrderCode]);
+
   const activeCart = user ? cart : guestCart;
 
   if (successOrderCode) {
@@ -223,6 +239,7 @@ export function CheckoutForm({
           Tu código es <span className="font-semibold text-sand">{successOrderCode}</span>.
           Ya abrimos WhatsApp para que sigas la coordinación desde ahí.
         </p>
+        <p className="mt-2 text-sm text-mist">Volvés al catálogo en unos segundos.</p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link href="/catalogo" className="w-full sm:w-auto">
             <Button className="w-full sm:w-auto">Seguir comprando</Button>
