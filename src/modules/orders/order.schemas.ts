@@ -68,16 +68,6 @@ const legacyGuestOrderItemSchema = z.object({
   quantity: z.number().int().min(1, "Cantidad inválida")
 });
 
-function splitName(name: string) {
-  const normalized = name.trim().replace(/\s+/g, " ");
-  const [firstName = "", ...rest] = normalized.split(" ");
-
-  return {
-    firstName,
-    lastName: rest.join(" ")
-  };
-}
-
 function normalizeOrderInput(raw: unknown) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return raw;
@@ -85,14 +75,10 @@ function normalizeOrderInput(raw: unknown) {
 
   const input = raw as Record<string, unknown>;
   const name = typeof input.name === "string" ? input.name.trim() : "";
-  const firstName = typeof input.firstName === "string" ? input.firstName.trim() : "";
-  const lastName = typeof input.lastName === "string" ? input.lastName.trim() : "";
-  const split = !firstName && name ? splitName(name) : null;
 
   return {
     ...input,
-    firstName: firstName || split?.firstName || "",
-    lastName: lastName || split?.lastName || "",
+    name,
     totalFinal: input.totalFinal ?? input.total,
     address: input.address ?? undefined,
     deliveryMethod: input.deliveryMethod ?? "envio",
@@ -101,8 +87,7 @@ function normalizeOrderInput(raw: unknown) {
 }
 
 const createOrderBaseObjectSchema = z.object({
-  firstName: z.string().trim().min(2, "Nombre inválido"),
-  lastName: z.string().trim().optional().default(""),
+  name: z.string().trim().min(2, "Nombre inválido"),
   phone: phoneSchema,
   deliveryMethod: deliveryMethodSchema,
   paymentMethod: paymentMethodSchema,

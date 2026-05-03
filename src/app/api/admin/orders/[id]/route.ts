@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { handleRouteError } from "@/lib/errors";
-import { parseAdminOrderAction, updateOrderStatus } from "@/modules/orders/order.service";
+import {
+  deleteCancelledOrder,
+  parseAdminOrderAction,
+  updateOrderStatus
+} from "@/modules/orders/order.service";
 import { requireAdminUser } from "@/modules/users/user.service";
 
 type RouteContext = {
@@ -16,6 +20,18 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const order = await updateOrderStatus(params.id, { status: body.status }, admin.id);
 
     return NextResponse.json(order);
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+export async function DELETE(_request: Request, { params }: RouteContext) {
+  try {
+    const admin = await requireAdminUser();
+
+    await deleteCancelledOrder(params.id, admin.id);
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     return handleRouteError(error);
   }

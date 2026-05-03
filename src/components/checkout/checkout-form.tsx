@@ -5,10 +5,7 @@ import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  applyPaymentSurcharge,
-  getPaymentSurchargeAmount
-} from "@/lib/checkout-pricing";
+import { applyPaymentSurcharge } from "@/lib/checkout-pricing";
 import {
   clearGuestCart,
   getGuestCartSnapshot,
@@ -76,7 +73,7 @@ function getPaymentMethodLabel(paymentMethod: PaymentMethod) {
   }
 
   if (paymentMethod === PaymentMethod.CARD) {
-    return "Tarjeta (+10%)";
+    return "Tarjeta";
   }
 
   return "Efectivo";
@@ -161,7 +158,7 @@ function buildCheckoutWhatsappMessage(input: {
     return [
       ...baseMessage,
       "",
-      "Elegiste la opción: Tarjeta (recargo del 10%)"
+      "Elegiste la opción: Tarjeta"
     ].join("\n");
   }
 
@@ -269,7 +266,6 @@ export function CheckoutForm({
     activeCart.subtotal,
     deliveryMethod
   );
-  const paymentSurcharge = getPaymentSurchargeAmount(discountPreview.total, paymentMethod);
   const checkoutTotal = applyPaymentSurcharge(discountPreview.total, paymentMethod);
 
   async function submitOrderToWhatsapp(pendingWhatsappWindow: Window | null) {
@@ -421,6 +417,7 @@ export function CheckoutForm({
       delete payload.discountCode;
     }
 
+    console.log("Nombre enviado:", payload.name);
     console.log("PAYLOAD ENVIADO:", payload);
 
     const response = await fetch("/api/orders", {
@@ -616,7 +613,7 @@ export function CheckoutForm({
                 active={paymentMethod === PaymentMethod.CARD}
                 onClick={() => setPaymentMethod(PaymentMethod.CARD)}
               >
-                Pago con tarjeta (+10%)
+                Pago con tarjeta
               </SelectorButton>
             ) : null}
           </div>
@@ -624,11 +621,6 @@ export function CheckoutForm({
             <p className="mt-3 text-sm text-mist">
               Si querés, podés adelantar la transferencia. Alias:{" "}
               <span className="font-semibold text-sand">{transferConfig?.alias}</span>
-            </p>
-          ) : null}
-          {paymentMethod === PaymentMethod.CARD ? (
-            <p className="mt-3 text-sm text-mist">
-              El recargo del 10% ya está incluido en el total final.
             </p>
           ) : null}
         </section>
@@ -699,12 +691,6 @@ export function CheckoutForm({
             <div className="flex justify-between text-green-300">
               <span>Descuento</span>
               <span>-{formatCurrency(discountPreview.discountAmount)}</span>
-            </div>
-          ) : null}
-          {paymentSurcharge > 0 ? (
-            <div className="flex justify-between text-mist">
-              <span>Recargo por tarjeta</span>
-              <span>{formatCurrency(paymentSurcharge)}</span>
             </div>
           ) : null}
           <div className="flex justify-between text-mist">

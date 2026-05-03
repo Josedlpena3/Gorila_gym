@@ -133,11 +133,11 @@ function buildWhatsappMessage(input: {
       `💰 Total: ${formatCurrency(input.total)}`,
       input.contactPhone ? `📱 Teléfono: ${input.contactPhone}` : null,
       "",
-      "💳 Forma de pago: Tarjeta (+10%)",
+      "💳 Forma de pago: Tarjeta",
       "",
       `🚚 Entrega: ${delivery}`,
       "",
-      "👍 El recargo del 10% ya está incluido en el total."
+      "👍 Coordinamos por acá el retiro."
     ].join("\n");
   }
 

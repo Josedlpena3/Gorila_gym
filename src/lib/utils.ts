@@ -21,12 +21,17 @@ export function formatDate(value: string | Date) {
   }).format(new Date(value));
 }
 
-export function slugify(value: string) {
+export function normalizeText(value: string) {
   return value
+    .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function slugify(value: string) {
+  return normalizeText(value)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
 }
@@ -42,13 +47,7 @@ export function isCordobaProvince(value?: string | null) {
     return false;
   }
 
-  const normalized = value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-
-  return normalized === "cordoba";
+  return normalizeText(value) === "cordoba";
 }
 
 export function decimalToNumber(

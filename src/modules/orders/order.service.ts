@@ -231,6 +231,16 @@ function resolveCheckoutDiscount(input: {
   return applyCheckoutDiscount(discountCode, input.total, input.deliveryMethod);
 }
 
+function splitOrderRecipientName(name: string) {
+  const normalized = name.trim().replace(/\s+/g, " ");
+  const [firstName = normalized, ...rest] = normalized.split(" ");
+
+  return {
+    firstName,
+    lastName: rest.join(" ")
+  };
+}
+
 function buildManualPaymentData(input: {
   paymentMethod: PaymentMethod;
   total: number;
@@ -246,7 +256,6 @@ function buildManualPaymentData(input: {
       externalReference: input.orderCode,
       metadata: {
         mode: "manual_card_whatsapp",
-        surchargePercentage: 10,
         ...(input.discountCode || input.discountApplied
           ? {
               discount: {
@@ -672,7 +681,6 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
   await releaseExpiredOrders();
 
   const data = createOrderSchema.parse(input);
-  const recipientLastName = data.lastName.trim();
 
   const cart = await getCartByUserId(user.id);
 
@@ -682,7 +690,9 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
 
   const deliveryMethod = data.deliveryMethod;
   const paymentMethod = data.paymentMethod;
-  const recipientName = `${data.firstName} ${recipientLastName}`.trim();
+  const recipientName = data.name;
+  const recipientContact = splitOrderRecipientName(recipientName);
+  console.log("Nombre recibido:", data.name);
   const snapshot = resolveCheckoutSnapshot({
     deliveryMethod,
     recipientName,
@@ -810,6 +820,7 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
       },
       include: orderInclude
     });
+    console.log("Nombre guardado:", order.recipientName);
 
     for (const item of cart.items) {
       await tx.product.update({
@@ -841,7 +852,7 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
 
   void sendOrderCreatedEmail({
     email: user.email,
-    firstName: data.firstName,
+    firstName: recipientContact.firstName,
     order: {
       id: mappedOrder.id,
       code: mappedOrder.code,
@@ -860,8 +871,8 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
       status: mappedOrder.status
     },
     customer: {
-      firstName: data.firstName,
-      lastName: recipientLastName,
+      firstName: recipientContact.firstName,
+      lastName: recipientContact.lastName,
       email: user.email,
       phone: data.phone
     },
@@ -893,10 +904,11 @@ export async function createGuestOrder(input: unknown) {
   await releaseExpiredOrders();
 
   const data = createGuestOrderSchema.parse(input);
-  const recipientLastName = data.lastName.trim();
   const deliveryMethod = data.deliveryMethod;
   const paymentMethod = data.paymentMethod;
-  const recipientName = `${data.firstName} ${recipientLastName}`.trim();
+  const recipientName = data.name;
+  const recipientContact = splitOrderRecipientName(recipientName);
+  console.log("Nombre recibido:", data.name);
   const snapshot = resolveCheckoutSnapshot({
     deliveryMethod,
     recipientName,
@@ -1008,6 +1020,7 @@ export async function createGuestOrder(input: unknown) {
       },
       include: orderInclude
     });
+    console.log("Nombre guardado:", order.recipientName);
 
     for (const item of resolvedItems) {
       await tx.product.update({
@@ -1045,8 +1058,8 @@ export async function createGuestOrder(input: unknown) {
       status: mappedOrder.status
     },
     customer: {
-      firstName: data.firstName,
-      lastName: recipientLastName,
+      firstName: recipientContact.firstName,
+      lastName: recipientContact.lastName,
       email: "Compra sin login",
       phone: data.phone
     },
@@ -1117,11 +1130,9 @@ export async function listAllOrders(): Promise<AdminOrderSummaryDto[]> {
 
   return orders.map((order) => ({
     ...mapOrder(order),
-    customer: order.user
-      ? `${order.user.firstName} ${order.user.lastName}`
-      : order.recipientName,
+    customer: order.recipientName,
     email: order.user?.email ?? "Compra sin login",
-    customerPhone: order.user?.phone ?? order.contactPhone
+    customerPhone: order.contactPhone
   }));
 }
 
@@ -1216,6 +1227,47 @@ export async function updateOrderStatus(
   revalidatePath("/admin/pedidos");
 
   return mappedOrder;
+}
+
+export async function deleteCancelledOrder(orderId: string, adminUserId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: {
+      id: true,
+      code: true,
+      status: true,
+      userId: true
+    }
+  });
+
+  if (!order) {
+    throw new AppError("Pedido no encontrado", 404);
+  }
+
+  if (order.status !== OrderStatus.CANCELLED) {
+    throw new AppError("Solo se pueden eliminar pedidos cancelados", 400);
+  }
+
+  await prisma.order.delete({
+    where: { id: orderId }
+  });
+
+  await logAdminAction({
+    adminUserId,
+    action: "ORDER_DELETED",
+    entity: "order",
+    entityId: orderId,
+    metadata: {
+      code: order.code,
+      status: order.status,
+      userId: order.userId
+    }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/pedidos");
+  revalidatePath("/admin/usuarios");
+  revalidatePath("/mis-pedidos");
 }
 
 export function parseAdminOrderAction(input: unknown) {

@@ -1,8 +1,4 @@
-import { OrderStatusForm } from "@/components/admin/order-status-form";
-import { OrderWhatsappButton } from "@/components/admin/order-whatsapp-button";
-import { Badge } from "@/components/ui/badge";
-import { ORDER_STATUS_BADGE_VARIANTS, ORDER_STATUS_LABELS } from "@/lib/constants";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { AdminOrdersClient } from "@/components/admin/admin-orders-client";
 import { listAllOrders } from "@/modules/orders/order.service";
 
 export const dynamic = "force-dynamic";
@@ -19,88 +15,7 @@ export default async function AdminOrdersPage() {
         </h1>
       </div>
 
-      <div className="space-y-4">
-        {orders.map((order) => (
-          <article key={order.id} className="section-card p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant={ORDER_STATUS_BADGE_VARIANTS[order.status]}>
-                    {ORDER_STATUS_LABELS[order.status]}
-                  </Badge>
-                </div>
-                <h2 className="mt-4 text-2xl font-black uppercase tracking-[0.08em] text-sand">
-                  {order.code}
-                </h2>
-                <p className="mt-2 text-sm text-mist">
-                  {order.customer} · {order.email}
-                </p>
-                <p className="text-sm text-mist">WhatsApp: {order.contactPhone}</p>
-                <p className="text-sm text-mist">
-                  {formatDate(order.createdAt)} · {order.city}, {order.province}
-                </p>
-                <p className="text-sm text-mist">
-                  {order.street ? `${order.street} ${order.number ?? ""}`.trim() : "Sin calle"} ·{" "}
-                  {order.postalCode ?? "Sin CP"}
-                </p>
-                <p className="mt-3 text-2xl font-black text-sand">
-                  {formatCurrency(order.total)}
-                </p>
-              </div>
-              <div className="flex flex-col items-start gap-3 lg:items-end">
-                <OrderWhatsappButton
-                  customerName={order.customer}
-                  orderCode={order.code}
-                  phone={order.customerPhone}
-                  total={order.total}
-                  paymentMethod={order.paymentMethod}
-                  deliveryMethod={order.deliveryMethod}
-                  street={order.street}
-                  number={order.number}
-                  city={order.city}
-                  province={order.province}
-                  transfer={order.payment.transfer}
-                  items={order.items}
-                />
-                <OrderStatusForm
-                  orderId={order.id}
-                  currentStatus={order.status}
-                />
-              </div>
-            </div>
-            <div className="mt-6 grid gap-3 md:grid-cols-2">
-              <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-                <p className="text-xs uppercase tracking-[0.24em] text-mist">
-                  Datos del pedido
-                </p>
-                <p className="mt-3 text-sand">Cliente: {order.customer}</p>
-                <p>Estado del pedido: {ORDER_STATUS_LABELS[order.status]}</p>
-                <p>Entrega: {order.deliveryDetail ?? "-"}</p>
-                <p>Celular: {order.customerPhone || order.contactPhone}</p>
-                <p>Ciudad: {order.city}</p>
-                <p>Provincia: {order.province}</p>
-                <p>Dirección: {order.street ? `${order.street} ${order.number ?? ""}`.trim() : "-"}</p>
-              </div>
-              <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-                <p className="text-xs uppercase tracking-[0.24em] text-mist">
-                  Productos
-                </p>
-                <div className="mt-3 space-y-2">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-line bg-ink/70 p-3">
-                      <p className="font-semibold text-sand">{item.name}</p>
-                      <p>{item.brand}</p>
-                      <p>
-                        {item.quantity} x {formatCurrency(item.price)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
+      <AdminOrdersClient orders={orders} />
     </div>
   );
 }

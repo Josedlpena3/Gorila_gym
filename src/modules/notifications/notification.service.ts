@@ -173,7 +173,7 @@ export async function sendAdminOrderNotificationEmail(input: {
     return false;
   }
 
-  const customerName = `${input.customer.firstName} ${input.customer.lastName}`;
+  const customerName = `${input.customer.firstName} ${input.customer.lastName}`.trim();
   const itemsHtml = input.items
     .map((item) => `<li>${item.name} x${item.quantity}</li>`)
     .join("");

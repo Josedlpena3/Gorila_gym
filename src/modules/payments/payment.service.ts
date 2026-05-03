@@ -173,7 +173,7 @@ export function buildPaymentMethodOptions(input: {
       return {
         method,
         label: "Tarjeta",
-        description: "Disponible solo para retiro en el local. Recargo del 10%."
+        description: "Disponible solo para retiro en el local."
       };
     }
 

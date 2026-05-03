@@ -4,7 +4,7 @@ import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { isStoredUploadUrl } from "@/lib/uploads";
-import { decimalToNumber, slugify } from "@/lib/utils";
+import { decimalToNumber, normalizeText, slugify } from "@/lib/utils";
 import {
   catalogProductQuerySchema,
   productSchema
@@ -74,6 +74,27 @@ const productInclude = {
   }
 };
 
+const catalogOrderBy = [
+  { featured: "desc" as const },
+  { featuredPriority: "asc" as const },
+  { createdAt: "desc" as const },
+  { id: "desc" as const }
+] satisfies Prisma.ProductOrderByWithRelationInput[];
+
+const catalogSearchSelect = {
+  id: true,
+  name: true,
+  brand: true,
+  description: true,
+  category: {
+    select: {
+      name: true
+    }
+  }
+} satisfies Prisma.ProductSelect;
+
+const SEARCH_WORD_SEPARATOR = /[^a-z0-9]+/;
+
 export type BulkCreateProductsResult = {
   created: number;
   failed: number;
@@ -83,6 +104,16 @@ export type BulkCreateProductsResult = {
     name: string | null;
     error: string;
   }>;
+};
+
+type CatalogSearchCandidate = Prisma.ProductGetPayload<{
+  select: typeof catalogSearchSelect;
+}>;
+
+type CatalogSearchField = {
+  text: string;
+  words: string[];
+  weight: number;
 };
 
 function isPublicImageUrl(value: string) {
@@ -121,6 +152,172 @@ async function getSortedCategories() {
       name: "asc"
     }
   });
+}
+
+function splitNormalizedWords(text: string) {
+  return text.split(SEARCH_WORD_SEPARATOR).filter(Boolean);
+}
+
+function buildCatalogSearchField(text: string, weight: number): CatalogSearchField {
+  const normalized = normalizeText(text);
+
+  return {
+    text: normalized,
+    words: splitNormalizedWords(normalized),
+    weight
+  };
+}
+
+function getAllowedFuzzyDistance(token: string) {
+  if (token.length >= 8) {
+    return 2;
+  }
+
+  if (token.length >= 5) {
+    return 1;
+  }
+
+  return 0;
+}
+
+function getLevenshteinDistance(left: string, right: string, maxDistance: number) {
+  if (left === right) {
+    return 0;
+  }
+
+  if (Math.abs(left.length - right.length) > maxDistance) {
+    return maxDistance + 1;
+  }
+
+  const previousRow = Array.from({ length: right.length + 1 }, (_, index) => index);
+
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    const currentRow = [leftIndex];
+    let smallestValue = currentRow[0];
+
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const substitutionCost =
+        left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      const value = Math.min(
+        previousRow[rightIndex] + 1,
+        currentRow[rightIndex - 1] + 1,
+        previousRow[rightIndex - 1] + substitutionCost
+      );
+
+      currentRow.push(value);
+
+      if (value < smallestValue) {
+        smallestValue = value;
+      }
+    }
+
+    if (smallestValue > maxDistance) {
+      return maxDistance + 1;
+    }
+
+    for (let index = 0; index < currentRow.length; index += 1) {
+      previousRow[index] = currentRow[index];
+    }
+  }
+
+  return previousRow[right.length];
+}
+
+function getCatalogFieldTokenScore(field: CatalogSearchField, token: string) {
+  if (!field.text) {
+    return null;
+  }
+
+  if (field.text.includes(token)) {
+    if (field.words.some((word) => word === token)) {
+      return field.weight;
+    }
+
+    if (field.words.some((word) => word.startsWith(token))) {
+      return field.weight + 1;
+    }
+
+    return field.weight + 2;
+  }
+
+  const maxDistance = getAllowedFuzzyDistance(token);
+
+  if (maxDistance === 0) {
+    return null;
+  }
+
+  let bestScore: number | null = null;
+
+  field.words.forEach((word) => {
+    if (Math.abs(word.length - token.length) > maxDistance) {
+      return;
+    }
+
+    const distance = getLevenshteinDistance(word, token, maxDistance);
+
+    if (distance > maxDistance) {
+      return;
+    }
+
+    const score = field.weight + 3 + distance;
+
+    if (bestScore === null || score < bestScore) {
+      bestScore = score;
+    }
+  });
+
+  return bestScore;
+}
+
+function getCatalogProductSearchScore(product: CatalogSearchCandidate, search: string) {
+  const normalizedSearch = normalizeText(search);
+
+  if (!normalizedSearch) {
+    return 0;
+  }
+
+  const tokens = splitNormalizedWords(normalizedSearch);
+
+  if (tokens.length === 0) {
+    return 0;
+  }
+
+  const fields = [
+    buildCatalogSearchField(product.name, 0),
+    buildCatalogSearchField(product.brand, 2),
+    buildCatalogSearchField(product.category.name, 3),
+    buildCatalogSearchField(product.description, 4)
+  ];
+
+  const exactScore = fields.reduce<number | null>((bestScore, field) => {
+    if (!field.text.includes(normalizedSearch)) {
+      return bestScore;
+    }
+
+    return bestScore === null ? field.weight : Math.min(bestScore, field.weight);
+  }, null);
+
+  let tokenScore = 10;
+
+  for (const token of tokens) {
+    const bestTokenScore = fields.reduce<number | null>((bestScore, field) => {
+      const fieldScore = getCatalogFieldTokenScore(field, token);
+
+      if (fieldScore === null) {
+        return bestScore;
+      }
+
+      return bestScore === null ? fieldScore : Math.min(bestScore, fieldScore);
+    }, null);
+
+    if (bestTokenScore === null) {
+      return null;
+    }
+
+    tokenScore += bestTokenScore;
+  }
+
+  return exactScore === null ? tokenScore : Math.min(exactScore, tokenScore);
 }
 
 function normalizeProductImages(urls: string[]) {
@@ -297,45 +494,11 @@ function mapProductDetail(
   };
 }
 
-export async function listCatalogProducts(filters: unknown = {}): Promise<CatalogProductsPageDto> {
-  const data = catalogProductQuerySchema.parse(filters);
-  const page = data.page ?? 1;
-  const limit = data.limit ?? 20;
-
-  const where: Prisma.ProductWhereInput = {
+function buildCatalogProductWhere(
+  data: ReturnType<typeof catalogProductQuerySchema.parse>
+): Prisma.ProductWhereInput {
+  return {
     active: true,
-    ...(data.q
-      ? {
-          OR: [
-            {
-              name: {
-                contains: data.q,
-                mode: "insensitive"
-              }
-            },
-            {
-              brand: {
-                contains: data.q,
-                mode: "insensitive"
-              }
-            },
-            {
-              description: {
-                contains: data.q,
-                mode: "insensitive"
-              }
-            },
-            {
-              category: {
-                name: {
-                  contains: data.q,
-                  mode: "insensitive"
-                }
-              }
-            }
-          ]
-        }
-      : {}),
     ...(data.categoryId
       ? {
           categoryId: data.categoryId
@@ -366,6 +529,74 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
         }
       : {})
   };
+}
+
+export async function listCatalogProducts(filters: unknown = {}): Promise<CatalogProductsPageDto> {
+  const data = catalogProductQuerySchema.parse(filters);
+  const page = data.page ?? 1;
+  const limit = data.limit ?? 20;
+
+  const where = buildCatalogProductWhere(data);
+
+  if (data.q) {
+    const candidates = await prisma.product.findMany({
+      where,
+      select: catalogSearchSelect,
+      orderBy: catalogOrderBy
+    });
+
+    const matches = candidates
+      .map((product, index) => ({
+        id: product.id,
+        index,
+        score: getCatalogProductSearchScore(product, data.q ?? "")
+      }))
+      .filter(
+        (entry): entry is { id: string; index: number; score: number } =>
+          entry.score !== null
+      )
+      .sort((left, right) => left.score - right.score || left.index - right.index);
+
+    const total = matches.length;
+    const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
+    const pageIds = matches
+      .slice((page - 1) * limit, page * limit)
+      .map((entry) => entry.id);
+
+    if (pageIds.length === 0) {
+      return {
+        products: [],
+        total,
+        page,
+        totalPages
+      };
+    }
+
+    const products = await prisma.product.findMany({
+      where: {
+        id: {
+          in: pageIds
+        }
+      },
+      include: productInclude
+    });
+    const productsById = new Map(products.map((product) => [product.id, product]));
+
+    return {
+      products: pageIds
+        .map((id) => productsById.get(id))
+        .filter(
+          (
+            product
+          ): product is Prisma.ProductGetPayload<{ include: typeof productInclude }> =>
+            Boolean(product)
+        )
+        .map(mapProductCard),
+      total,
+      page,
+      totalPages
+    };
+  }
 
   const [total, products] = await Promise.all([
     prisma.product.count({
@@ -374,12 +605,7 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
     prisma.product.findMany({
       where,
       include: productInclude,
-      orderBy: [
-        { featured: "desc" },
-        { featuredPriority: "asc" },
-        { createdAt: "desc" },
-        { id: "desc" }
-      ],
+      orderBy: catalogOrderBy,
       skip: (page - 1) * limit,
       take: limit
     })
@@ -415,12 +641,7 @@ export async function getHomeProducts(limit = 8) {
       active: true
     },
     include: productInclude,
-    orderBy: [
-      { featured: "desc" },
-      { featuredPriority: "asc" },
-      { createdAt: "desc" },
-      { id: "desc" }
-    ],
+    orderBy: catalogOrderBy,
     take: limit
   });
 
