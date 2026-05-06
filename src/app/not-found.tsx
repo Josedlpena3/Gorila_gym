@@ -12,11 +12,10 @@ export default function NotFound() {
         <p className="mt-4 text-mist">
           El enlace puede estar vencido o el contenido ya no existir.
         </p>
-        <Link href="/" className="mt-6 inline-flex">
-          <Button>Volver al inicio</Button>
+        <Link href="/catalogo" className="mt-6 inline-flex">
+          <Button>Ir al catálogo</Button>
         </Link>
       </div>
     </div>
   );
 }
-

@@ -17,7 +17,7 @@ export function SiteHeader({ user }: SiteHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-ink/80 backdrop-blur">
       <div className="page-shell flex h-16 items-center justify-between gap-3 sm:h-20 sm:gap-4">
-        <Link href="/" className="flex min-w-0 items-center gap-3">
+        <Link href="/catalogo" className="flex min-w-0 items-center gap-3">
           <div className="h-10 w-10 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 sm:h-12 sm:w-12">
             <Image
               src="/branding/logo-gorila.png"

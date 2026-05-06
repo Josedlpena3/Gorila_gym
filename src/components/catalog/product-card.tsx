@@ -13,9 +13,20 @@ export function ProductCard({
   product: ProductCardDto;
   requiresLogin?: boolean;
 }) {
+  const isOutOfStock = product.stock <= 0;
+
   return (
     <article className="section-card group flex h-full flex-col overflow-hidden">
-      <div className="relative aspect-square overflow-hidden bg-steel/60">
+      <Link
+        href={`/productos/${product.slug}`}
+        aria-label={`Ver detalle de ${product.name}`}
+        className="relative block aspect-square overflow-hidden bg-steel/60"
+      >
+        {isOutOfStock ? (
+          <div className="absolute right-3 top-3 z-10">
+            <Badge variant="danger">Sin stock</Badge>
+          </div>
+        ) : null}
         {product.image ? (
           <Image
             src={product.image}
@@ -30,7 +41,7 @@ export function ProductCard({
           </div>
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-ink/35 via-transparent to-transparent" />
-      </div>
+      </Link>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="flex flex-1 flex-col">

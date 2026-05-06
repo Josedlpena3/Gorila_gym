@@ -83,6 +83,7 @@ const catalogOrderBy = [
 
 const catalogSearchSelect = {
   id: true,
+  stock: true,
   name: true,
   brand: true,
   description: true,
@@ -531,6 +532,62 @@ function buildCatalogProductWhere(
   };
 }
 
+async function listProductsWithStockPriority({
+  where,
+  orderBy,
+  skip,
+  take
+}: {
+  where: Prisma.ProductWhereInput;
+  orderBy: Prisma.ProductOrderByWithRelationInput[];
+  skip: number;
+  take: number;
+}) {
+  const inStockWhere: Prisma.ProductWhereInput = {
+    AND: [where, { stock: { gt: 0 } }]
+  };
+  const outOfStockWhere: Prisma.ProductWhereInput = {
+    AND: [where, { stock: { lte: 0 } }]
+  };
+
+  const [inStockTotal, outOfStockTotal] = await Promise.all([
+    prisma.product.count({ where: inStockWhere }),
+    prisma.product.count({ where: outOfStockWhere })
+  ]);
+
+  const total = inStockTotal + outOfStockTotal;
+  const inStockSkip = Math.min(skip, inStockTotal);
+  const inStockTake = Math.max(0, Math.min(take, inStockTotal - inStockSkip));
+  const outOfStockSkip = Math.max(0, skip - inStockTotal);
+  const outOfStockTake = Math.max(0, take - inStockTake);
+
+  const [inStockProducts, outOfStockProducts] = await Promise.all([
+    inStockTake > 0
+      ? prisma.product.findMany({
+          where: inStockWhere,
+          include: productInclude,
+          orderBy,
+          skip: inStockSkip,
+          take: inStockTake
+        })
+      : Promise.resolve([]),
+    outOfStockTake > 0
+      ? prisma.product.findMany({
+          where: outOfStockWhere,
+          include: productInclude,
+          orderBy,
+          skip: outOfStockSkip,
+          take: outOfStockTake
+        })
+      : Promise.resolve([])
+  ]);
+
+  return {
+    total,
+    products: [...inStockProducts, ...outOfStockProducts]
+  };
+}
+
 export async function listCatalogProducts(filters: unknown = {}): Promise<CatalogProductsPageDto> {
   const data = catalogProductQuerySchema.parse(filters);
   const page = data.page ?? 1;
@@ -549,17 +606,28 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
       .map((product, index) => ({
         id: product.id,
         index,
+        inStock: product.stock > 0,
         score: getCatalogProductSearchScore(product, data.q ?? "")
       }))
       .filter(
-        (entry): entry is { id: string; index: number; score: number } =>
+        (entry): entry is {
+          id: string;
+          index: number;
+          inStock: boolean;
+          score: number;
+        } =>
           entry.score !== null
       )
       .sort((left, right) => left.score - right.score || left.index - right.index);
 
-    const total = matches.length;
+    const orderedMatches = [
+      ...matches.filter((entry) => entry.inStock),
+      ...matches.filter((entry) => !entry.inStock)
+    ];
+
+    const total = orderedMatches.length;
     const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
-    const pageIds = matches
+    const pageIds = orderedMatches
       .slice((page - 1) * limit, page * limit)
       .map((entry) => entry.id);
 
@@ -598,18 +666,12 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
     };
   }
 
-  const [total, products] = await Promise.all([
-    prisma.product.count({
-      where
-    }),
-    prisma.product.findMany({
-      where,
-      include: productInclude,
-      orderBy: catalogOrderBy,
-      skip: (page - 1) * limit,
-      take: limit
-    })
-  ]);
+  const { total, products } = await listProductsWithStockPriority({
+    where,
+    orderBy: catalogOrderBy,
+    skip: (page - 1) * limit,
+    take: limit
+  });
 
   const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
 
@@ -622,13 +684,13 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
 }
 
 export async function getFeaturedProducts(limit = 4) {
-  const products = await prisma.product.findMany({
+  const { products } = await listProductsWithStockPriority({
     where: {
       active: true,
       featured: true
     },
-    include: productInclude,
     orderBy: [{ featuredPriority: "asc" }, { createdAt: "desc" }, { id: "desc" }],
+    skip: 0,
     take: limit
   });
 
@@ -636,12 +698,12 @@ export async function getFeaturedProducts(limit = 4) {
 }
 
 export async function getHomeProducts(limit = 8) {
-  const products = await prisma.product.findMany({
+  const { products } = await listProductsWithStockPriority({
     where: {
       active: true
     },
-    include: productInclude,
     orderBy: catalogOrderBy,
+    skip: 0,
     take: limit
   });
 
