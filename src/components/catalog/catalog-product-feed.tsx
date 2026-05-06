@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ProductCard } from "@/components/catalog/product-card";
 import { Button } from "@/components/ui/button";
 import type { CatalogProductsPageDto, ProductCardDto } from "@/types";
@@ -36,6 +36,10 @@ export function CatalogProductFeed({
   const [totalPages, setTotalPages] = useState(initialData.totalPages);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const isLoadingRef = useRef(false);
+  const lastAutoLoadedPageRef = useRef<number | null>(null);
+  const hasMore = page < totalPages;
 
   useEffect(() => {
     setProducts(initialData.products);
@@ -44,13 +48,16 @@ export function CatalogProductFeed({
     setTotalPages(initialData.totalPages);
     setError(null);
     setIsLoading(false);
+    isLoadingRef.current = false;
+    lastAutoLoadedPageRef.current = null;
   }, [initialData, queryString]);
 
-  async function loadMore() {
-    if (isLoading || page >= totalPages) {
+  const loadMore = useCallback(async () => {
+    if (isLoadingRef.current || !hasMore) {
       return;
     }
 
+    isLoadingRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -83,9 +90,45 @@ export function CatalogProductFeed({
           : "No se pudieron cargar más productos."
       );
     } finally {
+      isLoadingRef.current = false;
       setIsLoading(false);
     }
-  }
+  }, [hasMore, page, queryString]);
+
+  useEffect(() => {
+    const current = loadMoreRef.current;
+
+    if (!current || !hasMore) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+
+        if (!firstEntry?.isIntersecting || isLoadingRef.current || !hasMore) {
+          return;
+        }
+
+        if (lastAutoLoadedPageRef.current === page) {
+          return;
+        }
+
+        lastAutoLoadedPageRef.current = page;
+        void loadMore();
+      },
+      {
+        rootMargin: "200px 0px",
+        threshold: 0
+      }
+    );
+
+    observer.observe(current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, loadMore, page]);
 
   return (
     <div className="space-y-6">
@@ -111,19 +154,34 @@ export function CatalogProductFeed({
             Mostrando {products.length} de {total} productos
           </p>
 
-          {page < totalPages ? (
+          {hasMore ? (
+            <div
+              ref={loadMoreRef}
+              aria-hidden="true"
+              className="h-10 w-full"
+            />
+          ) : null}
+
+          {isLoading ? (
+            <p className="text-sm text-mist">Cargando productos...</p>
+          ) : null}
+
+          {error ? <p className="text-sm text-red-200">{error}</p> : null}
+
+          {error ? (
             <Button
               type="button"
               variant="secondary"
               className="w-full sm:w-auto"
-              onClick={loadMore}
+              onClick={() => {
+                lastAutoLoadedPageRef.current = null;
+                void loadMore();
+              }}
               disabled={isLoading}
             >
-              {isLoading ? "Cargando..." : "Cargar más"}
+              Reintentar
             </Button>
           ) : null}
-
-          {error ? <p className="text-sm text-red-200">{error}</p> : null}
         </div>
       ) : null}
     </div>
