@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ProductCard } from "@/components/catalog/product-card";
+import { HomeFeaturedProducts } from "@/components/site/home-featured-products";
 import { getHomeProducts } from "@/modules/products/product.service";
 import { tryGetCurrentUser } from "@/modules/users/user.service";
 
@@ -46,34 +46,10 @@ export default async function HomePage() {
       </section>
 
       {homeProducts.length > 0 ? (
-        <section className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-mist sm:text-sm sm:tracking-[0.28em]">
-                Home
-              </p>
-              <h2 className="text-2xl font-black uppercase tracking-[0.06em] text-sand sm:text-3xl">
-                Destacados y novedades
-              </h2>
-            </div>
-            <Link
-              href="/catalogo"
-              className="inline-flex min-h-[44px] items-center text-sm font-semibold text-neon transition hover:text-neon/80"
-            >
-              Ver catálogo completo
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {homeProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                requiresLogin={!user}
-              />
-            ))}
-          </div>
-        </section>
+        <HomeFeaturedProducts
+          products={homeProducts}
+          requiresLogin={!user}
+        />
       ) : null}
     </div>
   );
