@@ -223,6 +223,9 @@ model Order {
   city           String
   province       String
   postalCode     String?
+  colored        Boolean        @default(false)
+  color          String?
+  sellerName     String?
   items          OrderItem[]
   payment        Payment?
   createdAt      DateTime       @default(now())

@@ -1,0 +1,4 @@
+ALTER TABLE "orders"
+ADD COLUMN "colored" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "color" TEXT,
+ADD COLUMN "sellerName" TEXT;

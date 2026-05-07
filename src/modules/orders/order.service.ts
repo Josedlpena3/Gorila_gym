@@ -46,6 +46,12 @@ import type {
   OrderSummaryDto
 } from "@/types";
 
+type AdminOrderUpdateResult = OrderSummaryDto & {
+  colored: boolean;
+  color: string | null;
+  sellerName: string | null;
+};
+
 const orderInclude = {
   items: true,
   payment: true
@@ -220,6 +226,18 @@ function mapOrder(order: OrderRecord): OrderSummaryDto {
       price: decimalToNumber(item.price) ?? 0,
       subtotal: decimalToNumber(item.subtotal) ?? 0
     }))
+  };
+}
+
+function mapAdminOrderVisualFields(order: {
+  colored: boolean;
+  color: string | null;
+  sellerName: string | null;
+}) {
+  return {
+    colored: order.colored,
+    color: order.color?.trim() || null,
+    sellerName: order.sellerName?.trim() || null
   };
 }
 
@@ -1204,29 +1222,29 @@ export async function listAllOrders(): Promise<AdminOrderSummaryDto[]> {
 
   return orders.map((order) => ({
     ...mapOrder(order),
+    ...mapAdminOrderVisualFields(order),
     customer: order.recipientName,
     email: order.user?.email ?? "Compra sin login",
     customerPhone: order.contactPhone
   }));
 }
 
-export async function updateOrderStatus(
+export async function updateAdminOrder(
   orderId: string,
   input: {
     status?: unknown;
+    colored?: boolean;
+    color?: string | null;
+    sellerName?: string | null;
   },
   adminUserId: string
-) {
+) : Promise<AdminOrderUpdateResult> {
   const status = input.status !== undefined ? orderStatusSchema.parse(input.status) : undefined;
-
-  if (status === undefined) {
-    throw new AppError("Acción inválida", 400);
-  }
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: {
-      payment: true,
+      ...orderInclude,
       user: {
         select: {
           firstName: true,
@@ -1240,13 +1258,35 @@ export async function updateOrderStatus(
     throw new AppError("Pedido no encontrado", 404);
   }
 
-  const nextOrderStatus = status;
+  const nextOrderStatus = status ?? order.status;
+  const nextColored = input.colored ?? order.colored;
+  const nextColor = nextColored ? input.color ?? order.color : null;
+  const nextSellerName = nextColored
+    ? (input.sellerName ?? order.sellerName)?.trim() || null
+    : null;
+
+  if (nextColored && !nextColor) {
+    throw new AppError("Debes seleccionar un color para marcar el pedido.", 400);
+  }
+
   const shouldRestock =
     nextOrderStatus === OrderStatus.CANCELLED &&
     order.status !== OrderStatus.CANCELLED;
   const shouldReserve =
     order.status === OrderStatus.CANCELLED &&
     nextOrderStatus !== OrderStatus.CANCELLED;
+  const didStatusChange = nextOrderStatus !== order.status;
+  const didVisualChange =
+    nextColored !== order.colored ||
+    nextColor !== order.color ||
+    nextSellerName !== order.sellerName;
+
+  if (!didStatusChange && !didVisualChange) {
+    return {
+      ...mapOrder(order),
+      ...mapAdminOrderVisualFields(order)
+    };
+  }
 
   const updatedOrder = await prisma.$transaction(async (tx) => {
     if (shouldRestock) {
@@ -1260,26 +1300,48 @@ export async function updateOrderStatus(
     return tx.order.update({
       where: { id: orderId },
       data: {
-        status: nextOrderStatus
+        status: nextOrderStatus,
+        colored: nextColored,
+        color: nextColor,
+        sellerName: nextSellerName
       },
       include: orderInclude
     });
   });
 
-  await logAdminAction({
-    adminUserId,
-    action: "ORDER_STATUS_UPDATED",
-    entity: "order",
-    entityId: orderId,
-    metadata: {
-      previousStatus: order.status,
-      status: nextOrderStatus
-    }
-  });
+  if (didStatusChange) {
+    await logAdminAction({
+      adminUserId,
+      action: "ORDER_STATUS_UPDATED",
+      entity: "order",
+      entityId: orderId,
+      metadata: {
+        previousStatus: order.status,
+        status: nextOrderStatus
+      }
+    });
+  }
+
+  if (didVisualChange) {
+    await logAdminAction({
+      adminUserId,
+      action: "ORDER_VISUAL_UPDATED",
+      entity: "order",
+      entityId: orderId,
+      metadata: {
+        previousColored: order.colored,
+        previousColor: order.color,
+        previousSellerName: order.sellerName,
+        colored: nextColored,
+        color: nextColor,
+        sellerName: nextSellerName
+      }
+    });
+  }
 
   const mappedOrder = mapOrder(updatedOrder);
 
-  if (order.status !== mappedOrder.status && order.user) {
+  if (didStatusChange && order.user) {
     const notify = sendOrderStatusChangedEmail({
       email: order.user.email,
       firstName: order.user.firstName,
@@ -1297,10 +1359,16 @@ export async function updateOrderStatus(
     });
   }
 
-  revalidatePath("/mis-pedidos");
+  if (didStatusChange) {
+    revalidatePath("/mis-pedidos");
+  }
+  revalidatePath("/admin");
   revalidatePath("/admin/pedidos");
 
-  return mappedOrder;
+  return {
+    ...mappedOrder,
+    ...mapAdminOrderVisualFields(updatedOrder)
+  };
 }
 
 export async function deleteCancelledOrder(orderId: string, adminUserId: string) {

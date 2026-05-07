@@ -3,6 +3,7 @@
 import { DeliveryMethod, OrderStatus, PaymentMethod } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { OrderVisualForm } from "@/components/admin/order-visual-form";
 import { OrderStatusForm } from "@/components/admin/order-status-form";
 import { OrderWhatsappButton } from "@/components/admin/order-whatsapp-button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,12 @@ const GROUPING_LABELS: Record<OrderGrouping, string> = {
   week: "Semana",
   month: "Mes",
   year: "Año"
+};
+
+const ORDER_BORDER_COLORS: Record<string, string> = {
+  green: "#4ade80",
+  blue: "#60a5fa",
+  red: "#f87171"
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("es-AR", {
@@ -394,7 +401,18 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                 const isSavingDiscount = savingDiscountOrderId === order.id;
 
                 return (
-                  <article key={order.id} className="section-card p-4 sm:p-5">
+                  <article
+                    key={order.id}
+                    className="section-card p-4 sm:p-5"
+                    style={
+                      order.colored
+                        ? {
+                            borderColor: ORDER_BORDER_COLORS[order.color ?? "green"] ?? "#4ade80",
+                            borderWidth: "2px"
+                          }
+                        : undefined
+                    }
+                  >
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                       <div className="grid gap-4 sm:grid-cols-2 xl:flex xl:items-center xl:gap-8">
                         <div>
@@ -430,6 +448,11 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                           <p className="mt-1 text-xl font-black text-sand">
                             {formatCurrency(order.total)}
                           </p>
+                          {order.sellerName ? (
+                            <p className="mt-2 text-xs text-mist">
+                              Vendedor: {order.sellerName}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
 
@@ -543,6 +566,14 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                               {discountErrorOrderId === order.id && discountError ? (
                                 <p className="mt-3 text-sm text-red-300">{discountError}</p>
                               ) : null}
+                            </div>
+                            <div className="sm:col-span-2">
+                              <OrderVisualForm
+                                orderId={order.id}
+                                currentColored={order.colored}
+                                currentColor={order.color}
+                                currentSellerName={order.sellerName}
+                              />
                             </div>
                           </div>
 

@@ -184,6 +184,9 @@ export type AdminOrderSummaryDto = OrderSummaryDto & {
   customer: string;
   email: string;
   customerPhone: string;
+  colored: boolean;
+  color: string | null;
+  sellerName: string | null;
 };
 
 export type SiteConfigDto = {

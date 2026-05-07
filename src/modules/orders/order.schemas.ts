@@ -149,9 +149,25 @@ export const quoteCheckoutSchema = z.object({
 
 export const orderStatusSchema = z.nativeEnum(OrderStatus);
 
-export const orderAdminActionSchema = z.object({
-  status: orderStatusSchema
-});
+const orderColorSchema = z.enum(["green", "blue", "red"]);
+
+export const orderAdminActionSchema = z
+  .object({
+    status: orderStatusSchema.optional(),
+    colored: z.boolean().optional(),
+    color: orderColorSchema.nullable().optional(),
+    sellerName: z.string().trim().max(80, "Nombre de vendedor inválido").nullable().optional()
+  })
+  .refine(
+    (value) =>
+      value.status !== undefined ||
+      value.colored !== undefined ||
+      value.color !== undefined ||
+      value.sellerName !== undefined,
+    {
+      message: "Acción inválida"
+    }
+  );
 
 export const orderDiscountUpdateSchema = z.object({
   discountCode: z.string().trim().max(80).nullable().optional()

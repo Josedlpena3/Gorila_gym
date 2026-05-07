@@ -3,7 +3,7 @@ import { handleRouteError } from "@/lib/errors";
 import {
   deleteCancelledOrder,
   parseAdminOrderAction,
-  updateOrderStatus
+  updateAdminOrder
 } from "@/modules/orders/order.service";
 import { requireAdminUser } from "@/modules/users/user.service";
 
@@ -17,7 +17,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const admin = await requireAdminUser();
     const body = parseAdminOrderAction(await request.json());
-    const order = await updateOrderStatus(params.id, { status: body.status }, admin.id);
+    const order = await updateAdminOrder(params.id, body, admin.id);
 
     return NextResponse.json(order);
   } catch (error) {
