@@ -43,8 +43,8 @@ const DEFAULT_CATEGORIES = [
   },
   {
     slug: "panqueques",
-    name: "Panqueques",
-    description: "Mezclas proteicas para desayunos y meriendas funcionales."
+    name: "Alimentos",
+    description: "Alimentos funcionales como pancakes, muffins, gelatinas y mixes."
   },
   {
     slug: "shakers",
@@ -53,8 +53,8 @@ const DEFAULT_CATEGORIES = [
   },
   {
     slug: "geles",
-    name: "Geles",
-    description: "Geles energéticos para entrenamientos y competencias."
+    name: "Hidratación",
+    description: "Geles, isotónicas y electrolitos para entrenamientos y competencias."
   },
   {
     slug: "otros",

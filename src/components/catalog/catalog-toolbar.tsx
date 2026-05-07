@@ -15,21 +15,28 @@ const CATEGORY_ORDER: readonly string[] = [
   "Creatinas",
   "Proteínas",
   "Pre entrenos",
-  "Pancakes",
+  "Alimentos",
   "Aminoácidos",
-  "Geles",
+  "Hidratación",
   "Barritas",
-  "Shakers"
 ] as const;
 
-function getCategoryDisplayName(name: string) {
-  return name === "Panqueques" ? "Pancakes" : name;
+function getCategoryDisplayName(category: CategoryFilter) {
+  if (category.slug === "panqueques") {
+    return "Alimentos";
+  }
+
+  if (category.slug === "geles") {
+    return "Hidratación";
+  }
+
+  return category.name;
 }
 
 function sortCategories(categories: CategoryFilter[]) {
   return [...categories].sort((categoryA, categoryB) => {
-    const nameA = getCategoryDisplayName(categoryA.name);
-    const nameB = getCategoryDisplayName(categoryB.name);
+    const nameA = getCategoryDisplayName(categoryA);
+    const nameB = getCategoryDisplayName(categoryB);
     const indexA = CATEGORY_ORDER.indexOf(nameA);
     const indexB = CATEGORY_ORDER.indexOf(nameB);
 
@@ -85,19 +92,21 @@ export function CatalogToolbar({
         }
 
         setCategories(
-          payload.filter(
-            (entry): entry is CategoryFilter =>
-              Boolean(
-                entry &&
-                  typeof entry === "object" &&
-                  "id" in entry &&
-                  "name" in entry &&
-                  "slug" in entry &&
-                  typeof entry.id === "string" &&
-                  typeof entry.name === "string" &&
-                  typeof entry.slug === "string"
-              )
-          )
+          payload
+            .filter(
+              (entry): entry is CategoryFilter =>
+                Boolean(
+                  entry &&
+                    typeof entry === "object" &&
+                    "id" in entry &&
+                    "name" in entry &&
+                    "slug" in entry &&
+                    typeof entry.id === "string" &&
+                    typeof entry.name === "string" &&
+                    typeof entry.slug === "string"
+                )
+            )
+            .filter((category) => category.slug !== "shakers")
         );
       } catch {
         if (abortController.signal.aborted) {
@@ -272,7 +281,7 @@ export function CatalogToolbar({
                   : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
               }`}
             >
-              {getCategoryDisplayName(category.name)}
+              {getCategoryDisplayName(category)}
             </button>
           ))}
         </div>
