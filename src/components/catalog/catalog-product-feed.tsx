@@ -5,6 +5,21 @@ import { ProductCard } from "@/components/catalog/product-card";
 import { Button } from "@/components/ui/button";
 import type { CatalogProductsPageDto, ProductCardDto } from "@/types";
 
+function ProductCardSkeleton() {
+  return (
+    <div className="section-card animate-pulse overflow-hidden">
+      <div className="aspect-square bg-steel/80" />
+      <div className="space-y-3 p-4 sm:p-5">
+        <div className="h-3 w-1/3 rounded-full bg-steel/80" />
+        <div className="h-5 w-full rounded-full bg-steel/80" />
+        <div className="h-5 w-3/4 rounded-full bg-steel/80" />
+        <div className="mt-4 h-4 w-1/2 rounded-full bg-steel/80" />
+        <div className="mt-2 h-10 w-full rounded-[22px] bg-steel/80" />
+      </div>
+    </div>
+  );
+}
+
 function mergeProducts(current: ProductCardDto[], incoming: ProductCardDto[]) {
   const seen = new Set(current.map((product) => product.id));
   const next = [...current];
@@ -66,10 +81,7 @@ export function CatalogProductFeed({
       params.set("page", String(page + 1));
       params.set("limit", "20");
 
-      const response = await fetch(`/api/products?${params.toString()}`, {
-        method: "GET",
-        cache: "no-store"
-      });
+      const response = await fetch(`/api/products?${params.toString()}`);
 
       const data = (await response.json()) as CatalogProductsPageDto & {
         error?: string;
@@ -149,7 +161,7 @@ export function CatalogProductFeed({
       ) : null}
 
       {products.length > 0 ? (
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-4">
           <p className="text-sm text-mist">
             Mostrando {products.length} de {total} productos
           </p>
@@ -163,10 +175,14 @@ export function CatalogProductFeed({
           ) : null}
 
           {isLoading ? (
-            <p className="text-sm text-mist">Cargando productos...</p>
+            <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:gap-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
           ) : null}
 
-          {error ? <p className="text-sm text-red-200">{error}</p> : null}
+          {error ? <p className="text-sm text-red-300">{error}</p> : null}
 
           {error ? (
             <Button

@@ -58,16 +58,17 @@ function sortCategories(categories: CategoryFilter[]) {
 
 export function CatalogToolbar({
   currentQuery,
-  currentCategory
+  currentCategory,
+  categories: categoriesProp
 }: {
   currentQuery?: string;
   currentCategory?: string;
+  categories: CategoryFilter[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
-  const [categories, setCategories] = useState<CategoryFilter[]>([]);
   const [searchTerm, setSearchTerm] = useState(currentQuery ?? "");
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(
     currentCategory ?? null
@@ -75,58 +76,14 @@ export function CatalogToolbar({
   const [isPending, startTransition] = useTransition();
   const suppressNextSearchEffect = useRef(false);
 
-  useEffect(() => {
-    let isActive = true;
-    const abortController = new AbortController();
-
-    void (async () => {
-      try {
-        const response = await fetch("/api/categories", {
-          cache: "no-store",
-          signal: abortController.signal
-        });
-        const payload = (await response.json().catch(() => null)) as unknown;
-
-        if (!response.ok || !Array.isArray(payload) || !isActive) {
-          return;
-        }
-
-        setCategories(
-          payload
-            .filter(
-              (entry): entry is CategoryFilter =>
-                Boolean(
-                  entry &&
-                    typeof entry === "object" &&
-                    "id" in entry &&
-                    "name" in entry &&
-                    "slug" in entry &&
-                    typeof entry.id === "string" &&
-                    typeof entry.name === "string" &&
-                    typeof entry.slug === "string"
-                )
-            )
-            .filter((category) => category.slug !== "shakers")
-        );
-      } catch {
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        console.warn("[catalog-toolbar] no se pudieron cargar las categorías");
-      }
-    })();
-
-    return () => {
-      isActive = false;
-      abortController.abort();
-    };
-  }, []);
+  const visibleCategories = categoriesProp.filter(
+    (category) => category.slug !== "shakers"
+  );
+  const sortedCategories = sortCategories(visibleCategories);
 
   const selectedCategory =
-    categories.find((category) => category.id === currentCategory) ??
-    categories.find((category) => category.slug === currentCategory);
-  const sortedCategories = sortCategories(categories);
+    visibleCategories.find((category) => category.id === currentCategory) ??
+    visibleCategories.find((category) => category.slug === currentCategory);
 
   useEffect(() => {
     suppressNextSearchEffect.current = true;

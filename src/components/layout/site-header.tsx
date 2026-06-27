@@ -22,8 +22,8 @@ export function SiteHeader({ user }: SiteHeaderProps) {
             <Image
               src="/branding/logo-gorila.png"
               alt="Gorilla Strong"
-              width={1024}
-              height={1024}
+              width={96}
+              height={96}
               priority
               className="h-full w-full object-cover"
             />

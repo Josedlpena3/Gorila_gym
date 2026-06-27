@@ -1,4 +1,8 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import type { Metadata } from "next";
+import { ChevronLeft } from "lucide-react";
 import { AddToCartButton } from "@/components/catalog/add-to-cart-button";
 import { StatusCard } from "@/components/layout/status-card";
 import { ProductGallery } from "@/components/products/product-gallery";
@@ -8,10 +12,41 @@ import { formatCurrency } from "@/lib/utils";
 import { getProductBySlug } from "@/modules/products/product.service";
 import { tryGetCurrentUser } from "@/modules/users/user.service";
 
+// React.cache deduplica la DB call entre generateMetadata y el render de la página
+const getProductCached = cache((slug: string) => getProductBySlug(slug));
+
+export async function generateMetadata({
+  params
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
+  const product = await getProductCached(params.slug).catch(() => null);
+
+  if (!product) {
+    return { title: "Producto no encontrado | Gorilla Strong" };
+  }
+
+  const description = product.description.length > 155
+    ? `${product.description.slice(0, 152)}…`
+    : product.description;
+
+  return {
+    title: `${product.name} – ${product.brand} | Gorilla Strong`,
+    description,
+    openGraph: {
+      title: `${product.name} – ${product.brand}`,
+      description,
+      images: product.image
+        ? [{ url: product.image, alt: product.name }]
+        : []
+    }
+  };
+}
+
 async function loadProduct(slug: string) {
   try {
     return {
-      product: await getProductBySlug(slug),
+      product: await getProductCached(slug),
       hasError: false
     };
   } catch (error) {
@@ -54,7 +89,15 @@ export default async function ProductPage({
   }
 
   return (
-    <div className="page-shell">
+    <div className="page-shell space-y-4">
+      <Link
+        href="/catalogo"
+        className="inline-flex items-center gap-1.5 text-sm text-mist transition hover:text-sand"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Volver al catálogo
+      </Link>
+
       <div className="grid gap-4 lg:grid-cols-[0.85fr,1.15fr] lg:items-start xl:gap-6">
         <ProductGallery images={product.images} />
 

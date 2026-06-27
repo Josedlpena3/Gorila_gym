@@ -1,8 +1,7 @@
-import { unstable_noStore as noStore } from "next/cache";
 import { CatalogProductFeed } from "@/components/catalog/catalog-product-feed";
 import { CatalogToolbar } from "@/components/catalog/catalog-toolbar";
 import { StatusCard } from "@/components/layout/status-card";
-import { listCatalogProducts } from "@/modules/products/product.service";
+import { listCatalogProducts, listCategories } from "@/modules/products/product.service";
 import { tryGetCurrentUser } from "@/modules/users/user.service";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -88,13 +87,14 @@ export default async function CatalogPage({
 }: {
   searchParams: SearchParams;
 }) {
-  noStore();
   const currentQuery = getSearchParam(searchParams, "q");
   const currentCategory = getSelectedCategoryParam(searchParams);
   const apiQuery = buildCatalogApiQuery(searchParams);
-  const [data, user] = await Promise.all([
+
+  const [data, user, categories] = await Promise.all([
     loadCatalogProducts(searchParams),
-    tryGetCurrentUser("catalog-page")
+    tryGetCurrentUser("catalog-page"),
+    listCategories().catch(() => [])
   ]);
 
   if (!data) {
@@ -118,6 +118,7 @@ export default async function CatalogPage({
       <CatalogToolbar
         currentQuery={currentQuery}
         currentCategory={currentCategory}
+        categories={categories}
       />
 
       <CatalogProductFeed

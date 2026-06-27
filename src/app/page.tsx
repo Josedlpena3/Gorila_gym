@@ -25,8 +25,8 @@ export default async function HomePage() {
             <Image
               src="/branding/logo-gorila.png"
               alt="Gorilla Strong"
-              width={512}
-              height={512}
+              width={256}
+              height={256}
               priority
               className="h-full w-full object-contain"
             />
@@ -37,6 +37,9 @@ export default async function HomePage() {
           <h1 className="mt-4 text-3xl font-black uppercase tracking-[0.06em] text-sand sm:text-5xl lg:text-6xl">
             Suplementación premium
           </h1>
+          <p className="mt-4 max-w-md text-sm text-mist sm:mt-5 sm:text-base">
+            Los mejores suplementos al mejor precio, con asesoramiento personalizado para que alcances tus objetivos.
+          </p>
           <div className="mt-6 w-full sm:mt-8 sm:w-auto">
             <Link href="/catalogo" className={primaryLinkClass}>
               Explorar catálogo

@@ -1,12 +1,6 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 import { ProductCard } from "@/components/catalog/product-card";
 import type { ProductCardDto } from "@/types";
-
-const catalogLinkClass =
-  "inline-flex min-h-11 items-center justify-center rounded-full bg-neon px-6 py-3 text-sm font-semibold text-ink transition hover:bg-neon/90";
 
 export function HomeFeaturedProducts({
   products,
@@ -15,32 +9,6 @@ export function HomeFeaturedProducts({
   products: ProductCardDto[];
   requiresLogin: boolean;
 }) {
-  const endOfFeaturedRef = useRef<HTMLDivElement | null>(null);
-  const [showCatalogButton, setShowCatalogButton] = useState(false);
-
-  useEffect(() => {
-    const current = endOfFeaturedRef.current;
-
-    if (!current) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShowCatalogButton(Boolean(entry?.isIntersecting));
-      },
-      {
-        threshold: 0.5
-      }
-    );
-
-    observer.observe(current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
   return (
     <section className="space-y-4">
       <div>
@@ -62,15 +30,14 @@ export function HomeFeaturedProducts({
         ))}
       </div>
 
-      <div ref={endOfFeaturedRef} aria-hidden="true" className="h-10" />
-
-      {showCatalogButton ? (
-        <div className="flex justify-center pt-2">
-          <Link href="/catalogo" className={catalogLinkClass}>
-            Ver catálogo completo
-          </Link>
-        </div>
-      ) : null}
+      <div className="flex justify-center pt-4">
+        <Link
+          href="/catalogo"
+          className="inline-flex min-h-11 items-center justify-center rounded-full bg-neon px-6 py-3 text-sm font-semibold text-ink transition hover:bg-neon/90"
+        >
+          Ver catálogo completo
+        </Link>
+      </div>
     </section>
   );
 }

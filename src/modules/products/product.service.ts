@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { logAdminAction } from "@/lib/audit";
@@ -145,14 +146,20 @@ async function ensureDefaultCategories() {
   );
 }
 
-async function getSortedCategories() {
-  await ensureDefaultCategories();
-
-  return prisma.category.findMany({
-    orderBy: {
-      name: "asc"
+const getSortedCategoriesCached = unstable_cache(
+  async () => {
+    const count = await prisma.category.count();
+    if (count === 0) {
+      await ensureDefaultCategories();
     }
-  });
+    return prisma.category.findMany({ orderBy: { name: "asc" } });
+  },
+  ["sorted-categories"],
+  { revalidate: 3600 }
+);
+
+async function getSortedCategories() {
+  return getSortedCategoriesCached();
 }
 
 function splitNormalizedWords(text: string) {
@@ -599,7 +606,8 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
     const candidates = await prisma.product.findMany({
       where,
       select: catalogSearchSelect,
-      orderBy: catalogOrderBy
+      orderBy: catalogOrderBy,
+      take: 500
     });
 
     const matches = candidates
@@ -808,7 +816,6 @@ export async function createProduct(input: unknown, adminUserId: string) {
   const featuredPriority = data.featured
     ? Math.max(data.featuredPriority ?? 1, 1)
     : DEFAULT_FEATURED_PRIORITY;
-  console.log("Imagen guardada:", images[0] ?? null);
 
   let product;
 
@@ -934,7 +941,6 @@ export async function updateProduct(
   const featuredPriority = data.featured
     ? Math.max(data.featuredPriority ?? 1, 1)
     : DEFAULT_FEATURED_PRIORITY;
-  console.log("Imagen guardada:", images[0] ?? null);
 
   let product;
 
