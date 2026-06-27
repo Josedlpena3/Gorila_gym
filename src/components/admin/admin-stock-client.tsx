@@ -169,7 +169,7 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
                   />
                   <Button
                     type="button"
-                    variant={row.saved ? "secondary" : "default"}
+                    variant={row.saved ? "secondary" : "primary"}
                     className="min-w-[80px] px-4 py-2"
                     disabled={row.saving}
                     onClick={() => void saveStock(product)}
