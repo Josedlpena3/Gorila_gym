@@ -944,7 +944,7 @@ export async function updateProduct(
   }
 
   await assertProductDoesNotExist({
-    sku: data.sku,
+    sku: data.sku ?? existingProduct.sku,
     name: data.name,
     brand: data.brand,
     excludeProductId: id
@@ -970,7 +970,7 @@ export async function updateProduct(
       return tx.product.update({
         where: { id },
         data: {
-          sku: data.sku,
+          sku: data.sku ?? existingProduct.sku,
           name: data.name,
           slug,
           brand: data.brand,
