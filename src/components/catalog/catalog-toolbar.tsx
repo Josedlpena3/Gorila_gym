@@ -153,7 +153,7 @@ export function CatalogToolbar({
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSearchSubmit();
               }}
-              placeholder="Proteína, creatina, marca… (Enter para buscar)"
+              placeholder="¿Qué estás buscando?"
               className="h-[38px] min-h-[38px] rounded-[18px] border-white/10 bg-black/20 px-3 pl-8 pr-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-neon/40 focus:border-neon/70 md:h-[44px] md:min-h-[44px] md:px-4 md:pl-9 md:pr-4 md:text-base"
             />
           </div>
