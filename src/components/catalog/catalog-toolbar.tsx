@@ -22,36 +22,20 @@ const CATEGORY_ORDER: readonly string[] = [
 ] as const;
 
 function getCategoryDisplayName(category: CategoryFilter) {
-  if (category.slug === "panqueques") {
-    return "Alimentos";
-  }
-
-  if (category.slug === "geles") {
-    return "Hidratación";
-  }
-
+  if (category.slug === "panqueques") return "Alimentos";
+  if (category.slug === "geles") return "Hidratación";
   return category.name;
 }
 
 function sortCategories(categories: CategoryFilter[]) {
-  return [...categories].sort((categoryA, categoryB) => {
-    const nameA = getCategoryDisplayName(categoryA);
-    const nameB = getCategoryDisplayName(categoryB);
+  return [...categories].sort((a, b) => {
+    const nameA = getCategoryDisplayName(a);
+    const nameB = getCategoryDisplayName(b);
     const indexA = CATEGORY_ORDER.indexOf(nameA);
     const indexB = CATEGORY_ORDER.indexOf(nameB);
-
-    if (indexA === -1 && indexB === -1) {
-      return nameA.localeCompare(nameB, "es");
-    }
-
-    if (indexA === -1) {
-      return 1;
-    }
-
-    if (indexB === -1) {
-      return -1;
-    }
-
+    if (indexA === -1 && indexB === -1) return nameA.localeCompare(nameB, "es");
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
     return indexA - indexB;
   });
 }
@@ -74,19 +58,21 @@ export function CatalogToolbar({
     currentCategory ?? null
   );
   const [isPending, startTransition] = useTransition();
-  const suppressNextSearchEffect = useRef(false);
+  const suppressNextSync = useRef(false);
 
-  const visibleCategories = categoriesProp.filter(
-    (category) => category.slug !== "shakers"
-  );
+  const visibleCategories = categoriesProp.filter((c) => c.slug !== "shakers");
   const sortedCategories = sortCategories(visibleCategories);
 
   const selectedCategory =
-    visibleCategories.find((category) => category.id === currentCategory) ??
-    visibleCategories.find((category) => category.slug === currentCategory);
+    visibleCategories.find((c) => c.id === currentCategory) ??
+    visibleCategories.find((c) => c.slug === currentCategory);
 
+  // Sync local input when URL changes (e.g. back button, category click)
   useEffect(() => {
-    suppressNextSearchEffect.current = true;
+    if (suppressNextSync.current) {
+      suppressNextSync.current = false;
+      return;
+    }
     setSearchTerm(currentQuery ?? "");
   }, [currentQuery]);
 
@@ -94,25 +80,36 @@ export function CatalogToolbar({
     setActiveCategoryId(selectedCategory?.id ?? currentCategory ?? null);
   }, [currentCategory, selectedCategory?.id]);
 
-  function isCurrentCategory(category: CategoryFilter) {
-    return category.id === activeCategoryId;
-  }
-
   function replaceCatalogParams(nextParams: URLSearchParams) {
     const nextQuery = nextParams.toString();
-
-    if (nextQuery === searchParamsString) {
-      return;
-    }
-
+    if (nextQuery === searchParamsString) return;
     const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
     startTransition(() => {
       router.replace(nextUrl, { scroll: false });
     });
   }
 
+  function handleSearchSubmit() {
+    const trimmedSearch = searchTerm.trim();
+    const nextParams = new URLSearchParams(searchParamsString);
+
+    nextParams.delete("page");
+    nextParams.delete("categoryId");
+    nextParams.delete("category");
+    nextParams.delete("brand");
+    setActiveCategoryId(null);
+
+    if (trimmedSearch.length > 0) {
+      nextParams.set("q", trimmedSearch);
+    } else {
+      nextParams.delete("q");
+    }
+
+    replaceCatalogParams(nextParams);
+  }
+
   function handleClearAll() {
-    suppressNextSearchEffect.current = true;
+    suppressNextSync.current = true;
     setSearchTerm("");
     setActiveCategoryId(null);
     replaceCatalogParams(new URLSearchParams());
@@ -123,7 +120,7 @@ export function CatalogToolbar({
       categoryId && activeCategoryId === categoryId ? null : (categoryId ?? null);
     const nextParams = new URLSearchParams(searchParamsString);
 
-    suppressNextSearchEffect.current = true;
+    suppressNextSync.current = true;
     setSearchTerm("");
     setActiveCategoryId(nextCategoryId);
 
@@ -141,47 +138,6 @@ export function CatalogToolbar({
     replaceCatalogParams(nextParams);
   }
 
-  useEffect(() => {
-    if (suppressNextSearchEffect.current) {
-      suppressNextSearchEffect.current = false;
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      const nextParams = new URLSearchParams(searchParamsString);
-      const trimmedSearch = searchTerm.trim();
-      const nextQueryParams = nextParams;
-
-      nextQueryParams.delete("page");
-      nextQueryParams.delete("categoryId");
-      nextQueryParams.delete("category");
-      nextQueryParams.delete("brand");
-
-      setActiveCategoryId(null);
-
-      if (trimmedSearch.length > 0) {
-        nextQueryParams.set("q", trimmedSearch);
-      } else {
-        nextQueryParams.delete("q");
-      }
-
-      const nextQuery = nextQueryParams.toString();
-
-      if (nextQuery === searchParamsString) {
-        return;
-      }
-
-      const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
-      startTransition(() => {
-        router.replace(nextUrl, { scroll: false });
-      });
-    }, 300);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [pathname, router, searchParamsString, searchTerm]);
-
   return (
     <div className="section-card relative z-20 mx-auto max-w-5xl overflow-visible px-3 py-2.5 sm:px-4 sm:py-4">
       <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-neon/60 to-transparent" />
@@ -193,17 +149,25 @@ export function CatalogToolbar({
             <Input
               name="q"
               value={searchTerm}
-              onChange={(event) => {
-                setSearchTerm(event.target.value);
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearchSubmit();
               }}
-              placeholder="Proteina, creatina, shaker, marca..."
+              placeholder="Proteína, creatina, marca… (Enter para buscar)"
               className="h-[38px] min-h-[38px] rounded-[18px] border-white/10 bg-black/20 px-3 pl-8 pr-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-neon/40 focus:border-neon/70 md:h-[44px] md:min-h-[44px] md:px-4 md:pl-9 md:pr-4 md:text-base"
             />
           </div>
+          <button
+            type="button"
+            onClick={handleSearchSubmit}
+            className="inline-flex h-[38px] items-center whitespace-nowrap rounded-[18px] border border-neon/60 bg-neon/10 px-4 text-sm font-semibold text-neon transition hover:bg-neon/20 md:h-[44px]"
+          >
+            Buscar
+          </button>
         </div>
 
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {searchTerm.trim() || activeCategoryId ? (
+          {(searchTerm.trim() && currentQuery) || activeCategoryId ? (
             <button
               type="button"
               onClick={handleClearAll}
@@ -231,9 +195,9 @@ export function CatalogToolbar({
               type="button"
               key={category.id}
               onClick={() => handleCategoryToggle(category.id)}
-              aria-pressed={isCurrentCategory(category)}
+              aria-pressed={category.id === activeCategoryId}
               className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                isCurrentCategory(category)
+                category.id === activeCategoryId
                   ? "border-neon bg-neon text-ink"
                   : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
               }`}

@@ -256,8 +256,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           return null;
         }
 
-        console.log("Imagen subida:", nextUrl);
-        return createStoredImageItem(`stored-${crypto.randomUUID()}`, nextUrl);
+          return createStoredImageItem(`stored-${crypto.randomUUID()}`, nextUrl);
       })
       .filter((item): item is ProductImageItem => Boolean(item));
   }
@@ -378,8 +377,6 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               images
             };
 
-            console.log("Imagen guardada:", images[0] ?? null);
-
             const response = await fetch(
               product ? `/api/admin/products/${product.id}` : "/api/admin/products",
               {
@@ -415,17 +412,19 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm text-mist">SKU</label>
-          <Input name="sku" defaultValue={product?.sku ?? ""} required />
-        </div>
+        {product ? (
+          <div className="space-y-2">
+            <label className="text-sm text-mist">SKU</label>
+            <Input name="sku" defaultValue={product.sku} readOnly className="cursor-default opacity-60" />
+          </div>
+        ) : null}
         <div className="space-y-2">
           <label className="text-sm text-mist">Nombre</label>
           <Input name="name" defaultValue={product?.name ?? ""} required />
         </div>
         <div className="space-y-2">
           <label className="text-sm text-mist">Marca</label>
-          <Input name="brand" defaultValue={product?.brand ?? "Gorilla Strong"} required />
+          <Input name="brand" defaultValue={product?.brand ?? ""} required />
         </div>
         <div className="space-y-2">
           <label className="text-sm text-mist">Categoría</label>
@@ -500,7 +499,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
       <div className="space-y-3">
         <div className="space-y-2">
-          <label className="text-sm text-mist">Subir imágenes</label>
+          <label className="text-sm text-mist">
+            Imágenes{" "}
+            <span className="text-xs text-mist/70">
+              — podés hacer clic varias veces para agregar de a una, o seleccionar varias a la vez (Ctrl / Cmd + clic en el explorador)
+            </span>
+          </label>
           <Input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -511,8 +515,8 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             }}
           />
           <p className="text-xs text-mist">
-            Las imágenes son opcionales. Si la carga no está disponible, podés guardar
-            el producto igual y agregar imágenes más adelante.
+            Opcional. Si la carga no está disponible podés guardar el producto y agregar
+            imágenes más adelante desde &quot;Editar&quot;.
           </p>
         </div>
       </div>

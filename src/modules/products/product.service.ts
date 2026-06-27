@@ -97,6 +97,10 @@ const catalogSearchSelect = {
 
 const SEARCH_WORD_SEPARATOR = /[^a-z0-9]+/;
 
+function generateSku() {
+  return `GS-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+}
+
 export type BulkCreateProductsResult = {
   created: number;
   failed: number;
@@ -802,10 +806,21 @@ export async function getStockOverview() {
   }));
 }
 
+export async function patchProductStock(id: string, stock: number) {
+  const product = await prisma.product.update({
+    where: { id },
+    data: { stock }
+  });
+
+  return { id: product.id, stock: product.stock };
+}
+
 export async function createProduct(input: unknown, adminUserId: string) {
   const data = productSchema.parse(input);
+  const sku = data.sku?.trim() || generateSku();
+
   await assertProductDoesNotExist({
-    sku: data.sku,
+    sku,
     name: data.name,
     brand: data.brand
   });
@@ -822,7 +837,7 @@ export async function createProduct(input: unknown, adminUserId: string) {
   try {
     product = await prisma.product.create({
       data: {
-        sku: data.sku,
+        sku,
         name: data.name,
         slug,
         brand: data.brand,
@@ -858,7 +873,7 @@ export async function createProduct(input: unknown, adminUserId: string) {
     entityId: product.id,
     metadata: {
       name: data.name,
-      sku: data.sku
+      sku
     }
   });
 

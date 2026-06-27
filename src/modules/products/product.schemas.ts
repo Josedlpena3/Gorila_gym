@@ -49,7 +49,7 @@ const imageSourceSchema = z
   .transform((value) => value.trim());
 
 export const productSchema = z.object({
-  sku: z.string().trim().min(3, "SKU inválido"),
+  sku: z.string().trim().min(3, "SKU inválido").optional(),
   name: z.string().trim().min(3, "Nombre inválido"),
   slug: z.string().trim().optional(),
   brand: z.string().trim().min(2, "Marca inválida"),
