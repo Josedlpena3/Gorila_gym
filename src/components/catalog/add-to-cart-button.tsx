@@ -13,6 +13,7 @@ type AddToCartButtonProps = {
   productImage: string | null;
   productPrice: number;
   productStock: number;
+  quantity?: number;
   disabled?: boolean;
   requiresLogin?: boolean;
   nextPath?: string;
@@ -26,6 +27,7 @@ export function AddToCartButton({
   productImage,
   productPrice,
   productStock,
+  quantity = 1,
   disabled,
   requiresLogin,
   nextPath = "/catalogo"
@@ -48,7 +50,7 @@ export function AddToCartButton({
               image: productImage,
               unitPrice: productPrice,
               stock: productStock,
-              quantity: 1
+              quantity
             });
             router.push("/carrito");
             return;
@@ -61,7 +63,7 @@ export function AddToCartButton({
             },
             body: JSON.stringify({
               productId,
-              quantity: 1
+              quantity
             })
           });
 

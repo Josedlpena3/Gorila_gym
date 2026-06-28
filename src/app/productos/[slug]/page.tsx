@@ -1,9 +1,8 @@
 import { cache } from "react";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import type { Metadata } from "next";
-import { ChevronLeft } from "lucide-react";
-import { AddToCartButton } from "@/components/catalog/add-to-cart-button";
+import { BackToCatalogLink } from "@/components/products/back-to-catalog-link";
+import { ProductAddToCart } from "@/components/products/product-add-to-cart";
 import { StatusCard } from "@/components/layout/status-card";
 import { ProductGallery } from "@/components/products/product-gallery";
 import { Badge } from "@/components/ui/badge";
@@ -90,13 +89,7 @@ export default async function ProductPage({
 
   return (
     <div className="page-shell space-y-4">
-      <Link
-        href="/catalogo"
-        className="inline-flex items-center gap-1.5 text-sm text-mist transition hover:text-sand"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Volver al catálogo
-      </Link>
+      <BackToCatalogLink />
 
       <div className="grid gap-4 lg:grid-cols-[0.85fr,1.15fr] lg:items-start xl:gap-6">
         <ProductGallery images={product.images} />
@@ -123,7 +116,7 @@ export default async function ProductPage({
               </p>
             </div>
             <div className="w-full sm:max-w-xs">
-              <AddToCartButton
+              <ProductAddToCart
                 productId={product.id}
                 productSlug={product.slug}
                 productName={product.name}
@@ -142,20 +135,26 @@ export default async function ProductPage({
             <ExpandableText text={product.description} collapsedLength={320} />
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-3xl border border-line bg-ink/70 p-3.5 sm:p-4">
-              <p className="text-sm text-mist">Presentación</p>
-              <p className="mt-1.5 text-base font-semibold text-sand sm:text-lg">
-                {product.weight ?? "-"}
-              </p>
+          {(product.weight || product.flavor) ? (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {product.weight ? (
+                <div className="rounded-3xl border border-line bg-ink/70 p-3.5 sm:p-4">
+                  <p className="text-sm text-mist">Presentación</p>
+                  <p className="mt-1.5 text-base font-semibold text-sand sm:text-lg">
+                    {product.weight}
+                  </p>
+                </div>
+              ) : null}
+              {product.flavor ? (
+                <div className="rounded-3xl border border-line bg-ink/70 p-3.5 sm:p-4">
+                  <p className="text-sm text-mist">Sabor</p>
+                  <p className="mt-1.5 text-base font-semibold text-sand sm:text-lg">
+                    {product.flavor}
+                  </p>
+                </div>
+              ) : null}
             </div>
-            <div className="rounded-3xl border border-line bg-ink/70 p-3.5 sm:p-4">
-              <p className="text-sm text-mist">Sabor</p>
-              <p className="mt-1.5 text-base font-semibold text-sand sm:text-lg">
-                {product.flavor ?? "-"}
-              </p>
-            </div>
-          </div>
+          ) : null}
 
           {product.benefits.length > 0 ? (
             <div className="mt-5">
