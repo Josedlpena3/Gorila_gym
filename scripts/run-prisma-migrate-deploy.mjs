@@ -46,6 +46,39 @@ function isPlaceholderDatabaseUrl(value) {
   return /YOUR-REMOTE-HOST|USER:PASSWORD|DBNAME/.test(value);
 }
 
+function sleep(ms) {
+  return new Promise((res) => setTimeout(res, ms));
+}
+
+function runMigrate() {
+  return new Promise((resolve, reject) => {
+    const child = spawn(resolveNpxCommand(), ["prisma", "migrate", "deploy"], {
+      stdio: ["inherit", "inherit", "pipe"],
+      env: process.env,
+      timeout: 60_000
+    });
+
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+      process.stderr.write(chunk);
+    });
+
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      const isLockTimeout = stderr.includes("P1002") || stderr.includes("advisory lock");
+      const err = new Error(`prisma migrate deploy exited with code ${code ?? 1}`);
+      err.isLockTimeout = isLockTimeout;
+      reject(err);
+    });
+  });
+}
+
 async function run() {
   loadLocalEnvFile();
 
@@ -63,31 +96,32 @@ async function run() {
     process.exit(1);
   }
 
-  console.log("Running Prisma migrations...");
+  const MAX_ATTEMPTS = 3;
+  const RETRY_DELAY_MS = 5_000;
 
-  await new Promise((resolve, reject) => {
-    const child = spawn(resolveNpxCommand(), ["prisma", "migrate", "deploy"], {
-      stdio: "inherit",
-      env: process.env
-    });
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    console.log(`Running Prisma migrations... (attempt ${attempt}/${MAX_ATTEMPTS})`);
 
-    child.on("error", reject);
-    child.on("exit", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
+    try {
+      await runMigrate();
+      console.log("Migrations applied successfully.");
+      return;
+    } catch (error) {
+      const isLast = attempt === MAX_ATTEMPTS;
+      const isRetryable = error.isLockTimeout;
+
+      if (!isRetryable || isLast) {
+        console.error(
+          `[prisma-migrate-deploy] migration failed: ${error instanceof Error ? error.message : "unknown_error"}`
+        );
+        console.warn("WARNING: migrations could not run, manual check required");
+        process.exit(0);
       }
 
-      reject(new Error(`prisma migrate deploy exited with code ${code ?? 1}`));
-    });
-  });
-
-  console.log("Migrations applied successfully");
+      console.warn(`Advisory lock timeout on attempt ${attempt}, retrying in ${RETRY_DELAY_MS / 1000}s...`);
+      await sleep(RETRY_DELAY_MS);
+    }
+  }
 }
 
-run().catch((error) => {
-  console.error("[prisma-migrate-deploy] migration failed", {
-    message: error instanceof Error ? error.message : "unknown_error"
-  });
-  process.exit(1);
-});
+run();
