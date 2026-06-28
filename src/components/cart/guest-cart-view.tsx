@@ -12,6 +12,91 @@ import {
   updateGuestCartItemQuantity
 } from "@/lib/guest-cart";
 
+const MAX_QTY = 99;
+
+function GuestItemControls({
+  productId,
+  quantity,
+  stock,
+  onRemove
+}: {
+  productId: string;
+  quantity: number;
+  stock: number;
+  onRemove: () => void;
+}) {
+  const [inputValue, setInputValue] = useState(String(quantity));
+
+  // Keep input in sync when the cart snapshot updates from outside
+  useEffect(() => {
+    setInputValue(String(quantity));
+  }, [quantity]);
+
+  function changeQty(next: number) {
+    const clamped = Math.max(1, Math.min(next, MAX_QTY, stock));
+    setInputValue(String(clamped));
+    updateGuestCartItemQuantity(productId, clamped);
+  }
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/\D/g, "");
+    setInputValue(raw);
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num >= 1) {
+      const clamped = Math.min(num, MAX_QTY, stock);
+      updateGuestCartItemQuantity(productId, clamped);
+    }
+  }
+
+  function handleInputCommit() {
+    const num = parseInt(inputValue, 10);
+    const clamped = !isNaN(num) && num >= 1 ? Math.min(num, MAX_QTY, stock) : quantity;
+    setInputValue(String(clamped));
+    updateGuestCartItemQuantity(productId, clamped);
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex min-h-11 items-center rounded-full border border-line">
+        <button
+          type="button"
+          className="flex h-11 w-11 items-center justify-center text-lg"
+          disabled={quantity <= 1}
+          onClick={() => changeQty(quantity - 1)}
+        >
+          -
+        </button>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleInputCommit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleInputCommit();
+          }}
+          className="w-[60px] bg-transparent text-center text-sm font-semibold focus:outline-none"
+        />
+        <button
+          type="button"
+          className="flex h-11 w-11 items-center justify-center text-lg"
+          disabled={quantity >= stock || quantity >= MAX_QTY}
+          onClick={() => changeQty(quantity + 1)}
+        >
+          +
+        </button>
+      </div>
+      <Button
+        variant="danger"
+        className="w-full px-4 py-2 text-red-100 sm:w-auto"
+        onClick={onRemove}
+      >
+        Quitar
+      </Button>
+    </div>
+  );
+}
+
 export function GuestCartView() {
   const [cart, setCart] = useState(() => getGuestCartSnapshot());
 
@@ -91,45 +176,14 @@ export function GuestCartView() {
                     <h2 className="mt-2 text-lg font-semibold leading-tight text-sand sm:text-xl">
                       {item.name}
                     </h2>
-                    <p className="mt-2 text-sm text-mist">
-                      Stock disponible: {item.stock} unidades
-                    </p>
                   </div>
                   <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
-                      <div className="flex min-h-11 items-center rounded-full border border-line">
-                        <button
-                          type="button"
-                          className="flex h-11 w-11 items-center justify-center text-lg"
-                          disabled={item.quantity <= 1}
-                          onClick={() =>
-                            updateGuestCartItemQuantity(item.productId, item.quantity - 1)
-                          }
-                        >
-                          -
-                        </button>
-                        <span className="min-w-11 text-center text-sm font-semibold">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          className="flex h-11 w-11 items-center justify-center text-lg"
-                          disabled={item.quantity >= item.stock}
-                          onClick={() =>
-                            updateGuestCartItemQuantity(item.productId, item.quantity + 1)
-                          }
-                        >
-                          +
-                        </button>
-                      </div>
-                      <Button
-                        variant="danger"
-                        className="w-full px-4 py-2 text-red-100 sm:w-auto"
-                        onClick={() => removeGuestCartItem(item.productId)}
-                      >
-                        Quitar
-                      </Button>
-                    </div>
+                    <GuestItemControls
+                      productId={item.productId}
+                      quantity={item.quantity}
+                      stock={item.stock}
+                      onRemove={() => removeGuestCartItem(item.productId)}
+                    />
                     <p className="text-xl font-black text-sand sm:text-right">
                       {formatCurrency(item.subtotal)}
                     </p>

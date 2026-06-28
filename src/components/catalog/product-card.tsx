@@ -66,24 +66,16 @@ export function ProductCard({
               {OBJECTIVE_LABELS[product.objective] ?? product.objective}
             </span>
           </p>
-          <p className="mt-3 min-h-[3.75rem] overflow-hidden text-xs leading-5 text-mist [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] sm:text-sm">
-            {product.description}
-          </p>
         </div>
 
         <div className="mt-auto flex flex-col gap-4 pt-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-1">
-              <p className="text-2xl font-black tracking-[-0.03em] text-sand sm:text-[2rem]">
-                {formatCurrency(product.price)}
-              </p>
-              <p className="text-xs text-mist sm:text-sm">
-                {product.stock > 0 ? `${product.stock} en stock` : "Sin stock"}
-              </p>
-            </div>
+          <div className="flex items-end justify-between gap-2">
+            <p className="text-2xl font-black tracking-[-0.03em] text-sand sm:text-[2rem]">
+              {formatCurrency(product.price)}
+            </p>
             <Link
               href={`/productos/${product.slug}`}
-              className="inline-flex min-h-11 items-center text-sm font-semibold text-neon transition hover:text-neon/80"
+              className="mb-1 text-xs text-mist transition hover:text-sand"
             >
               Ver detalle
             </Link>

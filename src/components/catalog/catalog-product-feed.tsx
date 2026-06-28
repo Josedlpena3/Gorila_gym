@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ProductCard } from "@/components/catalog/product-card";
 import { Button } from "@/components/ui/button";
 import type { CatalogProductsPageDto, ProductCardDto } from "@/types";
@@ -155,8 +156,11 @@ export function CatalogProductFeed({
       </div>
 
       {products.length === 0 ? (
-        <div className="section-card p-6 text-center text-sm text-mist">
-          No hay productos disponibles para esta búsqueda.
+        <div className="section-card flex flex-col items-center gap-4 p-8 text-center">
+          <p className="text-sm text-mist">No hay productos disponibles para esta búsqueda.</p>
+          <Link href="/catalogo">
+            <Button>Ver todos los productos</Button>
+          </Link>
         </div>
       ) : null}
 
