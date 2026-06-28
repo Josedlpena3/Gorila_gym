@@ -17,7 +17,7 @@ export default async function CheckoutPage() {
           Confirmá tu compra
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-mist sm:text-base">
-          Elegí entrega y pago. Confirmamos todo por WhatsApp con la menor fricción posible.
+          Elegí entrega y forma de pago. Te contactamos por WhatsApp para coordinar y confirmar tu pedido.
         </p>
       </div>
       <CheckoutForm
