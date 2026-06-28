@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -27,7 +28,6 @@ function GuestItemControls({
 }) {
   const [inputValue, setInputValue] = useState(String(quantity));
 
-  // Keep input in sync when the cart snapshot updates from outside
   useEffect(() => {
     setInputValue(String(quantity));
   }, [quantity]);
@@ -99,16 +99,55 @@ function GuestItemControls({
 
 export function GuestCartView() {
   const [cart, setCart] = useState(() => getGuestCartSnapshot());
+  const [pendingRemovals, setPendingRemovals] = useState<Set<string>>(new Set());
+  const timerRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     setCart(getGuestCartSnapshot());
-
-    return subscribeToGuestCart(() => {
-      setCart(getGuestCartSnapshot());
-    });
+    return subscribeToGuestCart(() => setCart(getGuestCartSnapshot()));
   }, []);
 
-  if (cart.items.length === 0) {
+  // On unmount: fire all pending removals immediately
+  useEffect(() => {
+    return () => {
+      Object.entries(timerRefs.current).forEach(([productId, timer]) => {
+        clearTimeout(timer);
+        removeGuestCartItem(productId);
+      });
+    };
+  }, []);
+
+  function handleRemove(productId: string) {
+    setPendingRemovals((prev) => new Set(prev).add(productId));
+
+    timerRefs.current[productId] = setTimeout(() => {
+      delete timerRefs.current[productId];
+      removeGuestCartItem(productId);
+      setPendingRemovals((prev) => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+    }, 5000);
+
+    toast("Producto eliminado", {
+      duration: 5000,
+      action: {
+        label: "Deshacer",
+        onClick: () => {
+          clearTimeout(timerRefs.current[productId]);
+          delete timerRefs.current[productId];
+          setPendingRemovals((prev) => {
+            const next = new Set(prev);
+            next.delete(productId);
+            return next;
+          });
+        }
+      }
+    });
+  }
+
+  if (cart.items.length === 0 && pendingRemovals.size === 0) {
     return (
       <div className="page-shell">
         <div className="section-card mx-auto max-w-2xl p-6 text-center sm:p-10">
@@ -151,46 +190,51 @@ export function GuestCartView() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {cart.items.map((item) => (
-              <article
-                key={item.id}
-                className="flex gap-3 rounded-[28px] border border-line bg-ink/60 p-4 sm:gap-4"
-              >
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl bg-steel sm:h-28 sm:w-28">
-                  {item.image ? (
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      fill
-                      className="object-contain p-3"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-mist">
-                      Sin imagen
+            {cart.items.map((item) => {
+              const isPending = pendingRemovals.has(item.productId);
+              return (
+                <article
+                  key={item.id}
+                  className={`flex gap-3 rounded-[28px] border border-line bg-ink/60 p-4 transition-opacity sm:gap-4 ${
+                    isPending ? "pointer-events-none opacity-40" : ""
+                  }`}
+                >
+                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl bg-steel sm:h-28 sm:w-28">
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        className="object-contain p-3"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-mist">
+                        Sin imagen
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
+                    <div>
+                      <p className="text-sm uppercase tracking-[0.24em] text-mist">{item.brand}</p>
+                      <h2 className="mt-2 text-lg font-semibold leading-tight text-sand sm:text-xl">
+                        {item.name}
+                      </h2>
                     </div>
-                  )}
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.24em] text-mist">{item.brand}</p>
-                    <h2 className="mt-2 text-lg font-semibold leading-tight text-sand sm:text-xl">
-                      {item.name}
-                    </h2>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                      <GuestItemControls
+                        productId={item.productId}
+                        quantity={item.quantity}
+                        stock={item.stock}
+                        onRemove={() => handleRemove(item.productId)}
+                      />
+                      <p className="text-xl font-black text-sand sm:text-right">
+                        {formatCurrency(item.subtotal)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                    <GuestItemControls
-                      productId={item.productId}
-                      quantity={item.quantity}
-                      stock={item.stock}
-                      onRemove={() => removeGuestCartItem(item.productId)}
-                    />
-                    <p className="text-xl font-black text-sand sm:text-right">
-                      {formatCurrency(item.subtotal)}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </section>
 

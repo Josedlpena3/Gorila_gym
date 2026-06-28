@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { Toaster } from "sonner";
 import { EmailVerificationNotice } from "@/components/auth/email-verification-notice";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -32,6 +33,7 @@ export default async function RootLayout({
         ) : null}
         <main className="min-h-[calc(100vh-160px)] py-10">{children}</main>
         <SiteFooter />
+        <Toaster position="bottom-center" theme="dark" richColors />
       </body>
     </html>
   );

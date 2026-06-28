@@ -8,12 +8,13 @@ type CartItemControlsProps = {
   productId: string;
   quantity: number;
   stock: number;
+  onRemove: () => void;
 };
 
 const MAX_QTY = 99;
 const DEBOUNCE_MS = 600;
 
-export function CartItemControls({ productId, quantity, stock }: CartItemControlsProps) {
+export function CartItemControls({ productId, quantity, stock, onRemove }: CartItemControlsProps) {
   const router = useRouter();
   const [localQty, setLocalQty] = useState(quantity);
   const [inputValue, setInputValue] = useState(String(quantity));
@@ -126,20 +127,6 @@ export function CartItemControls({ productId, quantity, stock }: CartItemControl
     }
   }
 
-  async function removeItem() {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    const response = await fetch("/api/cart/items", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId })
-    });
-    if (response.ok) {
-      router.refresh();
-    } else {
-      alert("No se pudo quitar el producto.");
-    }
-  }
-
   return (
     <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
       <div className="flex items-center gap-2">
@@ -183,7 +170,7 @@ export function CartItemControls({ productId, quantity, stock }: CartItemControl
       <Button
         variant="danger"
         className="w-full px-4 py-2 text-red-100 sm:w-auto"
-        onClick={removeItem}
+        onClick={onRemove}
       >
         Quitar
       </Button>

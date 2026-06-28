@@ -1,6 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
-import { CartItemControls } from "@/components/cart/cart-item-controls";
+import { CartItem } from "@/components/cart/cart-item";
 import { GuestCartView } from "@/components/cart/guest-cart-view";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
@@ -57,46 +56,19 @@ export default async function CartPage() {
 
           <div className="mt-6 space-y-4">
             {cart.items.map((item) => (
-              <article
+              <CartItem
                 key={item.id}
-                className="flex gap-3 rounded-[28px] border border-line bg-ink/60 p-4 sm:gap-4"
-              >
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl sm:h-28 sm:w-28">
-                  {item.image ? (
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      fill
-                      className="object-contain p-3"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-steel text-xs text-mist">
-                      Sin imagen
-                    </div>
-                  )}
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.24em] text-mist">{item.brand}</p>
-                    <h2 className="mt-2 text-lg font-semibold leading-tight text-sand sm:text-xl">
-                      {item.name}
-                    </h2>
-                    <p className="mt-2 text-sm text-mist">
-                      Stock disponible: {item.stock} unidades
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                    <CartItemControls
-                      productId={item.productId}
-                      quantity={item.quantity}
-                      stock={item.stock}
-                    />
-                    <p className="text-xl font-black text-sand sm:text-right">
-                      {formatCurrency(item.subtotal)}
-                    </p>
-                  </div>
-                </div>
-              </article>
+                item={{
+                  id: item.id,
+                  productId: item.productId,
+                  name: item.name,
+                  brand: item.brand,
+                  image: item.image,
+                  stock: item.stock,
+                  quantity: item.quantity,
+                  subtotal: item.subtotal
+                }}
+              />
             ))}
           </div>
         </section>
