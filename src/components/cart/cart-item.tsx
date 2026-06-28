@@ -1,9 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { CartItemControls } from "@/components/cart/cart-item-controls";
 import { formatCurrency } from "@/lib/utils";
 
@@ -20,68 +18,23 @@ type CartItemData = {
 
 export function CartItem({ item }: { item: CartItemData }) {
   const router = useRouter();
-  const [pendingRemoval, setPendingRemoval] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingRef = useRef(false);
 
-  // Cleanup: if unmounted while pending, fire the DELETE fire-and-forget
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (pendingRef.current) {
-        void fetch("/api/cart/items", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productId: item.productId })
-        });
-      }
-    };
-  }, [item.productId]);
-
-  function handleRemove() {
-    setPendingRemoval(true);
-    pendingRef.current = true;
-
-    timerRef.current = setTimeout(async () => {
-      timerRef.current = null;
-      pendingRef.current = false;
-
-      const response = await fetch("/api/cart/items", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: item.productId })
-      });
-
-      if (response.ok) {
-        router.refresh();
-      } else {
-        setPendingRemoval(false);
-        alert("No se pudo quitar el producto.");
-      }
-    }, 5000);
-
-    toast("Producto eliminado", {
-      duration: 5000,
-      action: {
-        label: "Deshacer",
-        onClick: () => {
-          if (timerRef.current) {
-            clearTimeout(timerRef.current);
-            timerRef.current = null;
-          }
-          pendingRef.current = false;
-          setPendingRemoval(false);
-        }
-      }
+  async function handleRemove() {
+    const response = await fetch("/api/cart/items", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: item.productId })
     });
+
+    if (response.ok) {
+      router.refresh();
+    } else {
+      alert("No se pudo quitar el producto.");
+    }
   }
 
   return (
-    <article
-      className={`flex gap-3 rounded-[28px] border border-line bg-ink/60 p-4 transition-opacity sm:gap-4 ${
-        pendingRemoval ? "pointer-events-none opacity-40" : ""
-      }`}
-    >
+    <article className="flex gap-3 rounded-[28px] border border-line bg-ink/60 p-4 sm:gap-4">
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl sm:h-28 sm:w-28">
         {item.image ? (
           <Image
