@@ -361,7 +361,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               .filter((value): value is string => Boolean(value));
 
             const payload = {
-              sku: formData.get("sku"),
+              ...(product ? { sku: formData.get("sku") } : {}),
               name,
               brand: formData.get("brand"),
               categoryId,
