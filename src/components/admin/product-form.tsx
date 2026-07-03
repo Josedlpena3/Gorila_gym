@@ -273,6 +273,8 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           setWarning(null);
 
           const name = String(formData.get("name") ?? "").trim();
+          const brand = String(formData.get("brand") ?? "").trim();
+          const description = String(formData.get("description") ?? "").trim();
           const price = Number(formData.get("price"));
           const stock = Number(formData.get("stock"));
           const categoryId =
@@ -283,6 +285,16 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
           if (name.length === 0) {
             setError("El nombre es obligatorio.");
+            return;
+          }
+
+          if (brand.length < 2) {
+            setError("La marca debe tener al menos 2 caracteres.");
+            return;
+          }
+
+          if (description.length < 20) {
+            setError("La descripción debe tener al menos 20 caracteres.");
             return;
           }
 
@@ -363,17 +375,17 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             const payload = {
               ...(product ? { sku: formData.get("sku") } : {}),
               name,
-              brand: formData.get("brand"),
+              brand,
               categoryId,
-              description: formData.get("description"),
+              description,
               price,
               stock,
               objective: formData.get("objective"),
               active: formData.get("active") === "on",
               featured: formData.get("featured") === "on",
               featuredPriority: Number(formData.get("featuredPriority") || 1),
-              weight: formData.get("weight"),
-              flavor: formData.get("flavor"),
+              weight: formData.get("weight") || null,
+              flavor: formData.get("flavor") || null,
               images
             };
 
