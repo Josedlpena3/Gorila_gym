@@ -62,8 +62,8 @@ export const productSchema = z.object({
   active: z.boolean().default(true),
   featured: z.boolean().default(false),
   featuredPriority: optionalPriority,
-  weight: z.string().trim().optional(),
-  flavor: z.string().trim().optional(),
+  weight: z.string().trim().nullable().optional(),
+  flavor: z.string().trim().nullable().optional(),
   images: z.array(imageSourceSchema).default([])
 });
 
