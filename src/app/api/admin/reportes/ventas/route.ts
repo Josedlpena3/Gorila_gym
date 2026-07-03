@@ -6,6 +6,7 @@ import { requireAdminUser } from "@/modules/users/user.service";
 import { decimalToNumber } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const rangoSchema = z.enum(["hoy", "semana", "mes", "trimestre"]);
 
