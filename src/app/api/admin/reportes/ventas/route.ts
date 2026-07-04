@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { handleRouteError } from "@/lib/errors";
 import { requireAdminUser } from "@/modules/users/user.service";
@@ -14,17 +15,33 @@ function calcularDesde(rango: "hoy" | "semana" | "mes" | "trimestre"): Date {
   // Argentina = UTC-3, sin horario de verano
   const OFFSET_MS = 3 * 60 * 60 * 1000;
   const now = new Date();
-  // Desplazar "ahora" a tiempo Argentina y fijar medianoche allí
+  // Tiempo Argentina representado como UTC para operar con métodos UTC
   const argNow = new Date(now.getTime() - OFFSET_MS);
   argNow.setUTCHours(0, 0, 0, 0);
-  // Convertir medianoche Argentina de vuelta a UTC
+  // Medianoche Argentina de hoy en UTC real (= 03:00 UTC)
   const argMidnightUTC = new Date(argNow.getTime() + OFFSET_MS);
 
   if (rango === "hoy") return argMidnightUTC;
 
-  const dias: Record<string, number> = { semana: 7, mes: 30, trimestre: 90 };
+  if (rango === "semana") {
+    // Lunes de la semana calendario actual en Argentina
+    const dayOfWeek = argNow.getUTCDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
+    const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const weekStart = new Date(argMidnightUTC);
+    weekStart.setUTCDate(weekStart.getUTCDate() + offsetToMonday);
+    return weekStart;
+  }
+
+  if (rango === "mes") {
+    // Día 1 del mes calendario actual en Argentina
+    const year = argNow.getUTCFullYear();
+    const month = argNow.getUTCMonth();
+    return new Date(Date.UTC(year, month, 1) + OFFSET_MS);
+  }
+
+  // trimestre: 90 días atrás desde medianoche Argentina de hoy
   const desde = new Date(argMidnightUTC);
-  desde.setUTCDate(desde.getUTCDate() - dias[rango]);
+  desde.setUTCDate(desde.getUTCDate() - 90);
   return desde;
 }
 
@@ -74,7 +91,7 @@ async function fetchItems(desde: Date, hasta: Date) {
   return prisma.orderItem.findMany({
     where: {
       order: {
-        status: { in: ["CONTACTED", "DELIVERED"] },
+        status: { not: OrderStatus.CANCELLED },
         createdAt: { gte: desde, lte: hasta }
       }
     },
