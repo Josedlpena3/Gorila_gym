@@ -151,7 +151,7 @@ export function FindUsPageClient() {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-[50px] w-full items-center justify-center gap-2 rounded-full bg-neon px-5 py-3 text-base font-semibold text-ink transition hover:bg-neon/90"
+                className="inline-flex h-[50px] w-full items-center justify-center gap-2 rounded-full bg-neon px-5 py-3 text-base font-semibold text-white transition hover:bg-neon/90"
               >
                 <MessageCircle className="h-5 w-5" />
                 Contactar por WhatsApp

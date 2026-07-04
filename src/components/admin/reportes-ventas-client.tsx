@@ -96,7 +96,7 @@ export function ReportesVentasClient() {
             onClick={() => setRango(key)}
             className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
               rango === key
-                ? "bg-neon text-ink"
+                ? "bg-neon text-white"
                 : "text-mist hover:bg-white/5 hover:text-sand"
             }`}
           >
@@ -160,7 +160,7 @@ export function ReportesVentasClient() {
                   {p.variacionUnidades !== null ? (
                     <span
                       className={`text-xs font-semibold ${
-                        p.variacionUnidades >= 0 ? "text-neon" : "text-red-300"
+                        p.variacionUnidades >= 0 ? "text-emerald-400" : "text-red-300"
                       }`}
                     >
                       {p.variacionUnidades >= 0 ? "+" : ""}

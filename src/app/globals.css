@@ -20,10 +20,9 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top left, rgba(183, 255, 57, 0.12), transparent 20%),
-    radial-gradient(circle at 80% 0%, rgba(255, 122, 24, 0.15), transparent 18%),
-    linear-gradient(180deg, #0a0b0d 0%, #10131a 46%, #0a0b0d 100%);
-  color: #f5f1e8;
+    radial-gradient(circle at top left, rgba(220, 38, 38, 0.07), transparent 22%),
+    linear-gradient(180deg, #0a0a0a 0%, #120404 46%, #0a0a0a 100%);
+  color: #ffffff;
   font-family: "Satoshi", "Avenir Next", "Segoe UI", sans-serif;
 }
 
@@ -39,7 +38,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(183, 255, 57, 0.3);
+  background: rgba(220, 38, 38, 0.35);
   color: #ffffff;
 }
 

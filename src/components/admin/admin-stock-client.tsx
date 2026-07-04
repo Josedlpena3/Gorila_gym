@@ -105,7 +105,7 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
             onClick={() => setSelectedCategory(null)}
             className={`inline-flex min-h-9 items-center whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
               !selectedCategory
-                ? "border-neon bg-neon text-ink"
+                ? "border-neon bg-neon text-white"
                 : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
             }`}
           >
@@ -118,7 +118,7 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
               onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
               className={`inline-flex min-h-9 items-center whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
                 selectedCategory === cat
-                  ? "border-neon bg-neon text-ink"
+                  ? "border-neon bg-neon text-white"
                   : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
               }`}
             >

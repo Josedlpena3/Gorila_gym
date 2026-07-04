@@ -33,7 +33,7 @@ export function HomeFeaturedProducts({
       <div className="flex justify-center pt-4">
         <Link
           href="/catalogo"
-          className="inline-flex min-h-11 items-center justify-center rounded-full bg-neon px-6 py-3 text-sm font-semibold text-ink transition hover:bg-neon/90"
+          className="inline-flex min-h-11 items-center justify-center rounded-full bg-neon px-6 py-3 text-sm font-semibold text-white transition hover:bg-neon/90"
         >
           Ver catálogo completo
         </Link>

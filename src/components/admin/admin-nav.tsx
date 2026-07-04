@@ -30,7 +30,7 @@ export function AdminNav() {
             href={link.href}
             className={cn(
               "block rounded-2xl px-4 py-3 text-sm font-medium text-mist transition hover:bg-white/5 hover:text-sand",
-              pathname === link.href && "bg-neon text-ink hover:bg-neon"
+              pathname === link.href && "bg-neon text-white hover:bg-neon"
             )}
           >
             {link.label}

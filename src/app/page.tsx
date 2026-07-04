@@ -4,7 +4,7 @@ import { getHomeProducts } from "@/modules/products/product.service";
 import { tryGetCurrentUser } from "@/modules/users/user.service";
 
 const primaryLinkClass =
-  "inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neon px-5 py-3 text-sm font-semibold text-ink transition hover:bg-neon/90 sm:w-auto";
+  "inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neon px-5 py-3 text-sm font-semibold text-white transition hover:bg-neon/90 sm:w-auto";
 
 export default async function HomePage() {
   const [homeProducts, user] = await Promise.all([
@@ -18,7 +18,7 @@ export default async function HomePage() {
   return (
     <div className="page-shell space-y-8">
       <section className="relative overflow-hidden rounded-[32px] border border-line/80 bg-steel/70 px-4 py-12 shadow-premium backdrop-blur sm:px-8 sm:py-16 lg:px-16 lg:py-24">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(183,255,57,0.16),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_22%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.10),transparent_30%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.04),transparent_22%)]" />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center text-center">
           <p className="mt-6 text-[11px] font-black uppercase tracking-[0.32em] text-neon sm:mt-8 sm:text-sm">
             Gorilla Strong

@@ -106,7 +106,7 @@ export default async function OrdersPage({
                       )}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neon px-5 py-3 text-sm font-semibold text-ink transition hover:bg-neon/90"
+                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neon px-5 py-3 text-sm font-semibold text-white transition hover:bg-neon/90"
                     >
                       Contactar por WhatsApp
                     </a>

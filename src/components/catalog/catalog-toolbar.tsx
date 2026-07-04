@@ -183,7 +183,7 @@ export function CatalogToolbar({
             aria-pressed={!activeCategoryId}
             className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
               !activeCategoryId
-                ? "border-neon bg-neon text-ink"
+                ? "border-neon bg-neon text-white"
                 : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
             }`}
           >
@@ -198,7 +198,7 @@ export function CatalogToolbar({
               aria-pressed={category.id === activeCategoryId}
               className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 category.id === activeCategoryId
-                  ? "border-neon bg-neon text-ink"
+                  ? "border-neon bg-neon text-white"
                   : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
               }`}
             >
