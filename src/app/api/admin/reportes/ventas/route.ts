@@ -87,20 +87,24 @@ function agruparPorProducto(
     }));
 }
 
-async function fetchItems(desde: Date, hasta: Date) {
-  return prisma.orderItem.findMany({
+async function fetchOrders(desde: Date, hasta: Date) {
+  return prisma.order.findMany({
     where: {
-      order: {
-        status: { not: OrderStatus.CANCELLED },
-        createdAt: { gte: desde, lte: hasta }
-      }
+      status: { not: OrderStatus.CANCELLED },
+      createdAt: { gte: desde, lte: hasta }
     },
     select: {
-      productId: true,
-      nameSnapshot: true,
-      price: true,
-      quantity: true,
-      orderId: true
+      id: true,
+      total: true,
+      items: {
+        select: {
+          productId: true,
+          nameSnapshot: true,
+          price: true,
+          quantity: true,
+          orderId: true
+        }
+      }
     }
   });
 }
@@ -119,10 +123,13 @@ export async function GET(request: Request) {
     const periodoAnteriorHasta = new Date(desde);
     const periodoAnteriorDesde = new Date(desde.getTime() - duracionMs);
 
-    const [items, itemsAnteriores] = await Promise.all([
-      fetchItems(desde, hasta),
-      fetchItems(periodoAnteriorDesde, periodoAnteriorHasta)
+    const [orders, ordersAnteriores] = await Promise.all([
+      fetchOrders(desde, hasta),
+      fetchOrders(periodoAnteriorDesde, periodoAnteriorHasta)
     ]);
+
+    const items = orders.flatMap((o) => o.items);
+    const itemsAnteriores = ordersAnteriores.flatMap((o) => o.items);
 
     const productos = agruparPorProducto(items);
 
@@ -141,8 +148,11 @@ export async function GET(request: Request) {
     });
 
     const totalUnidades = productos.reduce((s, p) => s + p.totalUnidades, 0);
-    const totalIngresos = Math.round(productos.reduce((s, p) => s + p.totalIngresos, 0) * 100) / 100;
-    const totalPedidos = new Set(items.map((i) => i.orderId)).size;
+    // Resumen usa order.total (con descuentos) para coincidir con la vista de pedidos
+    const totalIngresos = Math.round(
+      orders.reduce((s, o) => s + (decimalToNumber(o.total) ?? 0), 0) * 100
+    ) / 100;
+    const totalPedidos = orders.length;
 
     return NextResponse.json({
       productos: productosConVariacion,
