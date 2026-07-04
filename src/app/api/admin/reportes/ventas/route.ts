@@ -11,15 +11,20 @@ export const revalidate = 0;
 const rangoSchema = z.enum(["hoy", "semana", "mes", "trimestre"]);
 
 function calcularDesde(rango: "hoy" | "semana" | "mes" | "trimestre"): Date {
-  const ahora = new Date();
-  if (rango === "hoy") {
-    const desde = new Date(ahora);
-    desde.setHours(0, 0, 0, 0);
-    return desde;
-  }
+  // Argentina = UTC-3, sin horario de verano
+  const OFFSET_MS = 3 * 60 * 60 * 1000;
+  const now = new Date();
+  // Desplazar "ahora" a tiempo Argentina y fijar medianoche allí
+  const argNow = new Date(now.getTime() - OFFSET_MS);
+  argNow.setUTCHours(0, 0, 0, 0);
+  // Convertir medianoche Argentina de vuelta a UTC
+  const argMidnightUTC = new Date(argNow.getTime() + OFFSET_MS);
+
+  if (rango === "hoy") return argMidnightUTC;
+
   const dias: Record<string, number> = { semana: 7, mes: 30, trimestre: 90 };
-  const desde = new Date(ahora);
-  desde.setDate(desde.getDate() - dias[rango]);
+  const desde = new Date(argMidnightUTC);
+  desde.setUTCDate(desde.getUTCDate() - dias[rango]);
   return desde;
 }
 
