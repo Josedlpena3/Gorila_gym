@@ -806,6 +806,24 @@ export async function getStockOverview() {
   }));
 }
 
+export async function getPriceOverview() {
+  const products = await prisma.product.findMany({
+    where: { active: true },
+    include: { category: true },
+    orderBy: [{ category: { name: "asc" } }, { name: "asc" }]
+  });
+
+  return products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    sku: product.sku,
+    stock: product.stock,
+    brand: product.brand,
+    category: product.category.name,
+    price: decimalToNumber(product.price) ?? 0
+  }));
+}
+
 export async function patchProductStock(id: string, stock: number) {
   const product = await prisma.product.update({
     where: { id },
@@ -813,6 +831,15 @@ export async function patchProductStock(id: string, stock: number) {
   });
 
   return { id: product.id, stock: product.stock };
+}
+
+export async function patchProductPrice(id: string, price: number) {
+  const product = await prisma.product.update({
+    where: { id },
+    data: { price }
+  });
+
+  return { id: product.id, price: decimalToNumber(product.price) ?? 0 };
 }
 
 export async function createProduct(input: unknown, adminUserId: string) {

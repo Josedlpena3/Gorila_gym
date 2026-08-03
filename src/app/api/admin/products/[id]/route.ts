@@ -3,6 +3,7 @@ import { z } from "zod";
 import { handleRouteError } from "@/lib/errors";
 import {
   deleteProduct,
+  patchProductPrice,
   patchProductStock,
   updateProduct
 } from "@/modules/products/product.service";
@@ -32,9 +33,15 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     await requireAdminUser();
     const body = await request.json();
+
+    if ("price" in body) {
+      const price = z.coerce.number().min(0.01, "Precio inválido").parse(body.price);
+      const product = await patchProductPrice(params.id, price);
+      return NextResponse.json(product);
+    }
+
     const stock = z.coerce.number().int().min(0, "Stock inválido").parse(body.stock);
     const product = await patchProductStock(params.id, stock);
-
     return NextResponse.json(product);
   } catch (error) {
     return handleRouteError(error);
