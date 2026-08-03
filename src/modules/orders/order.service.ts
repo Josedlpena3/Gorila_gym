@@ -10,7 +10,7 @@ import {
   applyCheckoutDiscount,
   buildEmptyCheckoutDiscountResult
 } from "@/lib/checkout-discounts";
-import { applyPaymentSurcharge } from "@/lib/checkout-pricing";
+import { applyPaymentSurcharge, roundCurrency } from "@/lib/checkout-pricing";
 import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
@@ -1481,6 +1481,75 @@ export async function updateOrderDiscount(
       discountApplied: pricing.discountApplied,
       discountTotal: pricing.discountAmount,
       total: pricing.total
+    }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/pedidos");
+  revalidatePath("/mis-pedidos");
+
+  return mapOrder(updatedOrder);
+}
+
+export async function applyManualOrderDiscount(
+  orderId: string,
+  percent: number,
+  adminUserId: string
+) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { payment: true }
+  });
+
+  if (!order) {
+    throw new AppError("Pedido no encontrado", 404);
+  }
+
+  if (!order.payment) {
+    throw new AppError("El pedido no tiene información de pago", 400);
+  }
+
+  const subtotal = decimalToNumber(order.subtotal) ?? 0;
+  const shippingCost = decimalToNumber(order.shippingCost) ?? 0;
+  const discountAmount = roundCurrency(subtotal * percent / 100);
+  const total = applyPaymentSurcharge(subtotal - discountAmount + shippingCost, order.paymentMethod);
+  assertPositiveTotal(total);
+
+  const discountApplied = percent > 0 ? `Descuento manual: ${percent}%` : null;
+
+  const prevDiscountTotal = decimalToNumber(order.discountTotal) ?? 0;
+  const prevTotal = decimalToNumber(order.total) ?? 0;
+
+  const updatedOrder = await prisma.$transaction(async (tx) => {
+    await tx.payment.update({
+      where: { orderId },
+      data: {
+        amount: total,
+        metadata: buildPaymentMetadataWithDiscount(order.payment?.metadata ?? null, {
+          discountCode: null,
+          discountApplied
+        })
+      }
+    });
+
+    return tx.order.update({
+      where: { id: orderId },
+      data: { discountTotal: discountAmount, total },
+      include: orderInclude
+    });
+  });
+
+  await logAdminAction({
+    adminUserId,
+    action: "ORDER_MANUAL_DISCOUNT_APPLIED",
+    entity: "order",
+    entityId: orderId,
+    metadata: {
+      previousDiscountTotal: prevDiscountTotal,
+      previousTotal: prevTotal,
+      manualPercent: percent,
+      discountAmount,
+      total
     }
   });
 

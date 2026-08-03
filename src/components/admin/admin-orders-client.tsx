@@ -216,6 +216,8 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editingDiscountOrderId, setEditingDiscountOrderId] = useState<string | null>(null);
   const [discountDrafts, setDiscountDrafts] = useState<Record<string, string>>({});
+  const [discountModes, setDiscountModes] = useState<Record<string, "code" | "percent">>({});
+  const [percentDrafts, setPercentDrafts] = useState<Record<string, string>>({});
   const [savingDiscountOrderId, setSavingDiscountOrderId] = useState<string | null>(null);
   const [discountErrorOrderId, setDiscountErrorOrderId] = useState<string | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
@@ -263,10 +265,9 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
 
   function startDiscountEdit(orderId: string, currentDiscountCode: string | null) {
     setEditingDiscountOrderId(orderId);
-    setDiscountDrafts((current) => ({
-      ...current,
-      [orderId]: currentDiscountCode ?? ""
-    }));
+    setDiscountDrafts((current) => ({ ...current, [orderId]: currentDiscountCode ?? "" }));
+    setDiscountModes((current) => ({ ...current, [orderId]: "code" }));
+    setPercentDrafts((current) => ({ ...current, [orderId]: "" }));
     setDiscountErrorOrderId(null);
     setDiscountError(null);
   }
@@ -277,20 +278,39 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
     setDiscountError(null);
   }
 
+  function setDiscountMode(orderId: string, mode: "code" | "percent") {
+    setDiscountModes((current) => ({ ...current, [orderId]: mode }));
+    setDiscountErrorOrderId(null);
+    setDiscountError(null);
+  }
+
   async function handleDiscountSave(orderId: string) {
     setSavingDiscountOrderId(orderId);
     setDiscountErrorOrderId(null);
     setDiscountError(null);
 
+    const mode = discountModes[orderId] ?? "code";
+
     try {
+      let body: Record<string, unknown>;
+
+      if (mode === "percent") {
+        const pct = parseFloat(percentDrafts[orderId] ?? "");
+        if (isNaN(pct) || pct < 0 || pct > 99) {
+          setDiscountErrorOrderId(orderId);
+          setDiscountError("Ingresá un porcentaje entre 0 y 99.");
+          setSavingDiscountOrderId(null);
+          return;
+        }
+        body = { manualPercent: pct };
+      } else {
+        body = { discountCode: discountDrafts[orderId]?.trim() || null };
+      }
+
       const response = await fetch(`/api/admin/orders/${orderId}/discount`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          discountCode: discountDrafts[orderId]?.trim() || null
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
       });
       const result = (await response.json().catch(() => null)) as { error?: string } | null;
 
@@ -534,33 +554,95 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                               </div>
 
                               {isEditingDiscount ? (
-                                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                                  <input
-                                    value={discountDrafts[order.id] ?? ""}
-                                    onChange={(event) =>
-                                      setDiscountDrafts((current) => ({
-                                        ...current,
-                                        [order.id]: event.target.value
-                                      }))
-                                    }
-                                    placeholder="Ingresar código..."
-                                    className="w-full rounded-2xl border border-line bg-ink/70 px-4 py-3 text-sm text-sand focus:border-neon/70 focus:outline-none"
-                                  />
-                                  <Button
-                                    type="button"
-                                    disabled={isSavingDiscount}
-                                    onClick={() => void handleDiscountSave(order.id)}
-                                  >
-                                    {isSavingDiscount ? "Guardando..." : "Guardar"}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    disabled={isSavingDiscount}
-                                    onClick={cancelDiscountEdit}
-                                  >
-                                    Cancelar
-                                  </Button>
+                                <div className="mt-4 space-y-3">
+                                  {/* Mode toggle */}
+                                  <div className="flex gap-1 rounded-2xl border border-line bg-ink/60 p-1">
+                                    {(["code", "percent"] as const).map((mode) => (
+                                      <button
+                                        key={mode}
+                                        type="button"
+                                        onClick={() => setDiscountMode(order.id, mode)}
+                                        className={`flex-1 rounded-xl py-1.5 text-xs font-semibold transition ${
+                                          (discountModes[order.id] ?? "code") === mode
+                                            ? "bg-neon text-white"
+                                            : "text-mist hover:text-sand"
+                                        }`}
+                                      >
+                                        {mode === "code" ? "Código de descuento" : "% Directo"}
+                                      </button>
+                                    ))}
+                                  </div>
+
+                                  {(discountModes[order.id] ?? "code") === "code" ? (
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                      <input
+                                        value={discountDrafts[order.id] ?? ""}
+                                        onChange={(event) =>
+                                          setDiscountDrafts((current) => ({
+                                            ...current,
+                                            [order.id]: event.target.value
+                                          }))
+                                        }
+                                        placeholder="Ingresar código..."
+                                        className="w-full rounded-2xl border border-line bg-ink/70 px-4 py-3 text-sm text-sand focus:border-neon/70 focus:outline-none"
+                                      />
+                                      <Button
+                                        type="button"
+                                        disabled={isSavingDiscount}
+                                        onClick={() => void handleDiscountSave(order.id)}
+                                        className="whitespace-nowrap"
+                                      >
+                                        {isSavingDiscount ? "Guardando..." : "Guardar"}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        disabled={isSavingDiscount}
+                                        onClick={cancelDiscountEdit}
+                                      >
+                                        Cancelar
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                      <div className="relative flex-1">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max="99"
+                                          step="1"
+                                          value={percentDrafts[order.id] ?? ""}
+                                          onChange={(event) =>
+                                            setPercentDrafts((current) => ({
+                                              ...current,
+                                              [order.id]: event.target.value
+                                            }))
+                                          }
+                                          placeholder="Ej: 20"
+                                          className="w-full rounded-2xl border border-line bg-ink/70 px-4 py-3 pr-10 text-sm text-sand focus:border-neon/70 focus:outline-none"
+                                        />
+                                        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-mist">
+                                          %
+                                        </span>
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        disabled={isSavingDiscount}
+                                        onClick={() => void handleDiscountSave(order.id)}
+                                        className="whitespace-nowrap"
+                                      >
+                                        {isSavingDiscount ? "Guardando..." : "Aplicar descuento"}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        disabled={isSavingDiscount}
+                                        onClick={cancelDiscountEdit}
+                                      >
+                                        Cancelar
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
                               ) : null}
                               {discountErrorOrderId === order.id && discountError ? (

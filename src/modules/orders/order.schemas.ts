@@ -170,5 +170,6 @@ export const orderAdminActionSchema = z
   );
 
 export const orderDiscountUpdateSchema = z.object({
-  discountCode: z.string().trim().max(80).nullable().optional()
+  discountCode: z.string().trim().max(80).nullable().optional(),
+  manualPercent: z.number().min(0).max(99).nullable().optional()
 });
