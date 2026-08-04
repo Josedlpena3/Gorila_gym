@@ -46,7 +46,7 @@ type CheckoutFormProps = {
 type OrderDeliveryMethodPayload = "retiro" | "envio";
 type OrderPaymentMethodPayload = "efectivo" | "transferencia" | "tarjeta";
 
-const STORE_WHATSAPP_NUMBER = "5493513552255";
+const STORE_WHATSAPP_NUMBER = "5493512288010";
 
 function getOrderDeliveryMethodValue(
   deliveryMethod: DeliveryMethod
