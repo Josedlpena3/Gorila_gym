@@ -154,13 +154,14 @@ export function CatalogToolbar({
                 if (e.key === "Enter") handleSearchSubmit();
               }}
               placeholder="¿Qué estás buscando?"
+              aria-label="Buscar productos"
               className="h-[38px] min-h-[38px] rounded-[18px] border-white/10 bg-black/20 px-3 pl-8 pr-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-neon/40 focus:border-neon/70 md:h-[44px] md:min-h-[44px] md:px-4 md:pl-9 md:pr-4 md:text-base"
             />
           </div>
           <button
             type="button"
             onClick={handleSearchSubmit}
-            className="inline-flex h-[38px] items-center whitespace-nowrap rounded-[18px] border border-neon/60 bg-neon/10 px-4 text-sm font-semibold text-neon transition hover:bg-neon/20 md:h-[44px]"
+            className="inline-flex h-[38px] items-center whitespace-nowrap rounded-[18px] border border-neon/60 bg-neon/10 px-4 text-sm font-semibold text-ember transition hover:bg-neon/20 md:h-[44px]"
           >
             Buscar
           </button>
@@ -171,7 +172,7 @@ export function CatalogToolbar({
             <button
               type="button"
               onClick={handleClearAll}
-              className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-sand transition hover:border-neon/60 hover:text-neon"
+              className="inline-flex min-h-11 items-center whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-sand transition hover:border-neon/60 hover:text-ember"
             >
               Limpiar
             </button>
@@ -184,7 +185,7 @@ export function CatalogToolbar({
             className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
               !activeCategoryId
                 ? "border-neon bg-neon text-white"
-                : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
+                : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-ember"
             }`}
           >
             Todo
@@ -199,7 +200,7 @@ export function CatalogToolbar({
               className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 category.id === activeCategoryId
                   ? "border-neon bg-neon text-white"
-                  : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
+                  : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-ember"
               }`}
             >
               {getCategoryDisplayName(category)}

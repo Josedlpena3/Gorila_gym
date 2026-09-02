@@ -378,6 +378,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
           <div className="w-full sm:w-48">
             <Select
               value={grouping}
+              aria-label="Agrupar pedidos"
               onChange={(event) => setGrouping(event.target.value as OrderGrouping)}
             >
               {Object.entries(GROUPING_LABELS).map(([value, label]) => (
@@ -577,6 +578,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                       <input
                                         value={discountDrafts[order.id] ?? ""}
+                                        aria-label={`Código de descuento del pedido ${order.code}`}
                                         onChange={(event) =>
                                           setDiscountDrafts((current) => ({
                                             ...current,
@@ -612,6 +614,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                                           max="99"
                                           step="1"
                                           value={percentDrafts[order.id] ?? ""}
+                                          aria-label={`Porcentaje de descuento del pedido ${order.code}`}
                                           onChange={(event) =>
                                             setPercentDrafts((current) => ({
                                               ...current,

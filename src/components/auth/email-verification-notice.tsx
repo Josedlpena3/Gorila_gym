@@ -76,7 +76,7 @@ export function EmailVerificationNotice({
         </Button>
 
         {verificationLink ? (
-          <a href={verificationLink} className="font-semibold text-neon">
+          <a href={verificationLink} className="font-semibold text-ember">
             Abrir enlace de verificación
           </a>
         ) : null}

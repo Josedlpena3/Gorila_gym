@@ -1,11 +1,12 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useSession } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
+import { Field, FormError } from "@/components/ui/field";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Input } from "@/components/ui/input";
 import { syncGuestCartToServer } from "@/lib/guest-cart";
 
@@ -14,7 +15,6 @@ export function LoginForm({ redirectTo = "/catalogo" }: { redirectTo?: string })
   const { refresh } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [showPassword, setShowPassword] = useState(false);
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
   const [nowTimestamp, setNowTimestamp] = useState(() => Date.now());
 
@@ -122,35 +122,34 @@ export function LoginForm({ redirectTo = "/catalogo" }: { redirectTo?: string })
         });
       }}
     >
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-mist">Email</label>
-        <Input type="email" name="email" placeholder="usuario@gmail.com" required />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-mist">Contraseña</label>
-        <div className="relative">
+      <Field label="Email">
+        {(control) => (
           <Input
-            type={showPassword ? "text" : "password"}
-            name="password"
-            placeholder="********"
-            className="pr-12"
+            {...control}
+            type="email"
+            name="email"
+            placeholder="usuario@gmail.com"
+            autoComplete="email"
             required
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword((current) => !current)}
-            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-            aria-pressed={showPassword}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-mist transition hover:text-sand"
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
+        )}
+      </Field>
 
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      <Field label="Contraseña">
+        {(control) => (
+          <PasswordInput
+            {...control}
+            name="password"
+            placeholder="********"
+            autoComplete="current-password"
+            required
+          />
+        )}
+      </Field>
+
+      <FormError>{error}</FormError>
       {isTemporarilyBlocked ? (
-        <p className="text-xs text-amber-200">
+        <p role="status" className="text-xs text-amber-200">
           El acceso está pausado temporalmente. Intentá nuevamente en unos minutos.
         </p>
       ) : null}

@@ -29,7 +29,7 @@ export function ExpandableText({
       <button
         type="button"
         onClick={() => setExpanded((current) => !current)}
-        className={`text-sm font-semibold text-neon transition hover:text-neon/80 ${buttonClassName}`.trim()}
+        className={`text-sm font-semibold text-ember transition hover:text-ember ${buttonClassName}`.trim()}
       >
         {expanded ? "Ver menos" : "Ver más"}
       </button>

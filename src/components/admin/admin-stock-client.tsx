@@ -94,11 +94,14 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
   return (
     <div className="space-y-4">
       <div className="section-card space-y-4 p-4">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre, SKU o marca"
-        />
+        <label className="space-y-2 text-sm text-mist">
+          <span>Buscar producto</span>
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre, SKU o marca"
+          />
+        </label>
         <div className="-mx-1 flex flex-wrap gap-2 px-1">
           <button
             type="button"
@@ -106,7 +109,7 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
             className={`inline-flex min-h-9 items-center whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
               !selectedCategory
                 ? "border-neon bg-neon text-white"
-                : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
+                : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-ember"
             }`}
           >
             Todas
@@ -119,7 +122,7 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
               className={`inline-flex min-h-9 items-center whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
                 selectedCategory === cat
                   ? "border-neon bg-neon text-white"
-                  : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
+                  : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-ember"
               }`}
             >
               {cat}
@@ -160,6 +163,7 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
                     min="0"
                     step="1"
                     value={row.value}
+                    aria-label={`Stock de ${product.name}`}
                     onChange={(e) => setRow(product.id, { value: e.target.value, saved: false, error: null })}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") void saveStock(product);
@@ -179,7 +183,7 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
                 </div>
               </div>
               {row.error ? (
-                <p className="mt-2 text-xs text-red-300">{row.error}</p>
+                <p role="alert" className="mt-2 text-xs text-red-300">{row.error}</p>
               ) : null}
             </article>
           );

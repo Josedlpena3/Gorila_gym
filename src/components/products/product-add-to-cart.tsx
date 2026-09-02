@@ -49,8 +49,9 @@ export function ProductAddToCart(props: Props) {
         <div className="flex min-h-11 w-fit items-center rounded-full border border-line">
           <button
             type="button"
-            className="flex h-11 w-11 items-center justify-center text-lg text-sand transition hover:text-neon disabled:opacity-30"
+            className="flex h-11 w-11 items-center justify-center text-lg text-sand transition hover:text-ember disabled:opacity-30"
             disabled={quantity <= 1}
+            aria-label="Disminuir cantidad"
             onClick={() => changeQty(quantity - 1)}
           >
             −
@@ -59,6 +60,7 @@ export function ProductAddToCart(props: Props) {
             type="text"
             inputMode="numeric"
             value={inputValue}
+            aria-label="Cantidad"
             onChange={handleInputChange}
             onBlur={handleInputCommit}
             onKeyDown={(e) => {
@@ -68,8 +70,9 @@ export function ProductAddToCart(props: Props) {
           />
           <button
             type="button"
-            className="flex h-11 w-11 items-center justify-center text-lg text-sand transition hover:text-neon disabled:opacity-30"
+            className="flex h-11 w-11 items-center justify-center text-lg text-sand transition hover:text-ember disabled:opacity-30"
             disabled={quantity >= max}
+            aria-label="Aumentar cantidad"
             onClick={() => changeQty(quantity + 1)}
           >
             +

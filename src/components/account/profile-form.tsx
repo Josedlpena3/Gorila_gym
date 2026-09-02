@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FormStatus } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 type ProfileFormProps = {
@@ -71,64 +72,75 @@ export function ProfileForm({ user }: ProfileFormProps) {
       }}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Nombre</label>
-          <Input name="firstName" defaultValue={user.firstName} required />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Apellido</label>
-          <Input name="lastName" defaultValue={user.lastName} required />
-        </div>
+        <Field label="Nombre">
+          {(control) => (
+            <Input {...control} name="firstName" defaultValue={user.firstName} required />
+          )}
+        </Field>
+        <Field label="Apellido">
+          {(control) => (
+            <Input {...control} name="lastName" defaultValue={user.lastName} required />
+          )}
+        </Field>
       </div>
 
-      <div className="space-y-2">
-        <label className="text-sm text-mist">Teléfono</label>
-        <Input name="phone" defaultValue={user.phone} required />
-      </div>
+      <Field label="Teléfono">
+        {(control) => (
+          <Input {...control} name="phone" defaultValue={user.phone} required />
+        )}
+      </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Etiqueta de dirección</label>
-          <Input name="label" defaultValue={defaultAddress?.label ?? "Casa"} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Destinatario</label>
-          <Input
-            name="recipientName"
-            defaultValue={
-              defaultAddress?.recipientName ?? `${user.firstName} ${user.lastName}`
-            }
-          />
-        </div>
+        <Field label="Etiqueta de dirección">
+          {(control) => (
+            <Input {...control} name="label" defaultValue={defaultAddress?.label ?? "Casa"} />
+          )}
+        </Field>
+        <Field label="Destinatario">
+          {(control) => (
+            <Input
+              {...control}
+              name="recipientName"
+              defaultValue={
+                defaultAddress?.recipientName ?? `${user.firstName} ${user.lastName}`
+              }
+            />
+          )}
+        </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-[2fr,1fr]">
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Calle</label>
-          <Input name="street" defaultValue={defaultAddress?.street ?? ""} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Número</label>
-          <Input name="number" defaultValue={defaultAddress?.number ?? ""} />
-        </div>
+        <Field label="Calle">
+          {(control) => (
+            <Input {...control} name="street" defaultValue={defaultAddress?.street ?? ""} />
+          )}
+        </Field>
+        <Field label="Número">
+          {(control) => (
+            <Input {...control} name="number" defaultValue={defaultAddress?.number ?? ""} />
+          )}
+        </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Ciudad</label>
-          <Input name="city" defaultValue={defaultAddress?.city ?? ""} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Provincia</label>
-          <Input name="province" defaultValue={defaultAddress?.province ?? ""} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Código postal</label>
-          <Input name="postalCode" defaultValue={defaultAddress?.postalCode ?? ""} />
-        </div>
+        <Field label="Ciudad">
+          {(control) => (
+            <Input {...control} name="city" defaultValue={defaultAddress?.city ?? ""} />
+          )}
+        </Field>
+        <Field label="Provincia">
+          {(control) => (
+            <Input {...control} name="province" defaultValue={defaultAddress?.province ?? ""} />
+          )}
+        </Field>
+        <Field label="Código postal">
+          {(control) => (
+            <Input {...control} name="postalCode" defaultValue={defaultAddress?.postalCode ?? ""} />
+          )}
+        </Field>
       </div>
 
-      {message ? <p className="text-sm text-mist">{message}</p> : null}
+      <FormStatus>{message}</FormStatus>
 
       <Button disabled={isPending}>
         {isPending ? "Guardando..." : "Guardar perfil"}

@@ -135,6 +135,7 @@ export function CartItemControls({ productId, quantity, stock, onRemove }: CartI
             type="button"
             className="flex h-11 w-11 items-center justify-center text-lg"
             disabled={localQty <= 1}
+            aria-label="Disminuir cantidad"
             onClick={() => changeQty(localQty - 1)}
           >
             -
@@ -143,6 +144,7 @@ export function CartItemControls({ productId, quantity, stock, onRemove }: CartI
             type="text"
             inputMode="numeric"
             value={inputValue}
+            aria-label="Cantidad"
             onChange={handleInputChange}
             onBlur={handleInputCommit}
             onKeyDown={(e) => {
@@ -154,6 +156,7 @@ export function CartItemControls({ productId, quantity, stock, onRemove }: CartI
             type="button"
             className="flex h-11 w-11 items-center justify-center text-lg"
             disabled={localQty >= stock || localQty >= MAX_QTY}
+            aria-label="Aumentar cantidad"
             onClick={() => changeQty(localQty + 1)}
           >
             +

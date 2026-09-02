@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import type { ProductImageDto } from "@/types";
 
 type ProductGalleryProps = {
@@ -70,7 +71,7 @@ function IconButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-ink/75 text-sand transition hover:border-neon/60 hover:text-neon ${className}`.trim()}
+      className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-ink/75 text-sand transition hover:border-neon/60 hover:text-ember ${className}`.trim()}
     >
       {children}
     </button>
@@ -90,7 +91,10 @@ export function ProductGallery({
         : [];
   const [activeIndex, setActiveIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const lightboxRef = useRef<HTMLDivElement>(null);
   const activeImage = items[activeIndex] ?? items[0];
+
+  useFocusTrap(lightboxRef, isLightboxOpen);
 
   useEffect(() => {
     setActiveIndex((current) => {
@@ -111,9 +115,6 @@ export function ProductGallery({
       return;
     }
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setIsLightboxOpen(false);
@@ -131,7 +132,6 @@ export function ProductGallery({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isLightboxOpen, items.length]);
@@ -244,9 +244,11 @@ export function ProductGallery({
 
       {isLightboxOpen ? (
         <div
+          ref={lightboxRef}
           className="fixed inset-0 z-[100] bg-ink/95 p-4 sm:p-6"
           role="dialog"
           aria-modal="true"
+          aria-label="Visor de imágenes"
         >
           <div className="mx-auto flex h-full max-w-6xl flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -296,13 +298,15 @@ export function ProductGallery({
                     key={image.id}
                     type="button"
                     onClick={() => setActiveIndex(index)}
-                  className={`relative h-20 min-w-[88px] overflow-hidden rounded-2xl border ${
-                    activeIndex === index ? "border-neon" : "border-line"
-                  }`}
-                >
+                    aria-label={`Ver imagen ${index + 1} de ${items.length}`}
+                    aria-current={activeIndex === index ? "true" : undefined}
+                    className={`relative h-20 min-w-[88px] overflow-hidden rounded-2xl border ${
+                      activeIndex === index ? "border-neon" : "border-line"
+                    }`}
+                  >
                     <Image
                       src={image.url}
-                      alt={image.alt}
+                      alt=""
                       fill
                       sizes="88px"
                       className="object-contain p-2"

@@ -61,6 +61,7 @@ function GuestItemControls({
           type="button"
           className="flex h-11 w-11 items-center justify-center text-lg"
           disabled={quantity <= 1}
+          aria-label="Disminuir cantidad"
           onClick={() => changeQty(quantity - 1)}
         >
           -
@@ -69,6 +70,7 @@ function GuestItemControls({
           type="text"
           inputMode="numeric"
           value={inputValue}
+          aria-label="Cantidad"
           onChange={handleInputChange}
           onBlur={handleInputCommit}
           onKeyDown={(e) => {
@@ -80,6 +82,7 @@ function GuestItemControls({
           type="button"
           className="flex h-11 w-11 items-center justify-center text-lg"
           disabled={quantity >= stock || quantity >= MAX_QTY}
+          aria-label="Aumentar cantidad"
           onClick={() => changeQty(quantity + 1)}
         >
           +
@@ -126,7 +129,7 @@ export function GuestCartView() {
     <div className="page-shell space-y-4">
       <Link
         href="/catalogo"
-        className="inline-flex items-center text-sm font-semibold text-sand transition hover:text-neon"
+        className="inline-flex items-center text-sm font-semibold text-sand transition hover:text-ember"
       >
         &larr; Volver a comprar
       </Link>

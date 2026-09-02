@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Menu, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/components/auth/session-provider";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { LogoutButton } from "@/components/forms/logout-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,9 @@ export function MobileNavMenu() {
   const { user } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(panelRef, isOpen);
 
   useEffect(() => {
     if (!isOpen) {
@@ -60,12 +64,18 @@ export function MobileNavMenu() {
             aria-label="Cerrar menú"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-full z-30 mt-3 w-[min(20rem,calc(100vw-2rem))] rounded-[28px] border border-line bg-ink/95 p-4 shadow-premium backdrop-blur">
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú principal"
+            className="absolute right-0 top-full z-30 mt-3 w-[min(20rem,calc(100vw-2rem))] rounded-[28px] border border-line bg-ink/95 p-4 shadow-premium backdrop-blur"
+          >
             {user ? (
               <div className="border-b border-line pb-4">
                 <Link
                   href="/mi-cuenta"
-                  className="block rounded-2xl transition hover:text-neon"
+                  className="block rounded-2xl transition hover:text-ember"
                   onClick={() => setIsOpen(false)}
                 >
                   <p className="text-sm font-semibold text-sand">Mi cuenta</p>
@@ -84,21 +94,21 @@ export function MobileNavMenu() {
             <nav className="mt-4 space-y-1 text-sm font-semibold text-sand">
               <Link
                 href="/catalogo"
-                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
                 onClick={() => setIsOpen(false)}
               >
                 Catálogo
               </Link>
               <Link
                 href="/carrito"
-                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
                 onClick={() => setIsOpen(false)}
               >
                 Carrito
               </Link>
               <Link
                 href="/mis-pedidos"
-                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
                 onClick={() => setIsOpen(false)}
               >
                 Mis pedidos
@@ -106,7 +116,7 @@ export function MobileNavMenu() {
               {user?.role === "ADMIN" ? (
                 <Link
                   href="/admin"
-                  className="flex min-h-11 items-center gap-2 rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                  className="flex min-h-11 items-center gap-2 rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
                   onClick={() => setIsOpen(false)}
                 >
                   <ShieldCheck className="h-4 w-4" />
@@ -115,7 +125,7 @@ export function MobileNavMenu() {
               ) : null}
               <Link
                 href="/encontranos"
-                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-neon"
+                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
                 onClick={() => setIsOpen(false)}
               >
                 Encontranos

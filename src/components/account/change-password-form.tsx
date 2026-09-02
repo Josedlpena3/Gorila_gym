@@ -1,17 +1,14 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Field, FormError, FormStatus } from "@/components/ui/field";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function ChangePasswordForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
     <form
@@ -55,81 +52,44 @@ export function ChangePasswordForm() {
         });
       }}
     >
-      <div className="space-y-2">
-        <label className="text-sm text-mist">Contraseña actual</label>
-        <div className="relative">
-          <Input
-            type={showCurrentPassword ? "text" : "password"}
+      <Field label="Contraseña actual">
+        {(control) => (
+          <PasswordInput
+            {...control}
             name="currentPassword"
-            className="pr-12"
             autoComplete="current-password"
             required
           />
-          <button
-            type="button"
-            onClick={() => setShowCurrentPassword((current) => !current)}
-            aria-label={showCurrentPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-            aria-pressed={showCurrentPassword}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-mist transition hover:text-sand"
-          >
-            {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
+        )}
+      </Field>
 
-      <div className="space-y-2">
-        <label className="text-sm text-mist">Nueva contraseña</label>
-        <div className="relative">
-          <Input
-            type={showNewPassword ? "text" : "password"}
+      <Field
+        label="Nueva contraseña"
+        hint="Debe tener al menos 8 caracteres, 1 mayúscula, 1 minúscula y 1 número."
+      >
+        {(control) => (
+          <PasswordInput
+            {...control}
             name="newPassword"
-            className="pr-12"
             autoComplete="new-password"
             required
           />
-          <button
-            type="button"
-            onClick={() => setShowNewPassword((current) => !current)}
-            aria-label={showNewPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-            aria-pressed={showNewPassword}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-mist transition hover:text-sand"
-          >
-            {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-        <p className="text-xs text-mist">
-          Debe tener al menos 8 caracteres, 1 mayúscula, 1 minúscula y 1 número.
-        </p>
-      </div>
+        )}
+      </Field>
 
-      <div className="space-y-2">
-        <label className="text-sm text-mist">Repetir nueva contraseña</label>
-        <div className="relative">
-          <Input
-            type={showConfirmPassword ? "text" : "password"}
+      <Field label="Repetir nueva contraseña">
+        {(control) => (
+          <PasswordInput
+            {...control}
             name="confirmPassword"
-            className="pr-12"
             autoComplete="new-password"
             required
           />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword((current) => !current)}
-            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-            aria-pressed={showConfirmPassword}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-mist transition hover:text-sand"
-          >
-            {showConfirmPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-      </div>
+        )}
+      </Field>
 
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
-      {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
+      <FormError>{error}</FormError>
+      <FormStatus className="text-emerald-300">{message}</FormStatus>
 
       <Button disabled={isPending}>
         {isPending ? "Actualizando..." : "Cambiar contraseña"}

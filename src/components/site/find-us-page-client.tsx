@@ -134,7 +134,7 @@ export function FindUsPageClient() {
 
             <div className="rounded-[28px] border border-line bg-ink/60 p-4 sm:p-5">
               <div className="flex items-start gap-3">
-                <div className="mt-1 rounded-2xl bg-neon/15 p-2 text-neon">
+                <div className="mt-1 rounded-2xl bg-neon/15 p-2 text-ember">
                   <MapPin className="h-5 w-5" />
                 </div>
                 <div>

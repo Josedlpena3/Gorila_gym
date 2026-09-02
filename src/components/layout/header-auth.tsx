@@ -44,7 +44,7 @@ export function HeaderAuth() {
         <>
           <Link
             href="/mi-cuenta"
-            className="text-right transition hover:text-neon"
+            className="text-right transition hover:text-ember"
           >
             <p className="text-sm font-semibold text-sand">Mi cuenta</p>
             <p className="text-xs uppercase tracking-[0.2em] text-mist">Ver perfil</p>

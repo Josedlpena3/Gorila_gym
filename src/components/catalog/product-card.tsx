@@ -69,7 +69,7 @@ export function ProductCard({ product }: { product: ProductCardDto }) {
             </p>
             <Link
               href={`/productos/${product.slug}`}
-              className="mb-1 text-xs text-mist transition hover:text-sand"
+              className="-my-2 mb-1 inline-flex min-h-11 items-center py-2 text-xs text-mist transition hover:text-sand"
             >
               Ver detalle
             </Link>

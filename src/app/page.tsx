@@ -25,7 +25,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden rounded-[32px] border border-line/80 bg-steel/70 px-4 py-12 shadow-premium backdrop-blur sm:px-8 sm:py-16 lg:px-16 lg:py-24">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(220,38,38,0.10),transparent_30%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.04),transparent_22%)]" />
         <div className="relative mx-auto flex max-w-5xl flex-col items-center text-center">
-          <p className="mt-6 text-[11px] font-black uppercase tracking-[0.32em] text-neon sm:mt-8 sm:text-sm">
+          <p className="mt-6 text-[11px] font-black uppercase tracking-[0.32em] text-ember sm:mt-8 sm:text-sm">
             Gorilla Strong
           </p>
           <h1 className="mt-4 text-3xl font-black uppercase tracking-[0.06em] text-sand sm:text-5xl lg:text-6xl">

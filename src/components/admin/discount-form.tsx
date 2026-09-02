@@ -4,6 +4,7 @@ import { DiscountType, PaymentMethod } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
@@ -138,52 +139,104 @@ export function DiscountForm({ discount }: DiscountFormProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input
-          name="name"
-          placeholder="Promo Córdoba"
-          required
-          defaultValue={discount?.name}
-        />
-        <Input name="code" placeholder="OTONO10" defaultValue={discount?.code ?? ""} />
-        <Select
-          name="type"
-          defaultValue={discount?.type ?? DiscountType.PERCENTAGE}
-        >
-          <option value={DiscountType.PERCENTAGE}>Porcentaje</option>
-          <option value={DiscountType.FIXED}>Monto fijo</option>
-        </Select>
-        <Input
-          type="number"
-          step="0.01"
-          name="value"
-          placeholder="10"
-          required
-          defaultValue={discount?.value}
-        />
-        <Input name="province" placeholder="Córdoba" defaultValue={discount?.province ?? ""} />
-        <Input
-          type="datetime-local"
-          name="startsAt"
-          defaultValue={formatDateTimeLocal(discount?.startsAt)}
-        />
-        <Input
-          type="datetime-local"
-          name="endsAt"
-          defaultValue={formatDateTimeLocal(discount?.endsAt)}
-        />
-        <Select name="active" defaultValue={String(discount?.active ?? true)}>
-          <option value="true">Activa</option>
-          <option value="false">Inactiva</option>
-        </Select>
+        <Field label="Nombre">
+          {(control) => (
+            <Input
+              {...control}
+              name="name"
+              placeholder="Promo Córdoba"
+              required
+              defaultValue={discount?.name}
+            />
+          )}
+        </Field>
+        <Field label="Código">
+          {(control) => (
+            <Input
+              {...control}
+              name="code"
+              placeholder="OTONO10"
+              defaultValue={discount?.code ?? ""}
+            />
+          )}
+        </Field>
+        <Field label="Tipo">
+          {(control) => (
+            <Select
+              {...control}
+              name="type"
+              defaultValue={discount?.type ?? DiscountType.PERCENTAGE}
+            >
+              <option value={DiscountType.PERCENTAGE}>Porcentaje</option>
+              <option value={DiscountType.FIXED}>Monto fijo</option>
+            </Select>
+          )}
+        </Field>
+        <Field label="Valor">
+          {(control) => (
+            <Input
+              {...control}
+              type="number"
+              step="0.01"
+              name="value"
+              placeholder="10"
+              required
+              defaultValue={discount?.value}
+            />
+          )}
+        </Field>
+        <Field label="Provincia">
+          {(control) => (
+            <Input
+              {...control}
+              name="province"
+              placeholder="Córdoba"
+              defaultValue={discount?.province ?? ""}
+            />
+          )}
+        </Field>
+        <Field label="Inicio">
+          {(control) => (
+            <Input
+              {...control}
+              type="datetime-local"
+              name="startsAt"
+              defaultValue={formatDateTimeLocal(discount?.startsAt)}
+            />
+          )}
+        </Field>
+        <Field label="Fin">
+          {(control) => (
+            <Input
+              {...control}
+              type="datetime-local"
+              name="endsAt"
+              defaultValue={formatDateTimeLocal(discount?.endsAt)}
+            />
+          )}
+        </Field>
+        <Field label="Estado">
+          {(control) => (
+            <Select {...control} name="active" defaultValue={String(discount?.active ?? true)}>
+              <option value="true">Activa</option>
+              <option value="false">Inactiva</option>
+            </Select>
+          )}
+        </Field>
       </div>
 
-      <Input
-        name="description"
-        placeholder="Beneficio especial por zona o campaña."
-        defaultValue={discount?.description ?? ""}
-      />
+      <Field label="Descripción">
+        {(control) => (
+          <Input
+            {...control}
+            name="description"
+            placeholder="Beneficio especial por zona o campaña."
+            defaultValue={discount?.description ?? ""}
+          />
+        )}
+      </Field>
 
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      <FormError>{error}</FormError>
       <Button disabled={isPending}>
         {isPending
           ? isEditing
