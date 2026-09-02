@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 import { Field, FormError, FormStatus } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 
@@ -15,7 +16,11 @@ export function ChangePasswordForm() {
       className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
-        const formData = new FormData(event.currentTarget);
+        // Se guarda la referencia antes del await: React limpia
+        // `event.currentTarget` al terminar el handler síncrono, así que
+        // llamarlo después de la petición daba null.
+        const form = event.currentTarget;
+        const formData = new FormData(form);
         const newPassword = String(formData.get("newPassword") ?? "");
         const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
@@ -28,27 +33,23 @@ export function ChangePasswordForm() {
             return;
           }
 
-          const response = await fetch("/api/auth/change-password", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              currentPassword: formData.get("currentPassword"),
-              newPassword,
-              confirmPassword
-            })
-          });
+          try {
+            const payload = await api.post<{ message?: string }>(
+              "/api/auth/change-password",
+              {
+                currentPassword: formData.get("currentPassword"),
+                newPassword,
+                confirmPassword
+              }
+            );
 
-          const payload = await response.json().catch(() => null);
-
-          if (!response.ok) {
-            setError(payload?.error ?? "No se pudo actualizar la contraseña.");
-            return;
+            setMessage(
+              payload?.message ?? "La contraseña fue actualizada correctamente."
+            );
+            form.reset();
+          } catch (error) {
+            setError(getApiErrorMessage(error, "No se pudo actualizar la contraseña."));
           }
-
-          setMessage(payload?.message ?? "La contraseña fue actualizada correctamente.");
-          event.currentTarget.reset();
         });
       }}
     >

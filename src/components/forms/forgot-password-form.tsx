@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 import { Field, FormError, FormStatus } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
@@ -25,35 +26,21 @@ export function ForgotPasswordForm() {
           setDevLink(null);
 
           try {
-            const response = await fetch("/api/auth/forgot-password", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                email: formData.get("email")
-              })
-            });
-
-            const payload = (await response.json().catch(() => null)) as
-              | {
-                  error?: string;
-                  message?: string;
-                  emailError?: string | null;
-                  resetLink?: string | null;
-                }
-              | null;
-
-            if (!response.ok) {
-              setError(payload?.error ?? "No se pudo procesar la solicitud.");
-              return;
-            }
+            const payload = await api.post<{
+              message?: string;
+              emailError?: string | null;
+              resetLink?: string | null;
+            }>(
+              "/api/auth/forgot-password",
+              { email: formData.get("email") },
+              { fallbackMessage: "No se pudo procesar la solicitud." }
+            );
 
             setMessage(payload?.message ?? "Revisá tu correo.");
             setError(payload?.emailError ?? null);
             setDevLink(payload?.resetLink ?? null);
-          } catch {
-            setError("No se pudo procesar la solicitud.");
+          } catch (error) {
+            setError(getApiErrorMessage(error, "No se pudo procesar la solicitud."));
           }
         });
       }}

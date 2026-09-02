@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useSession } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 export function LogoutButton({ className }: { className?: string }) {
@@ -18,7 +19,7 @@ export function LogoutButton({ className }: { className?: string }) {
       disabled={isPending}
       onClick={() =>
         startTransition(async () => {
-          await fetch("/api/auth/logout", { method: "POST" });
+          await api.post("/api/auth/logout").catch(() => null);
           // El header lee la sesión del cliente, así que hay que refrescarla:
           // router.refresh() solo revalida el árbol del servidor.
           await refresh();

@@ -1,4 +1,4 @@
-import { revalidatePath, unstable_cache } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { logAdminAction } from "@/lib/audit";
@@ -66,6 +66,9 @@ const DEFAULT_CATEGORIES = [
 ] as const;
 
 const DEFAULT_FEATURED_PRIORITY = 999;
+
+/** Etiqueta que agrupa todo lo cacheado de productos, para invalidarlo junto. */
+export const PRODUCTS_CACHE_TAG = "products";
 
 const productInclude = {
   category: true,
@@ -620,6 +623,45 @@ async function listProductsWithStockPriority({
   };
 }
 
+type CatalogQuery = ReturnType<typeof catalogProductQuerySchema.parse>;
+
+/**
+ * Página de catálogo sin búsqueda de texto. Se separa para poder cachearla:
+ * los filtros son un conjunto acotado (categoría, marca, objetivo, rango de
+ * precio y número de página), así que la cantidad de claves está limitada.
+ */
+async function listCatalogPageUncached(
+  data: CatalogQuery
+): Promise<CatalogProductsPageDto> {
+  const page = data.page ?? 1;
+  const limit = data.limit ?? 20;
+
+  const { total, products } = await listProductsWithStockPriority({
+    where: buildCatalogProductWhere(data),
+    orderBy: catalogOrderBy,
+    skip: (page - 1) * limit,
+    take: limit
+  });
+
+  return {
+    products: products.map(mapProductCard),
+    total,
+    page,
+    totalPages: total > 0 ? Math.ceil(total / limit) : 0
+  };
+}
+
+/**
+ * Misma consulta, servida desde el cache de datos de Next. Evita las cuatro
+ * consultas a Postgres que el catálogo hacía en cada visita: dos COUNT y dos
+ * SELECT. Las mutaciones del panel la invalidan por etiqueta.
+ */
+const listCatalogPageCached = unstable_cache(
+  listCatalogPageUncached,
+  ["catalog-page"],
+  { revalidate: 60, tags: [PRODUCTS_CACHE_TAG] }
+);
+
 export async function listCatalogProducts(filters: unknown = {}): Promise<CatalogProductsPageDto> {
   const data = catalogProductQuerySchema.parse(filters);
   const page = data.page ?? 1;
@@ -698,21 +740,9 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
     };
   }
 
-  const { total, products } = await listProductsWithStockPriority({
-    where,
-    orderBy: catalogOrderBy,
-    skip: (page - 1) * limit,
-    take: limit
-  });
-
-  const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
-
-  return {
-    products: products.map(mapProductCard),
-    total,
-    page,
-    totalPages
-  };
+  // La búsqueda libre no se cachea: cada término escrito por un visitante sería
+  // una clave nueva y el cache crecería sin límite.
+  return listCatalogPageCached(data);
 }
 
 export async function getFeaturedProducts(limit = 4) {
@@ -885,6 +915,7 @@ export async function patchProductPrice(id: string, price: number) {
  */
 function revalidateProductPages() {
   try {
+    revalidateTag(PRODUCTS_CACHE_TAG);
     revalidatePath("/");
     revalidatePath("/catalogo");
     revalidatePath("/productos/[slug]", "page");
