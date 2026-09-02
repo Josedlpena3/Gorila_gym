@@ -7,6 +7,7 @@ import { EmailVerificationBanner } from "@/components/auth/email-verification-ba
 import { SessionProvider } from "@/components/auth/session-provider";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { env } from "@/lib/env";
 
 // next/font autohospeda la fuente, la sirve desde el mismo dominio y aplica
 // size-adjust sobre el fallback, así que no introduce salto de layout.
@@ -17,9 +18,21 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Gorilla Strong",
+  // Sin metadataBase, las imágenes de Open Graph de las fichas de producto se
+  // resolvían como rutas relativas y WhatsApp no mostraba vista previa al
+  // compartir un producto.
+  metadataBase: new URL(env.appUrl || "https://gorila-strong.vercel.app"),
+  title: {
+    default: "Gorilla Strong",
+    template: "%s | Gorilla Strong"
+  },
   description:
-    "Tienda virtual de suplementos premium con catálogo, carrito, checkout y panel administrativo."
+    "Suplementos deportivos con asesoramiento personalizado. Proteínas, creatinas, pre entrenos y más, con envío a Villa Allende y zona.",
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: "Gorilla Strong"
+  }
 };
 
 // El layout es un componente servidor sin lecturas de cookies: es lo que

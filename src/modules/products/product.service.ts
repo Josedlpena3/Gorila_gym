@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { logAdminAction } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { normalizeProductImageUrl } from "@/lib/product-image";
 import { isStoredUploadUrl } from "@/lib/uploads";
 import { decimalToNumber, normalizeText, slugify } from "@/lib/utils";
 import {
@@ -501,7 +502,7 @@ function mapProductCard(product: ProductCardRecord): ProductCardDto {
     brand: product.brand,
     price: decimalToNumber(product.price) ?? 0,
     stock: product.stock,
-    image: primaryImage?.url ?? null,
+    image: normalizeProductImageUrl(primaryImage?.url),
     objective: product.objective,
     weight: product.weight,
     flavor: product.flavor
@@ -520,7 +521,7 @@ function mapProductDetail(
     featuredPriority: product.featuredPriority,
     images: product.images.map((image) => ({
       id: image.id,
-      url: image.url,
+      url: normalizeProductImageUrl(image.url),
       alt: image.alt
     }))
   };
@@ -739,6 +740,18 @@ export async function getHomeProducts(limit = 8) {
   });
 
   return products.map(mapProductCard);
+}
+
+/**
+ * Slugs de productos activos para el sitemap. Devuelve solo lo indispensable:
+ * el sitemap no necesita precios, imágenes ni descripciones.
+ */
+export async function listSitemapProducts() {
+  return prisma.product.findMany({
+    where: { active: true },
+    select: { slug: true, updatedAt: true },
+    orderBy: { updatedAt: "desc" }
+  });
 }
 
 export async function listCategories() {

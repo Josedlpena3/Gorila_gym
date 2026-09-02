@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { logAdminAction } from "@/lib/audit";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { SiteConfigDto } from "@/types";
 
@@ -136,6 +137,15 @@ export async function upsertSiteConfig(input: unknown, adminUserId: string) {
       whatsappNumber: data.whatsappNumber
     }
   });
+
+
+  // /encontranos ahora se cachea una hora: sin esto, un cambio de dirección o
+  // de WhatsApp desde el panel tardaría hasta 60 minutos en verse.
+  try {
+    revalidatePath("/encontranos");
+  } catch (error) {
+    console.warn("[site-config] no se pudo revalidar /encontranos", error);
+  }
 
   return mapSiteConfig(siteConfig);
 }
