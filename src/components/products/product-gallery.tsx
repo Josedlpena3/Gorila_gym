@@ -171,6 +171,7 @@ export function ProductGallery({
           src={activeImage.url}
           alt={activeImage.alt}
           fill
+          sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 50vw"
           className="object-contain p-4 transition duration-500 group-hover:scale-[1.03] sm:p-5"
         />
         {items.length > 1 ? (
@@ -303,6 +304,7 @@ export function ProductGallery({
                       src={image.url}
                       alt={image.alt}
                       fill
+                      sizes="88px"
                       className="object-contain p-2"
                     />
                   </button>

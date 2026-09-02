@@ -567,6 +567,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                           src={item.previewUrl}
                           alt={`Vista previa ${index + 1}`}
                           fill
+                          sizes="80px"
                           className="object-cover"
                         />
                       )}

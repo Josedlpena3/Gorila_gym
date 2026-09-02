@@ -23,28 +23,29 @@ export type ProductImageDto = {
   alt: string;
 };
 
+// Solo lo que la grilla dibuja. Todo campo de más acá se paga multiplicado por
+// la cantidad de productos de la página, serializado dos veces: como HTML y como
+// payload RSC.
 export type ProductCardDto = {
   id: string;
   slug: string;
   name: string;
   brand: string;
-  category: string;
   price: number;
   stock: number;
   image: string | null;
-  images: ProductImageDto[];
-  description: string;
   objective: string;
-  featured: boolean;
-  featuredPriority: number;
   weight?: string | null;
   flavor?: string | null;
 };
 
 export type ProductDetailDto = ProductCardDto & {
+  category: string;
+  images: ProductImageDto[];
+  description: string;
   benefits: string[];
-  weight?: string | null;
-  flavor?: string | null;
+  featured: boolean;
+  featuredPriority: number;
 };
 
 export type CatalogProductsPageDto = {

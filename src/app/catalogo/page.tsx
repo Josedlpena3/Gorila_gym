@@ -119,7 +119,13 @@ export default async function CatalogPage({
         categories={categories}
       />
 
-      <CatalogProductFeed initialData={data} queryString={apiQuery} />
+      {/* key: al cambiar los filtros React remonta el feed y su estado arranca
+          limpio desde initialData, sin necesidad de un efecto de reinicio. */}
+      <CatalogProductFeed
+        key={apiQuery}
+        initialData={data}
+        queryString={apiQuery}
+      />
     </div>
   );
 }
