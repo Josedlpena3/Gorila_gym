@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api-client";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 
@@ -70,16 +71,11 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
     setRow(product.id, { saving: true, error: null });
 
     try {
-      const response = await fetch(`/api/admin/products/${product.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stock: newStock })
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.error ?? "Error al guardar");
-      }
+      await api.patch(
+        `/api/admin/products/${product.id}`,
+        { stock: newStock },
+        { fallbackMessage: "Error al guardar" }
+      );
 
       setRow(product.id, { saving: false, saved: true, error: null });
       setTimeout(() => setRow(product.id, { saved: false }), 2000);

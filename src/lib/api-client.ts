@@ -43,11 +43,14 @@ async function request<T>(
   options: RequestOptions = {}
 ): Promise<T> {
   const hasBody = body !== undefined;
+  // FormData lleva su propio Content-Type con el boundary: fijarlo a mano rompe
+  // la subida de archivos.
+  const isFormData = body instanceof FormData;
 
   const response = await fetch(path, {
     method,
-    headers: hasBody ? { "Content-Type": "application/json" } : undefined,
-    body: hasBody ? JSON.stringify(body) : undefined,
+    headers: hasBody && !isFormData ? { "Content-Type": "application/json" } : undefined,
+    body: hasBody ? (isFormData ? body : JSON.stringify(body)) : undefined,
     signal: options.signal,
     cache: options.cache
   });

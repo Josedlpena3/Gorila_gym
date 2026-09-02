@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api-client";
 import { Field, FormError, FormStatus } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type { SiteConfigDto } from "@/types";
@@ -29,21 +30,11 @@ export function SiteConfigForm({
           setSuccess(null);
 
           try {
-            const response = await fetch("/api/admin/site-config", {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(form)
-            });
-            const payload = (await response.json().catch(() => null)) as
-              | (SiteConfigDto & { error?: string })
-              | null;
-
-            if (!response.ok || !payload) {
-              setError(payload?.error ?? "No se pudo guardar la configuración.");
-              return;
-            }
+            const payload = await api.put<SiteConfigDto>(
+              "/api/admin/site-config",
+              form,
+              { fallbackMessage: "No se pudo guardar la configuración." }
+            );
 
             setForm({
               address: payload.address,
