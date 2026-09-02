@@ -33,10 +33,10 @@ export default async function OrdersPage({
   return (
     <div className="page-shell space-y-6">
       <div className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.24em] text-mist sm:text-sm sm:tracking-[0.3em]">
+        <p className="text-xs uppercase tracking-eyebrow text-mist sm:text-sm sm:tracking-eyebrow-wide">
           Pedidos
         </p>
-        <h1 className="text-2xl font-black uppercase tracking-[0.06em] text-sand sm:text-4xl">
+        <h1 className="text-2xl font-black uppercase tracking-hero text-sand sm:text-4xl">
           Historial y seguimiento
         </h1>
       </div>
@@ -49,7 +49,7 @@ export default async function OrdersPage({
 
       {orders.length === 0 ? (
         <div className="section-card p-6 text-center sm:p-10">
-          <h2 className="text-xl font-black uppercase tracking-[0.08em] text-sand sm:text-2xl">
+          <h2 className="text-xl font-black uppercase tracking-display text-sand sm:text-2xl">
             Todavía no tenés pedidos
           </h2>
           <p className="mt-3 text-mist">
@@ -68,8 +68,8 @@ export default async function OrdersPage({
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-[0.2em] text-mist">Pedido</p>
-                    <h2 className="mt-2 text-xl font-black uppercase tracking-[0.08em] text-sand sm:text-2xl">
+                    <p className="text-xs uppercase tracking-eyebrow text-mist">Pedido</p>
+                    <h2 className="mt-2 text-xl font-black uppercase tracking-display text-sand sm:text-2xl">
                       {order.code}
                     </h2>
                     <p className="mt-2 text-sm text-mist">

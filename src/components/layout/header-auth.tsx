@@ -8,24 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 /**
- * Enlace al panel, solo para admins. Va aparte del bloque de la derecha porque
- * vive en el medio del header, dentro de la navegación principal.
- */
-export function HeaderAdminLink() {
-  const { user } = useSession();
-
-  if (user?.role !== "ADMIN") {
-    return null;
-  }
-
-  return (
-    <Link href="/admin" className="hover:text-sand">
-      Admin
-    </Link>
-  );
-}
-
-/**
  * Estado de sesión del header. El ancho mínimo del contenedor está fijado para
  * que pasar de "cargando" a invitado o a usuario logueado no desplace la
  * navegación de al lado (CLS = 0).
@@ -47,7 +29,7 @@ export function HeaderAuth() {
             className="text-right transition hover:text-ember"
           >
             <p className="text-sm font-semibold text-sand">Mi cuenta</p>
-            <p className="text-xs uppercase tracking-[0.2em] text-mist">Ver perfil</p>
+            <p className="text-xs uppercase tracking-eyebrow text-mist">Ver perfil</p>
           </Link>
           <Badge variant={user.role === "ADMIN" ? "success" : "info"}>
             {user.role === "ADMIN" ? "Administrador" : "Cliente"}

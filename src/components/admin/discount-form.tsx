@@ -118,7 +118,7 @@ export function DiscountForm({ discount }: DiscountFormProps) {
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black uppercase tracking-[0.08em] text-sand">
+          <h2 className="text-xl font-black uppercase tracking-display text-sand">
             {isEditing ? "Editar promoción" : "Nueva promoción"}
           </h2>
           <p className="text-sm text-mist">

@@ -49,7 +49,8 @@ export function CartItemControls({ productId, quantity, stock, onRemove }: CartI
           router.refresh();
         } else {
           const error = await response.json().catch(() => null);
-          alert(error?.error ?? "No se pudo actualizar el carrito.");
+          const { toast } = await import("sonner");
+          toast.error(error?.error ?? "No se pudo actualizar el carrito.");
           // Revert to last committed value
           setLocalQty(committedQtyRef.current);
           setInputValue(String(committedQtyRef.current));

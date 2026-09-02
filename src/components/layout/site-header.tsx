@@ -2,8 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HeaderAdminLink, HeaderAuth } from "@/components/layout/header-auth";
+import { HeaderAuth } from "@/components/layout/header-auth";
 import { MobileNavMenu } from "@/components/layout/mobile-nav-menu";
+import { SiteNav } from "@/components/layout/site-nav";
 
 /**
  * El header es estático a propósito: el estado de sesión lo resuelven
@@ -26,30 +27,16 @@ export function SiteHeader() {
             />
           </div>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-sand sm:text-xs sm:tracking-[0.24em]">
+            <p className="truncate text-[10px] font-black uppercase tracking-eyebrow text-sand sm:text-xs sm:tracking-eyebrow">
               Gorilla Strong
             </p>
-            <p className="truncate text-[9px] uppercase tracking-[0.24em] text-mist sm:text-[10px] sm:tracking-[0.3em]">
+            <p className="truncate text-[9px] uppercase tracking-eyebrow text-mist sm:text-[10px] sm:tracking-eyebrow-wide">
               Suplementacion premium
             </p>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm text-mist lg:flex">
-          <Link href="/catalogo" className="hover:text-sand">
-            Catálogo
-          </Link>
-          <Link href="/encontranos" className="hover:text-sand">
-            Encontranos
-          </Link>
-          <Link href="/carrito" className="hover:text-sand">
-            Carrito
-          </Link>
-          <Link href="/mis-pedidos" className="hover:text-sand">
-            Mis pedidos
-          </Link>
-          <HeaderAdminLink />
-        </nav>
+        <SiteNav />
 
         <div className="flex items-center gap-2 sm:gap-3">
           <Link

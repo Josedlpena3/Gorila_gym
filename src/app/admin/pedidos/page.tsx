@@ -9,8 +9,8 @@ export default async function AdminOrdersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm uppercase tracking-[0.3em] text-mist">Pedidos</p>
-        <h1 className="text-4xl font-black uppercase tracking-[0.08em] text-sand">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Pedidos</p>
+        <h1 className="text-4xl font-black uppercase tracking-display text-sand">
           Gestión operativa
         </h1>
       </div>

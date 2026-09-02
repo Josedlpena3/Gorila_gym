@@ -29,8 +29,8 @@ export function StatusCard({
 }) {
   return (
     <div className={cn("section-card p-6 sm:p-8", className)}>
-      <p className="text-xs uppercase tracking-[0.28em] text-mist">{eyebrow}</p>
-      <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-3xl">
+      <p className="text-xs uppercase tracking-eyebrow-wide text-mist">{eyebrow}</p>
+      <h2 className="mt-3 text-2xl font-black uppercase tracking-display text-sand sm:text-3xl">
         {title}
       </h2>
       <p className="mt-4 max-w-3xl text-sm leading-7 text-mist sm:text-base">

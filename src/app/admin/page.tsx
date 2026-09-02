@@ -18,8 +18,8 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm uppercase tracking-[0.3em] text-mist">Dashboard</p>
-        <h1 className="text-4xl font-black uppercase tracking-[0.08em] text-sand">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Dashboard</p>
+        <h1 className="text-4xl font-black uppercase tracking-display text-sand">
           Operación Gorilla Strong
         </h1>
       </div>
@@ -36,8 +36,8 @@ export default async function AdminDashboardPage() {
       <section className="section-card p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-mist">Actividad</p>
-            <h2 className="text-2xl font-black uppercase tracking-[0.08em] text-sand">
+            <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Actividad</p>
+            <h2 className="text-2xl font-black uppercase tracking-display text-sand">
               Pedidos recientes
             </h2>
           </div>

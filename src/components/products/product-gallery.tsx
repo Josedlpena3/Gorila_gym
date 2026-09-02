@@ -252,7 +252,7 @@ export function ProductGallery({
         >
           <div className="mx-auto flex h-full max-w-6xl flex-col gap-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-mist">
+              <p className="text-sm font-semibold uppercase tracking-eyebrow text-mist">
                 Imagen {activeIndex + 1} de {items.length}
               </p>
               <IconButton label="Cerrar visor" onClick={() => setIsLightboxOpen(false)}>

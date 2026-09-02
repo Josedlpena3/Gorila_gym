@@ -16,6 +16,15 @@ const config: Config = {
           "sans-serif"
         ]
       },
+      // Había ocho valores de tracking distintos para tres conceptos, y esa
+      // deriva es la razón de que la jerarquía visual cambie sutilmente entre
+      // páginas. Se consolidan en cuatro tokens con nombre.
+      letterSpacing: {
+        eyebrow: "0.24em",
+        "eyebrow-wide": "0.3em",
+        display: "0.08em",
+        hero: "0.06em"
+      },
       colors: {
         ink: "#0a0a0a",
         steel: "#141414",

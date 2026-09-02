@@ -87,7 +87,7 @@ export function OrderVisualForm({
 
   return (
     <div className="space-y-3 rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-      <p className="text-xs uppercase tracking-[0.24em] text-mist">Marcado interno</p>
+      <p className="text-xs uppercase tracking-eyebrow text-mist">Marcado interno</p>
 
       <label className="flex items-center gap-3 text-sand">
         <input
@@ -111,7 +111,7 @@ export function OrderVisualForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <Field
             label="Color"
-            labelClassName="text-xs uppercase tracking-[0.2em] text-mist"
+            labelClassName="text-xs uppercase tracking-eyebrow text-mist"
           >
             {(control) => (
               <Select
@@ -134,7 +134,7 @@ export function OrderVisualForm({
 
           <Field
             label="Vendedor"
-            labelClassName="text-xs uppercase tracking-[0.2em] text-mist"
+            labelClassName="text-xs uppercase tracking-eyebrow text-mist"
           >
             {(control) => (
               <Input

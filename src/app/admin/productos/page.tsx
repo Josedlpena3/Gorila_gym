@@ -10,8 +10,8 @@ export default async function AdminProductsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm uppercase tracking-[0.3em] text-mist">Productos</p>
-          <h1 className="text-4xl font-black uppercase tracking-[0.08em] text-sand">
+          <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Productos</p>
+          <h1 className="text-4xl font-black uppercase tracking-display text-sand">
             Catálogo editable
           </h1>
         </div>

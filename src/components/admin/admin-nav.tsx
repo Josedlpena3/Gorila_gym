@@ -21,7 +21,7 @@ export function AdminNav() {
 
   return (
     <aside className="section-card h-fit p-4">
-      <p className="px-3 py-2 text-xs uppercase tracking-[0.28em] text-mist">
+      <p className="px-3 py-2 text-xs uppercase tracking-eyebrow-wide text-mist">
         Administración
       </p>
       <nav className="mt-2 space-y-1">

@@ -232,8 +232,8 @@ export function CheckoutForm({
   if (successOrderCode) {
     return (
       <div className="section-card mx-auto max-w-2xl p-6 text-center sm:p-8">
-        <p className="text-sm uppercase tracking-[0.28em] text-mist">Pedido recibido</p>
-        <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-3xl">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Pedido recibido</p>
+        <h2 className="mt-3 text-2xl font-black uppercase tracking-display text-sand sm:text-3xl">
           Ya registramos tu compra
         </h2>
         <p className="mt-4 text-sm leading-6 text-mist sm:text-base">
@@ -266,7 +266,7 @@ export function CheckoutForm({
   if (!activeCart || activeCart.items.length === 0) {
     return (
       <div className="section-card p-6 text-center sm:p-8">
-        <h2 className="text-xl font-black uppercase tracking-[0.08em] text-sand sm:text-2xl">
+        <h2 className="text-xl font-black uppercase tracking-display text-sand sm:text-2xl">
           Tu carrito está vacío
         </h2>
         <p className="mt-3 text-sm text-mist sm:text-base">
