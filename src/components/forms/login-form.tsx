@@ -4,12 +4,14 @@ import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { useSession } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { syncGuestCartToServer } from "@/lib/guest-cart";
 
 export function LoginForm({ redirectTo = "/catalogo" }: { redirectTo?: string }) {
   const router = useRouter();
+  const { refresh } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
@@ -107,6 +109,10 @@ export function LoginForm({ redirectTo = "/catalogo" }: { redirectTo?: string })
                 console.warn("[login] no se pudo sincronizar el carrito invitado");
               }
             }
+
+            // El header lee la sesión del cliente: sin este refresh seguiría
+            // mostrando "Ingresar" después de un login exitoso.
+            await refresh();
 
             router.push(nextPath);
             router.refresh();

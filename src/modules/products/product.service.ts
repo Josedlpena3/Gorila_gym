@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { logAdminAction } from "@/lib/audit";
@@ -842,6 +842,25 @@ export async function patchProductPrice(id: string, price: number) {
   return { id: product.id, price: decimalToNumber(product.price) ?? 0 };
 }
 
+/**
+ * Invalida el HTML prerenderizado que muestra productos. Sin esto, un cambio de
+ * precio o de stock desde el admin tardaría hasta la ventana de `revalidate` en
+ * verse en la home y en las fichas de producto.
+ *
+ * Va en try/catch porque revalidatePath solo es válido dentro de un request de
+ * Next: un script de mantenimiento puede llamar al servicio fuera de ese
+ * contexto y no debe romper la mutación por no poder limpiar un cache.
+ */
+function revalidateProductPages() {
+  try {
+    revalidatePath("/");
+    revalidatePath("/catalogo");
+    revalidatePath("/productos/[slug]", "page");
+  } catch (error) {
+    console.warn("[products] no se pudo revalidar el cache de páginas", error);
+  }
+}
+
 export async function createProduct(input: unknown, adminUserId: string) {
   const data = productSchema.parse(input);
   const sku = data.sku?.trim() || generateSku();
@@ -903,6 +922,8 @@ export async function createProduct(input: unknown, adminUserId: string) {
       sku
     }
   });
+
+  revalidateProductPages();
 
   return product;
 }
@@ -1038,6 +1059,8 @@ export async function updateProduct(
     }
   });
 
+  revalidateProductPages();
+
   return product;
 }
 
@@ -1073,6 +1096,8 @@ export async function deleteProduct(id: string, adminUserId: string) {
       entityId: archived.id
     });
 
+    revalidateProductPages();
+
     return archived;
   }
 
@@ -1086,6 +1111,8 @@ export async function deleteProduct(id: string, adminUserId: string) {
     entity: "product",
     entityId: id
   });
+
+  revalidateProductPages();
 
   return { id };
 }

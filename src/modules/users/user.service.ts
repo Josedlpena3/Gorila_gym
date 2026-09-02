@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { RoleKey } from "@prisma/client";
 import { getSessionPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
@@ -10,7 +11,9 @@ import {
 } from "@/modules/users/user.dto";
 import { profileSchema } from "@/modules/users/user.schemas";
 
-export async function getCurrentUser() {
+// cache() de React deduplica la consulta dentro de un mismo request: el layout,
+// la pagina y cualquier componente que la pida comparten una sola lectura.
+export const getCurrentUser = cache(async () => {
   const session = getSessionPayload();
 
   if (!session) {
@@ -27,7 +30,7 @@ export async function getCurrentUser() {
   }
 
   return mapCurrentUser(user);
-}
+});
 
 export async function tryGetCurrentUser(context = "user-service") {
   try {

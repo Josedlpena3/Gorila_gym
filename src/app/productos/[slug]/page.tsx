@@ -3,13 +3,23 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { BackToCatalogLink } from "@/components/products/back-to-catalog-link";
 import { ProductAddToCart } from "@/components/products/product-add-to-cart";
-import { StatusCard } from "@/components/layout/status-card";
 import { ProductGallery } from "@/components/products/product-gallery";
 import { Badge } from "@/components/ui/badge";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { formatCurrency } from "@/lib/utils";
 import { getProductBySlug } from "@/modules/products/product.service";
-import { tryGetCurrentUser } from "@/modules/users/user.service";
+
+// ISR: la ficha se cachea y se sirve desde el CDN. Las mutaciones del admin la
+// invalidan al instante (revalidateProductPages en product.service).
+export const revalidate = 60;
+
+// Devolver [] no prerenderiza ninguna ficha durante el build —así el deploy no
+// depende de que la base responda— pero sí habilita el cache on-demand: cada
+// producto se genera en su primera visita y después se sirve cacheado. Sin este
+// export, Next trata la ruta como totalmente dinámica y `revalidate` se ignora.
+export function generateStaticParams() {
+  return [];
+}
 
 // React.cache deduplica la DB call entre generateMetadata y el render de la página
 const getProductCached = cache((slug: string) => getProductBySlug(slug));
@@ -42,46 +52,15 @@ export async function generateMetadata({
   };
 }
 
-async function loadProduct(slug: string) {
-  try {
-    return {
-      product: await getProductCached(slug),
-      hasError: false
-    };
-  } catch (error) {
-    console.error(`[product-page] no se pudo cargar el producto ${slug}`, error);
-    return {
-      product: null,
-      hasError: true
-    };
-  }
-}
-
 export default async function ProductPage({
   params
 }: {
   params: { slug: string };
 }) {
-  const [{ product, hasError }, user] = await Promise.all([
-    loadProduct(params.slug),
-    tryGetCurrentUser("product-page")
-  ]);
-
-  if (hasError) {
-    return (
-      <div className="page-shell">
-        <StatusCard
-          eyebrow="Producto"
-          title="No se pudo cargar este producto."
-          description="El render no se convirtió en `404`: falló la lectura de la base de datos y la página respondió con un estado visible para que puedas corregir la conexión remota."
-          actions={[
-            { href: "/catalogo", label: "Volver al catálogo" },
-            { href: "/", label: "Ir a la home", variant: "secondary" }
-          ]}
-        />
-      </div>
-    );
-  }
+  // Los errores de base se dejan propagar al error boundary: bajo ISR, cachear
+  // una ficha rota la dejaría rota durante toda la ventana de revalidación,
+  // mientras que al fallar Next sigue sirviendo la última versión buena.
+  const product = await getProductCached(params.slug);
 
   if (!product) {
     notFound();
@@ -125,8 +104,6 @@ export default async function ProductPage({
                 productPrice={product.price}
                 productStock={product.stock}
                 disabled={product.stock <= 0}
-                requiresLogin={!user}
-                nextPath={`/productos/${product.slug}`}
               />
             </div>
           </div>

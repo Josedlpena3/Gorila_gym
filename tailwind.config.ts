@@ -4,6 +4,18 @@ const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          "var(--font-sans)",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif"
+        ]
+      },
       colors: {
         ink: "#0a0a0a",
         steel: "#141414",

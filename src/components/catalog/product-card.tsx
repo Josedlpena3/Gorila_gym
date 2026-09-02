@@ -6,13 +6,7 @@ import { OBJECTIVE_LABELS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import type { ProductCardDto } from "@/types";
 
-export function ProductCard({
-  product,
-  requiresLogin
-}: {
-  product: ProductCardDto;
-  requiresLogin?: boolean;
-}) {
+export function ProductCard({ product }: { product: ProductCardDto }) {
   const isOutOfStock = product.stock <= 0;
 
   return (
@@ -90,8 +84,6 @@ export function ProductCard({
             productPrice={product.price}
             productStock={product.stock}
             disabled={product.stock <= 0}
-            requiresLogin={requiresLogin}
-            nextPath={`/productos/${product.slug}`}
           />
         </div>
       </div>
