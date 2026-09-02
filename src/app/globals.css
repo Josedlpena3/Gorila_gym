@@ -47,8 +47,41 @@ textarea {
   @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
 }
 
+/*
+ * Superficie base de la interfaz. El borde visible y el brillo interior
+ * superior son lo que despega la tarjeta del fondo: antes el color de tarjeta
+ * era casi idéntico al de la página y todo se leía como un plano único.
+ */
 .section-card {
-  @apply rounded-[28px] border border-line/80 bg-steel/70 shadow-premium backdrop-blur;
+  @apply rounded-3xl border border-hairline bg-surface shadow-card;
+}
+
+/* Tarjeta que responde al mouse: se eleva y el borde se enciende. */
+.card-interactive {
+  @apply rounded-3xl border border-hairline bg-surface shadow-card transition duration-300;
+}
+.card-interactive:hover {
+  @apply -translate-y-0.5 border-white/15 bg-surface-raised shadow-card-hover;
+}
+
+/* Contenedor de la foto de producto: un hueco apenas más oscuro que la tarjeta,
+   con un halo suave detrás para que el recorte no quede flotando en la nada. */
+.product-media {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.055), transparent 62%),
+    #0e0f12;
+}
+
+/* Línea divisoria del ancho del contenido, para cerrar secciones sin cajas. */
+.rule-soft {
+  @apply border-t border-hairline/70;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-interactive,
+  .card-interactive:hover {
+    @apply translate-y-0 transition-none;
+  }
 }
 
 .mesh-line {

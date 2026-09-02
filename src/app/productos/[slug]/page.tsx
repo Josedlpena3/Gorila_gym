@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { notFound } from "next/navigation";
+import { Check, MessageCircle, Truck, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import { BackToCatalogLink } from "@/components/products/back-to-catalog-link";
 import { ProductAddToCart } from "@/components/products/product-add-to-cart";
@@ -67,34 +68,43 @@ export default async function ProductPage({
   }
 
   return (
-    <div className="page-shell space-y-4">
+    <div className="page-shell space-y-10">
       <BackToCatalogLink />
 
-      <div className="grid gap-4 lg:grid-cols-[0.85fr,1.15fr] lg:items-start xl:gap-6">
+      <div className="grid gap-6 lg:grid-cols-[0.9fr,1.1fr] lg:items-start xl:gap-10">
         <ProductGallery images={product.images} />
 
-        <div className="section-card p-4 sm:p-6 lg:p-7">
-          <div className="flex flex-wrap gap-2">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
             <Badge>{product.category}</Badge>
             <Badge variant={product.stock > 0 ? "success" : "warning"}>
               {product.stock > 0 ? "En stock" : "Sin stock"}
             </Badge>
+            {product.stock > 0 && product.stock <= 3 ? (
+              <span className="rounded-full bg-neon/15 px-3 py-1 text-xs font-semibold text-ember">
+                Quedan {product.stock}
+              </span>
+            ) : null}
           </div>
-          <p className="mt-3 text-xs uppercase tracking-eyebrow-wide text-mist sm:text-sm sm:tracking-eyebrow-wide">
+
+          <p className="mt-5 text-xs font-semibold uppercase tracking-eyebrow-wide text-mist">
             {product.brand}
           </p>
-          <h1 className="mt-3 text-3xl font-black uppercase tracking-hero text-sand sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-black uppercase leading-[1.05] tracking-hero text-sand sm:text-4xl">
             {product.name}
           </h1>
 
-          <div className="sticky bottom-3 z-10 mt-4 flex flex-col gap-3 rounded-[28px] border border-line bg-ink/90 p-4 shadow-premium backdrop-blur sm:static sm:flex-row sm:items-end sm:justify-between sm:bg-ink/55 sm:shadow-none sm:backdrop-blur-0">
-            <div>
-              <p className="text-sm text-mist">Precio</p>
-              <p className="text-3xl font-black text-sand sm:text-4xl">
-                {formatCurrency(product.price)}
-              </p>
-            </div>
-            <div className="w-full sm:max-w-xs">
+          {product.weight || product.flavor ? (
+            <p className="mt-3 text-sm text-mist">
+              {[product.weight, product.flavor].filter(Boolean).join(" · ")}
+            </p>
+          ) : null}
+
+          <div className="sticky bottom-3 z-10 mt-6 rounded-3xl border border-hairline bg-surface/95 p-4 shadow-card backdrop-blur sm:static sm:bg-surface sm:backdrop-blur-0">
+            <p className="text-4xl font-black tracking-[-0.03em] text-sand sm:text-5xl">
+              {formatCurrency(product.price)}
+            </p>
+            <div className="mt-4">
               <ProductAddToCart
                 productId={product.id}
                 productSlug={product.slug}
@@ -108,40 +118,57 @@ export default async function ProductPage({
             </div>
           </div>
 
-          <div className="mt-4 text-sm leading-6 text-mist sm:text-base">
-            <ExpandableText text={product.description} collapsedLength={320} />
+          {/* Señales de confianza: lo que alguien quiere saber antes de comprar
+              y que antes no estaba en ningún lado de la ficha. */}
+          <ul className="mt-5 grid gap-2.5">
+            {[
+              {
+                icon: Truck,
+                text: "Envío a Villa Allende y zona, o retiro en el local."
+              },
+              {
+                icon: Wallet,
+                text: "Pagás en efectivo, por transferencia o con tarjeta."
+              },
+              {
+                icon: MessageCircle,
+                text: "Coordinamos la entrega con vos por WhatsApp."
+              }
+            ].map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3 text-sm text-mist">
+                <Icon
+                  className="h-4 w-4 shrink-0 text-ember"
+                  aria-hidden="true"
+                />
+                {text}
+              </li>
+            ))}
+          </ul>
+
+          <div className="rule-soft mt-7 pt-6">
+            <h2 className="text-sm font-semibold uppercase tracking-eyebrow text-mist">
+              Descripción
+            </h2>
+            <div className="mt-3 text-sm leading-7 text-mist sm:text-base">
+              <ExpandableText text={product.description} collapsedLength={320} />
+            </div>
           </div>
 
-          {(product.weight || product.flavor) ? (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {product.weight ? (
-                <div className="rounded-3xl border border-line bg-ink/70 p-3.5 sm:p-4">
-                  <p className="text-sm text-mist">Presentación</p>
-                  <p className="mt-1.5 text-base font-semibold text-sand sm:text-lg">
-                    {product.weight}
-                  </p>
-                </div>
-              ) : null}
-              {product.flavor ? (
-                <div className="rounded-3xl border border-line bg-ink/70 p-3.5 sm:p-4">
-                  <p className="text-sm text-mist">Sabor</p>
-                  <p className="mt-1.5 text-base font-semibold text-sand sm:text-lg">
-                    {product.flavor}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
           {product.benefits.length > 0 ? (
-            <div className="mt-5">
-              <p className="text-sm uppercase tracking-eyebrow text-mist">Beneficios</p>
-              <ul className="mt-3 grid gap-2.5 text-sm text-sand sm:grid-cols-2">
+            <div className="rule-soft mt-7 pt-6">
+              <h2 className="text-sm font-semibold uppercase tracking-eyebrow text-mist">
+                Beneficios
+              </h2>
+              <ul className="mt-3 grid gap-2 text-sm text-sand sm:grid-cols-2">
                 {product.benefits.map((benefit) => (
                   <li
                     key={benefit}
-                    className="rounded-2xl border border-line bg-ink/60 p-3 leading-5"
+                    className="flex items-start gap-2.5 rounded-2xl border border-hairline bg-surface p-3 leading-5"
                   >
+                    <Check
+                      className="mt-0.5 h-4 w-4 shrink-0 text-ember"
+                      aria-hidden="true"
+                    />
                     {benefit}
                   </li>
                 ))}
