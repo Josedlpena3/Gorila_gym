@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 import { Field, FormError } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
 
@@ -28,21 +29,14 @@ export function ResetPasswordForm({ token }: { token: string }) {
             return;
           }
 
-          const response = await fetch("/api/auth/reset-password", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
+          try {
+            await api.post("/api/auth/reset-password", {
               token,
               password,
               confirmPassword
-            })
-          });
-
-          if (!response.ok) {
-            const payload = await response.json().catch(() => null);
-            setError(payload?.error ?? "No se pudo actualizar la contraseña.");
+            });
+          } catch (error) {
+            setError(getApiErrorMessage(error, "No se pudo actualizar la contraseña."));
             return;
           }
 

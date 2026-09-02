@@ -11,7 +11,6 @@ type ProductGalleryProps = {
     url: string;
     alt: string;
   } | null;
-  mode?: "card" | "detail";
 };
 
 function ArrowLeftIcon() {
@@ -80,8 +79,7 @@ function IconButton({
 
 export function ProductGallery({
   images,
-  fallback,
-  mode = "detail"
+  fallback
 }: ProductGalleryProps) {
   const items =
     images.length > 0
@@ -147,54 +145,11 @@ export function ProductGallery({
   }
 
   if (!activeImage) {
-    if (mode === "card") {
-      return (
-        <div className="flex aspect-square items-center justify-center bg-steel/70 px-4 text-center text-xs text-mist sm:text-sm">
-          Sin imagen
-        </div>
-      );
-    }
-
     return (
       <div className="relative overflow-hidden rounded-[34px] border border-line bg-steel">
         <div className="flex h-[300px] w-full items-center justify-center text-sm text-mist sm:h-[360px] lg:h-[420px]">
           Sin imagen disponible
         </div>
-      </div>
-    );
-  }
-
-  if (mode === "card") {
-    return (
-      <div className="relative aspect-square overflow-hidden bg-steel/70">
-        <Image
-          src={activeImage.url}
-          alt={activeImage.alt}
-          fill
-          sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 50vw"
-          className="object-contain p-4 transition duration-500 group-hover:scale-[1.03] sm:p-5"
-        />
-        {items.length > 1 ? (
-          <>
-            <IconButton
-              label="Imagen anterior"
-              className="absolute left-3 top-1/2 z-10 -translate-y-1/2"
-              onClick={() => move("prev")}
-            >
-              <ArrowLeftIcon />
-            </IconButton>
-            <IconButton
-              label="Imagen siguiente"
-              className="absolute right-3 top-1/2 z-10 -translate-y-1/2"
-              onClick={() => move("next")}
-            >
-              <ArrowRightIcon />
-            </IconButton>
-            <div className="absolute bottom-3 right-3 rounded-full bg-ink/70 px-3 py-1 text-xs font-semibold text-sand">
-              {activeIndex + 1}/{items.length}
-            </div>
-          </>
-        ) : null}
       </div>
     );
   }
