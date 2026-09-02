@@ -1,17 +1,15 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Field, FormError } from "@/components/ui/field";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function ResetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
     <form
@@ -52,55 +50,31 @@ export function ResetPasswordForm({ token }: { token: string }) {
         });
       }}
     >
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-mist">Nueva contraseña</label>
-        <div className="relative">
-          <Input
-            type={showPassword ? "text" : "password"}
+      <Field label="Nueva contraseña">
+        {(control) => (
+          <PasswordInput
+            {...control}
             name="password"
             placeholder="Nueva contraseña"
-            className="pr-12"
             autoComplete="new-password"
             required
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword((current) => !current)}
-            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-            aria-pressed={showPassword}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-mist transition hover:text-sand"
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-mist">Repetir nueva contraseña</label>
-        <div className="relative">
-          <Input
-            type={showConfirmPassword ? "text" : "password"}
+        )}
+      </Field>
+
+      <Field label="Repetir nueva contraseña">
+        {(control) => (
+          <PasswordInput
+            {...control}
             name="confirmPassword"
             placeholder="Repetí la nueva contraseña"
-            className="pr-12"
             autoComplete="new-password"
             required
           />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword((current) => !current)}
-            aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-            aria-pressed={showConfirmPassword}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-mist transition hover:text-sand"
-          >
-            {showConfirmPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-      </div>
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        )}
+      </Field>
+
+      <FormError>{error}</FormError>
       <Button className="w-full" disabled={isPending}>
         {isPending ? "Actualizando..." : "Actualizar contraseña"}
       </Button>

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -425,99 +426,121 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {product ? (
-          <div className="space-y-2">
-            <label className="text-sm text-mist">SKU</label>
-            <Input name="sku" defaultValue={product.sku} readOnly className="cursor-default opacity-60" />
-          </div>
+          <Field label="SKU">
+            {(control) => (
+              <Input
+                {...control}
+                name="sku"
+                defaultValue={product.sku}
+                readOnly
+                className="cursor-default opacity-60"
+              />
+            )}
+          </Field>
         ) : null}
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Nombre</label>
-          <Input name="name" defaultValue={product?.name ?? ""} required />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Marca</label>
-          <Input name="brand" defaultValue={product?.brand ?? ""} required />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Categoría</label>
-          <Select
-            name="categoryId"
-            value={selectedCategoryId}
-            onChange={(event) => setSelectedCategoryId(event.target.value)}
-            disabled={availableCategories.length === 0}
+        <Field label="Nombre">
+          {(control) => (
+            <Input {...control} name="name" defaultValue={product?.name ?? ""} required />
+          )}
+        </Field>
+        <Field label="Marca">
+          {(control) => (
+            <Input {...control} name="brand" defaultValue={product?.brand ?? ""} required />
+          )}
+        </Field>
+        <div>
+          <Field
+            label="Categoría"
+            hint={isLoadingCategories ? "Cargando categorías..." : undefined}
           >
-            {availableCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </Select>
-          {isLoadingCategories ? (
-            <p className="text-xs text-mist">Cargando categorías...</p>
-          ) : null}
+            {(control) => (
+              <Select
+                {...control}
+                name="categoryId"
+                value={selectedCategoryId}
+                onChange={(event) => setSelectedCategoryId(event.target.value)}
+                disabled={availableCategories.length === 0}
+              >
+                {availableCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
           {categoryMessage ? (
-            <p className="text-xs text-amber-200">{categoryMessage}</p>
+            <p role="status" className="mt-2 text-xs text-amber-200">
+              {categoryMessage}
+            </p>
           ) : null}
         </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Objetivo</label>
-          <Select
-            name="objective"
-            defaultValue={product?.objective ?? Objective.MUSCLE_GAIN}
-          >
-            {Object.entries(OBJECTIVE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Precio</label>
-          <Input
-            type="number"
-            name="price"
-            min="0.01"
-            step="0.01"
-            defaultValue={product?.price ?? 0}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Stock</label>
-          <Input
-            type="number"
-            name="stock"
-            min="0"
-            step="1"
-            defaultValue={product?.stock ?? 0}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Peso</label>
-          <Input name="weight" defaultValue={product?.weight ?? ""} />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Sabor</label>
-          <Input name="flavor" defaultValue={product?.flavor ?? ""} />
-        </div>
+        <Field label="Objetivo">
+          {(control) => (
+            <Select
+              {...control}
+              name="objective"
+              defaultValue={product?.objective ?? Objective.MUSCLE_GAIN}
+            >
+              {Object.entries(OBJECTIVE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label="Precio">
+          {(control) => (
+            <Input
+              {...control}
+              type="number"
+              name="price"
+              min="0.01"
+              step="0.01"
+              defaultValue={product?.price ?? 0}
+              required
+            />
+          )}
+        </Field>
+        <Field label="Stock">
+          {(control) => (
+            <Input
+              {...control}
+              type="number"
+              name="stock"
+              min="0"
+              step="1"
+              defaultValue={product?.stock ?? 0}
+              required
+            />
+          )}
+        </Field>
+        <Field label="Peso">
+          {(control) => (
+            <Input {...control} name="weight" defaultValue={product?.weight ?? ""} />
+          )}
+        </Field>
+        <Field label="Sabor">
+          {(control) => (
+            <Input {...control} name="flavor" defaultValue={product?.flavor ?? ""} />
+          )}
+        </Field>
       </div>
 
-      <div className="space-y-2">
-        <label className="text-sm text-mist">Descripción</label>
-        <Textarea name="description" defaultValue={product?.description ?? ""} required />
-      </div>
+      <Field label="Descripción">
+        {(control) => (
+          <Textarea {...control} name="description" defaultValue={product?.description ?? ""} required />
+        )}
+      </Field>
 
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <label className="text-sm text-mist">
-            Imágenes{" "}
-            <span className="text-xs text-mist/70">
-              — podés hacer clic varias veces para agregar de a una, o seleccionar varias a la vez (Ctrl / Cmd + clic en el explorador)
-            </span>
-          </label>
+      <Field
+        label="Imágenes"
+        hint="Opcional. Podés elegir varias a la vez (Ctrl / Cmd + clic). Si la carga no está disponible, guardá el producto y agregalas después desde Editar."
+      >
+        {(control) => (
           <Input
+            {...control}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             multiple
@@ -526,16 +549,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               event.currentTarget.value = "";
             }}
           />
-          <p className="text-xs text-mist">
-            Opcional. Si la carga no está disponible podés guardar el producto y agregar
-            imágenes más adelante desde &quot;Editar&quot;.
-          </p>
-        </div>
-      </div>
+        )}
+      </Field>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-sm text-mist">Orden de imágenes</label>
+          <p className="text-sm text-mist">Orden de imágenes</p>
           <p className="text-xs text-mist">
             La primera imagen queda como principal en catálogo y detalle.
           </p>
@@ -644,7 +663,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         </label>
       </div>
 
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      <FormError>{error}</FormError>
       {warning ? <p className="text-sm text-amber-200">{warning}</p> : null}
 
       <div className="flex gap-3">

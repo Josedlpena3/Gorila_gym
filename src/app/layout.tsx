@@ -34,9 +34,17 @@ export default function RootLayout({
     <html lang="es" className={figtree.variable}>
       <body>
         <SessionProvider>
+          <a
+            href="#contenido"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-neon focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-white"
+          >
+            Saltar al contenido
+          </a>
           <SiteHeader />
           <EmailVerificationBanner />
-          <main className="min-h-[calc(100vh-160px)] py-10">{children}</main>
+          <main id="contenido" tabIndex={-1} className="min-h-[calc(100vh-160px)] py-10 focus:outline-none">
+            {children}
+          </main>
           <SiteFooter />
           <Toaster position="bottom-center" theme="dark" richColors />
         </SessionProvider>

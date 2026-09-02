@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FormError, FormStatus } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import type { SiteConfigDto } from "@/types";
 
@@ -70,62 +71,71 @@ export function SiteConfigForm({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-2 lg:col-span-2">
-          <label className="text-sm text-mist">Dirección</label>
-          <Input
-            value={form.address}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, address: event.target.value }))
-            }
-            required
-          />
-        </div>
+        <Field label="Dirección" className="lg:col-span-2">
+          {(control) => (
+            <Input
+              {...control}
+              value={form.address}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, address: event.target.value }))
+              }
+              required
+            />
+          )}
+        </Field>
 
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Número de WhatsApp</label>
-          <Input
-            value={form.whatsappNumber}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                whatsappNumber: event.target.value
-              }))
-            }
-            required
-          />
-        </div>
+        <Field label="Número de WhatsApp">
+          {(control) => (
+            <Input
+              {...control}
+              value={form.whatsappNumber}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  whatsappNumber: event.target.value
+                }))
+              }
+              required
+            />
+          )}
+        </Field>
 
-        <div className="space-y-2">
-          <label className="text-sm text-mist">Mensaje de WhatsApp</label>
-          <Input
-            value={form.whatsappMessage}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                whatsappMessage: event.target.value
-              }))
-            }
-            required
-          />
-        </div>
+        <Field label="Mensaje de WhatsApp">
+          {(control) => (
+            <Input
+              {...control}
+              value={form.whatsappMessage}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  whatsappMessage: event.target.value
+                }))
+              }
+              required
+            />
+          )}
+        </Field>
 
-        <div className="space-y-2 lg:col-span-2">
-          <label className="text-sm text-mist">URL de Google Maps</label>
-          <Input
-            type="url"
-            value={form.googleMapsUrl}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                googleMapsUrl: event.target.value
-              }))
-            }
-            required
-          />
-          <p className="text-xs text-mist">
-            Pegá solo la URL del `src` del embed de Google Maps.
-          </p>
-        </div>
+        <Field
+          label="URL de Google Maps"
+          className="lg:col-span-2"
+          hint="Pegá solo la URL del `src` del embed de Google Maps."
+        >
+          {(control) => (
+            <Input
+              {...control}
+              type="url"
+              value={form.googleMapsUrl}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  googleMapsUrl: event.target.value
+                }))
+              }
+              required
+            />
+          )}
+        </Field>
       </div>
       <div className="rounded-[28px] border border-line bg-ink/60 p-5">
         <p className="text-xs uppercase tracking-[0.24em] text-mist">Publicación</p>
@@ -148,8 +158,8 @@ export function SiteConfigForm({
         )}
       </div>
 
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
-      {success ? <p className="text-sm text-neon">{success}</p> : null}
+      <FormError>{error}</FormError>
+      <FormStatus className="text-ember">{success}</FormStatus>
 
       <div className="flex flex-wrap gap-3">
         <Button disabled={isPending}>

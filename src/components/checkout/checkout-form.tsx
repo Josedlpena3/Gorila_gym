@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { applyPaymentSurcharge } from "@/lib/checkout-pricing";
 import {
@@ -520,29 +521,35 @@ export function CheckoutForm({
         <section className="section-card p-4 sm:p-6">
           <p className="text-base font-semibold text-sand sm:text-lg">Tus datos</p>
           <div className="mt-4 grid gap-4">
-            <div className="space-y-2">
-              <label className="text-sm text-mist">Nombre</label>
-              <Input
-                name="fullName"
-                value={customerName}
-                onChange={(event) => setCustomerName(event.target.value)}
-                autoComplete="off"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-mist">Celular</label>
-              <Input
-                type="tel"
-                name="phone"
-                defaultValue={user?.phone ?? ""}
-                placeholder="5493515550000"
-                inputMode="tel"
-                autoComplete="tel"
-                required
-              />
-              <p className="text-xs text-mist">Solo números. Ej.: 5493515550000</p>
-            </div>
+            <Field label="Nombre">
+              {(control) => (
+                <Input
+                  {...control}
+                  name="fullName"
+                  value={customerName}
+                  onChange={(event) => setCustomerName(event.target.value)}
+                  autoComplete="off"
+                  required
+                />
+              )}
+            </Field>
+            <Field
+              label="Celular"
+              hint="Solo números. Ej.: 5493515550000"
+            >
+              {(control) => (
+                <Input
+                  {...control}
+                  type="tel"
+                  name="phone"
+                  defaultValue={user?.phone ?? ""}
+                  placeholder="5493515550000"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  required
+                />
+              )}
+            </Field>
           </div>
         </section>
 
@@ -573,34 +580,56 @@ export function CheckoutForm({
           <section className="section-card p-4 sm:p-6">
             <p className="text-base font-semibold text-sand sm:text-lg">Dirección</p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <label className="text-sm text-mist">Calle</label>
-                <Input name="street" defaultValue={defaultAddress?.street ?? ""} required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-mist">Número</label>
-                <Input name="number" defaultValue={defaultAddress?.number ?? ""} required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-mist">Código postal</label>
-                <Input
-                  name="postalCode"
-                  defaultValue={defaultAddress?.postalCode ?? ""}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-mist">Ciudad</label>
-                <Input name="city" defaultValue={defaultAddress?.city ?? ""} required />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-mist">Provincia</label>
-                <Input
-                  name="province"
-                  defaultValue={defaultAddress?.province ?? ""}
-                  required
-                />
-              </div>
+              <Field label="Calle" className="sm:col-span-2">
+                {(control) => (
+                  <Input
+                    {...control}
+                    name="street"
+                    defaultValue={defaultAddress?.street ?? ""}
+                    required
+                  />
+                )}
+              </Field>
+              <Field label="Número">
+                {(control) => (
+                  <Input
+                    {...control}
+                    name="number"
+                    defaultValue={defaultAddress?.number ?? ""}
+                    required
+                  />
+                )}
+              </Field>
+              <Field label="Código postal">
+                {(control) => (
+                  <Input
+                    {...control}
+                    name="postalCode"
+                    defaultValue={defaultAddress?.postalCode ?? ""}
+                    required
+                  />
+                )}
+              </Field>
+              <Field label="Ciudad">
+                {(control) => (
+                  <Input
+                    {...control}
+                    name="city"
+                    defaultValue={defaultAddress?.city ?? ""}
+                    required
+                  />
+                )}
+              </Field>
+              <Field label="Provincia">
+                {(control) => (
+                  <Input
+                    {...control}
+                    name="province"
+                    defaultValue={defaultAddress?.province ?? ""}
+                    required
+                  />
+                )}
+              </Field>
             </div>
           </section>
         ) : null}
@@ -646,33 +675,36 @@ export function CheckoutForm({
           <p className="text-base font-semibold text-sand sm:text-lg">
             Código de descuento
           </p>
-          <div className="mt-4 space-y-2">
-            <label className="text-sm text-mist" htmlFor="discountCode">
-              Código promocional
-            </label>
-            <Input
-              id="discountCode"
-              type="text"
-              name="discountCode"
-              value={discountCode}
-              onChange={(event) => setDiscountCode(event.target.value)}
-              placeholder="Código de descuento (opcional)"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-            />
-            {discountPreview.discountApplied ? (
-              <p className="text-sm text-green-300">
-                Código aplicado: {discountPreview.discountApplied}
-              </p>
-            ) : null}
-            {discountCode.trim() && discountPreview.invalid ? (
-              <p className="text-sm text-amber-300">Código inválido</p>
-            ) : null}
-          </div>
+          <Field
+            label="Código promocional"
+            error={
+              discountCode.trim() && discountPreview.invalid
+                ? "Código inválido"
+                : null
+            }
+          >
+            {(control) => (
+              <Input
+                {...control}
+                type="text"
+                name="discountCode"
+                value={discountCode}
+                onChange={(event) => setDiscountCode(event.target.value)}
+                placeholder="Código de descuento (opcional)"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+            )}
+          </Field>
+          {discountPreview.discountApplied ? (
+            <p role="status" className="mt-2 text-sm text-green-300">
+              Código aplicado: {discountPreview.discountApplied}
+            </p>
+          ) : null}
         </section>
 
-        {error ? <p className="text-sm text-red-300">{error}</p> : null}
+        <FormError>{error}</FormError>
       </div>
 
       <aside className="section-card h-fit p-4 sm:p-6 lg:sticky lg:top-24">

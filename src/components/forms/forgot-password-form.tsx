@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Field, FormError, FormStatus } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 export function ForgotPasswordForm() {
@@ -57,19 +58,20 @@ export function ForgotPasswordForm() {
         });
       }}
     >
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-mist">Email de tu cuenta</label>
-        <Input type="email" name="email" placeholder="vos@gorillastrong.com" required />
-      </div>
+      <Field label="Email de tu cuenta">
+        {(control) => (
+          <Input {...control} type="email" name="email" placeholder="vos@gorillastrong.com" required />
+        )}
+      </Field>
 
       <Button className="w-full" disabled={isPending}>
         {isPending ? "Generando enlace..." : "Recuperar contraseña"}
       </Button>
 
-      {message ? <p className="text-sm text-mist">{message}</p> : null}
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      <FormStatus>{message}</FormStatus>
+      <FormError>{error}</FormError>
       {devLink ? (
-        <Link href={devLink} className="block text-sm font-semibold text-neon">
+        <Link href={devLink} className="block text-sm font-semibold text-ember">
           Abrir enlace de recuperación de desarrollo
         </Link>
       ) : null}

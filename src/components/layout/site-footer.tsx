@@ -14,7 +14,7 @@ export function SiteFooter() {
               href="https://www.instagram.com/gorillastrong.va"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-block text-sm font-semibold text-neon transition hover:text-neon/75"
+              className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-ember transition hover:underline"
             >
               @gorillastrong.va
             </a>
@@ -23,16 +23,16 @@ export function SiteFooter() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-mist">Tienda</p>
             <nav className="mt-3 flex flex-col gap-2 text-sm">
-              <Link href="/catalogo" className="text-sand transition hover:text-neon">
+              <Link href="/catalogo" className="inline-flex min-h-[32px] items-center text-sand transition hover:text-ember">
                 Catálogo
               </Link>
-              <Link href="/carrito" className="text-sand transition hover:text-neon">
+              <Link href="/carrito" className="inline-flex min-h-[32px] items-center text-sand transition hover:text-ember">
                 Carrito
               </Link>
-              <Link href="/mis-pedidos" className="text-sand transition hover:text-neon">
+              <Link href="/mis-pedidos" className="inline-flex min-h-[32px] items-center text-sand transition hover:text-ember">
                 Mis pedidos
               </Link>
-              <Link href="/encontranos" className="text-sand transition hover:text-neon">
+              <Link href="/encontranos" className="inline-flex min-h-[32px] items-center text-sand transition hover:text-ember">
                 Encontranos
               </Link>
             </nav>

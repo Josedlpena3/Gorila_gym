@@ -37,7 +37,7 @@ export default async function CartPage() {
     <div className="page-shell space-y-4">
       <Link
         href="/catalogo"
-        className="inline-flex items-center text-sm font-semibold text-sand transition hover:text-neon"
+        className="inline-flex items-center text-sm font-semibold text-sand transition hover:text-ember"
       >
         &larr; Volver a comprar
       </Link>

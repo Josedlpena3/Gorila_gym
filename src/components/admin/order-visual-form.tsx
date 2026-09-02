@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Field, FormError, FormStatus } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
@@ -108,38 +109,46 @@ export function OrderVisualForm({
 
       {colored ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.2em] text-mist">Color</label>
-            <Select
-              value={color}
-              onChange={(event) => {
-                setColor(event.target.value as OrderColorValue);
-                setFeedback(null);
-                setError(null);
-              }}
-            >
-              {ORDER_COLOR_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </div>
+          <Field
+            label="Color"
+            labelClassName="text-xs uppercase tracking-[0.2em] text-mist"
+          >
+            {(control) => (
+              <Select
+                {...control}
+                value={color}
+                onChange={(event) => {
+                  setColor(event.target.value as OrderColorValue);
+                  setFeedback(null);
+                  setError(null);
+                }}
+              >
+                {ORDER_COLOR_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
 
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.2em] text-mist">
-              Vendedor
-            </label>
-            <Input
-              value={sellerName}
-              placeholder="Nombre del vendedor"
-              onChange={(event) => {
-                setSellerName(event.target.value);
-                setFeedback(null);
-                setError(null);
-              }}
-            />
-          </div>
+          <Field
+            label="Vendedor"
+            labelClassName="text-xs uppercase tracking-[0.2em] text-mist"
+          >
+            {(control) => (
+              <Input
+                {...control}
+                value={sellerName}
+                placeholder="Nombre del vendedor"
+                onChange={(event) => {
+                  setSellerName(event.target.value);
+                  setFeedback(null);
+                  setError(null);
+                }}
+              />
+            )}
+          </Field>
         </div>
       ) : null}
 
@@ -156,10 +165,10 @@ export function OrderVisualForm({
         >
           {isPending ? "Guardando..." : "Guardar marcado"}
         </Button>
-        {feedback ? <p className="text-sm text-neon">{feedback}</p> : null}
+        {feedback ? <FormStatus className="text-ember">{feedback}</FormStatus> : null}
       </div>
 
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      <FormError>{error}</FormError>
     </div>
   );
 }

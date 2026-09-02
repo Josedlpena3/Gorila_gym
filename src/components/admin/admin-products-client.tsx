@@ -64,7 +64,7 @@ export function AdminProductsClient({
             className={`inline-flex min-h-9 items-center whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
               !selectedCategory
                 ? "border-neon bg-neon text-white"
-                : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
+                : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-ember"
             }`}
           >
             Todas
@@ -79,7 +79,7 @@ export function AdminProductsClient({
               className={`inline-flex min-h-9 items-center whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
                 selectedCategory === category
                   ? "border-neon bg-neon text-white"
-                  : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-neon"
+                  : "border-white/10 bg-black/20 text-sand hover:border-neon/50 hover:text-ember"
               }`}
             >
               {category}
