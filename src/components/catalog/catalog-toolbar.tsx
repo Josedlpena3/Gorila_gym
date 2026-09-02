@@ -167,7 +167,7 @@ export function CatalogToolbar({
           </button>
         </div>
 
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        <div className="flex flex-wrap gap-2">
           {(searchTerm.trim() && currentQuery) || activeCategoryId ? (
             <button
               type="button"

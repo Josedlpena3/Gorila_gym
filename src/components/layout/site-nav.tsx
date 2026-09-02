@@ -21,7 +21,7 @@ export function SiteNav() {
   return (
     <nav
       aria-label="Navegación principal"
-      className="hidden items-center gap-6 text-sm text-mist lg:flex"
+      className="hidden shrink-0 items-center gap-3 text-sm text-mist md:flex lg:gap-6"
     >
       {links.map((link) => {
         const isActive = isActiveNavLink(pathname, link.href);
@@ -32,7 +32,7 @@ export function SiteNav() {
             href={link.href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "transition hover:text-sand",
+              "whitespace-nowrap transition hover:text-sand",
               isActive && "font-semibold text-sand"
             )}
           >

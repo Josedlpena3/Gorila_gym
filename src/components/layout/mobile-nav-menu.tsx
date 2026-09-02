@@ -48,7 +48,7 @@ export function MobileNavMenu() {
   }, [isOpen]);
 
   return (
-    <div ref={menuRef} className="relative lg:hidden">
+    <div ref={menuRef} className="relative md:hidden">
       <button
         type="button"
         className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line bg-white/5 text-sand transition hover:border-neon/60 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-neon/60"

@@ -16,7 +16,7 @@ export function HeaderAuth() {
   const { user, status } = useSession();
 
   return (
-    <div className="flex min-w-[264px] items-center justify-end gap-3">
+    <div className="flex items-center justify-end gap-2 md:min-w-[200px] lg:min-w-[264px] lg:gap-3">
       {status === "loading" ? (
         <div aria-hidden="true" className="flex items-center gap-2">
           <div className="h-11 w-[92px] animate-pulse rounded-full bg-white/5" />
@@ -28,21 +28,28 @@ export function HeaderAuth() {
             href="/mi-cuenta"
             className="text-right transition hover:text-ember"
           >
-            <p className="text-sm font-semibold text-sand">Mi cuenta</p>
-            <p className="text-xs uppercase tracking-eyebrow text-mist">Ver perfil</p>
+            <p className="whitespace-nowrap text-sm font-semibold text-sand">Mi cuenta</p>
+            <p className="hidden whitespace-nowrap text-xs uppercase tracking-eyebrow text-mist lg:block">
+              Ver perfil
+            </p>
           </Link>
-          <Badge variant={user.role === "ADMIN" ? "success" : "info"}>
-            {user.role === "ADMIN" ? "Administrador" : "Cliente"}
-          </Badge>
+          {/* En tablet el ancho no alcanza para el bloque completo. El badge es
+              informativo y el botón Panel es redundante con el enlace "Admin"
+              de la navegación, así que los dos se reservan para lg. */}
+          <div className="hidden lg:block">
+            <Badge variant={user.role === "ADMIN" ? "success" : "info"}>
+              {user.role === "ADMIN" ? "Administrador" : "Cliente"}
+            </Badge>
+          </div>
           {user.role === "ADMIN" ? (
-            <Link href="/admin">
+            <Link href="/admin" className="hidden lg:block">
               <Button variant="secondary" className="gap-2 px-4 py-2">
                 <ShieldCheck className="h-4 w-4" />
                 Panel
               </Button>
             </Link>
           ) : null}
-          <LogoutButton />
+          <LogoutButton compact />
         </>
       ) : (
         <div className="flex items-center gap-2">
