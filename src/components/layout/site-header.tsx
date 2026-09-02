@@ -30,7 +30,7 @@ export function SiteHeader() {
             <p className="truncate text-[10px] font-black uppercase tracking-eyebrow text-sand sm:text-xs sm:tracking-eyebrow">
               Gorilla Strong
             </p>
-            <p className="truncate text-[9px] uppercase tracking-eyebrow text-mist sm:text-[10px] sm:tracking-eyebrow-wide">
+            <p className="truncate text-[9px] uppercase tracking-eyebrow text-mist sm:text-[10px] sm:tracking-eyebrow-wide md:hidden lg:block">
               Suplementacion premium
             </p>
           </div>
@@ -42,14 +42,14 @@ export function SiteHeader() {
           <Link
             href="/carrito"
             aria-label="Ir al carrito"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-white/5 text-sand transition hover:border-neon/60 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-neon/60 lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-line bg-white/5 text-sand transition hover:border-neon/60 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-neon/60 md:hidden"
           >
             <ShoppingBag className="h-5 w-5" />
           </Link>
           <MobileNavMenu />
 
-          <div className="hidden items-center gap-3 lg:flex">
-            <Link href="/carrito">
+          <div className="hidden items-center gap-2 md:flex lg:gap-3">
+            <Link href="/carrito" className="hidden lg:block">
               <Button variant="secondary" className="gap-2 px-4 py-2">
                 <ShoppingBag className="h-4 w-4" />
                 Carrito
