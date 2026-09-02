@@ -4,6 +4,7 @@ import { OrderStatus } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 import { Field, FormError, FormStatus } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { ORDER_STATUS_LABELS } from "@/lib/constants";
@@ -31,27 +32,21 @@ export function OrderStatusForm({
     setError(null);
     setFeedback(null);
 
-    const response = await fetch(`/api/admin/orders/${orderId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+    try {
+      const result = await api.patch<{ status?: string }>(
+        `/api/admin/orders/${orderId}`,
+        payload
+      );
 
-    const result = await response.json().catch(() => null);
+      if (result?.status) {
+        setStatus(result.status as OrderStatus);
+      }
 
-    if (!response.ok) {
-      setError(result?.error ?? "No se pudo actualizar el pedido.");
-      return;
+      setFeedback("Estado actualizado.");
+      router.refresh();
+    } catch (updateError) {
+      setError(getApiErrorMessage(updateError, "No se pudo actualizar el pedido."));
     }
-
-    if (result?.status) {
-      setStatus(result.status as OrderStatus);
-    }
-
-    setFeedback("Estado actualizado.");
-    router.refresh();
   }
 
   return (

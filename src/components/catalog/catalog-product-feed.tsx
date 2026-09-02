@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ProductCard } from "@/components/catalog/product-card";
 import { ProductCardSkeleton } from "@/components/catalog/product-card-skeleton";
 import { Button } from "@/components/ui/button";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 import type { CatalogProductsPageDto, ProductCardDto } from "@/types";
 
 function mergeProducts(current: ProductCardDto[], incoming: ProductCardDto[]) {
@@ -61,15 +62,10 @@ export function CatalogProductFeed({
       params.set("page", String(page + 1));
       params.set("limit", "20");
 
-      const response = await fetch(`/api/products?${params.toString()}`);
-
-      const data = (await response.json()) as CatalogProductsPageDto & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(data.error || "No se pudieron cargar más productos.");
-      }
+      const data = await api.get<CatalogProductsPageDto>(
+        `/api/products?${params.toString()}`,
+        { fallbackMessage: "No se pudieron cargar más productos." }
+      );
 
       setProducts((current) => mergeProducts(current, data.products));
       setPage(data.page);
@@ -77,9 +73,7 @@ export function CatalogProductFeed({
       setTotalPages(data.totalPages);
     } catch (fetchError) {
       setError(
-        fetchError instanceof Error
-          ? fetchError.message
-          : "No se pudieron cargar más productos."
+        getApiErrorMessage(fetchError, "No se pudieron cargar más productos.")
       );
     } finally {
       isLoadingRef.current = false;

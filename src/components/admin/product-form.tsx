@@ -3,34 +3,19 @@
 import { Objective } from "@prisma/client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 import { OBJECTIVE_LABELS } from "@/lib/constants";
-
-type ProductImageItem =
-  | {
-      id: string;
-      source: "stored";
-      value: string;
-      label: string;
-      previewUrl: string;
-    }
-  | {
-      id: string;
-      source: "file";
-      file: File;
-      label: string;
-      previewUrl: string;
-    };
-
-type ProductCategory = {
-  id: string;
-  name: string;
-};
+import {
+  useProductCategories,
+  type ProductCategory
+} from "@/components/admin/use-product-categories";
+import { useProductImages } from "@/components/admin/use-product-images";
 
 type ProductFormProps = {
   categories: ProductCategory[];
@@ -53,67 +38,35 @@ type ProductFormProps = {
   } | null;
 };
 
-function getImageLabel(value: string) {
-  const [, fileName] = value.split(/[/\\](?=[^/\\]+$)/);
-  return fileName || value;
-}
 
-function createStoredImageItem(id: string, value: string): ProductImageItem {
-  return {
-    id,
-    source: "stored",
-    value,
-    label: getImageLabel(value),
-    previewUrl: value
-  };
-}
 
-function moveItem<T>(items: T[], from: number, to: number) {
-  const nextItems = [...items];
-  const [item] = nextItems.splice(from, 1);
-  nextItems.splice(to, 0, item);
-  return nextItems;
-}
 
 export function ProductForm({ categories, product }: ProductFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
-  const [categoryMessage, setCategoryMessage] = useState<string | null>(null);
-  const [availableCategories, setAvailableCategories] =
-    useState<ProductCategory[]>(categories);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(categories.length === 0);
+  const {
+    categories: availableCategories,
+    isLoading: isLoadingCategories,
+    message: categoryMessage
+  } = useProductCategories(categories);
+  const images = useProductImages(product?.images);
   const [selectedCategoryId, setSelectedCategoryId] = useState(
     product?.categoryId ?? categories[0]?.id ?? ""
   );
   const [isFeatured, setIsFeatured] = useState(product?.featured ?? false);
-  const [imageItems, setImageItems] = useState<ProductImageItem[]>(
-    product?.images.map((image) => createStoredImageItem(image.id, image.url)) ?? []
-  );
   const [isPending, startTransition] = useTransition();
-  const imageItemsRef = useRef(imageItems);
 
   const title = useMemo(
     () => (product ? "Editar producto" : "Nuevo producto"),
     [product]
   );
 
-  useEffect(() => {
-    imageItemsRef.current = imageItems;
-  }, [imageItems]);
-
-  useEffect(() => {
-    setAvailableCategories(categories);
-  }, [categories]);
-
+  // Único efecto que queda: elegir una categoría por defecto cuando el producto
+  // es nuevo y la lista llegó por fetch en vez de por prop.
   useEffect(() => {
     if (product?.categoryId) {
       setSelectedCategoryId(product.categoryId);
-    }
-  }, [product?.id, product?.categoryId]);
-
-  useEffect(() => {
-    if (product?.categoryId) {
       return;
     }
 
@@ -121,146 +74,6 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       setSelectedCategoryId(availableCategories[0].id);
     }
   }, [availableCategories, product?.categoryId, selectedCategoryId]);
-
-  useEffect(() => {
-    if (categories.length > 0) {
-      setCategoryMessage(null);
-      setIsLoadingCategories(false);
-      return;
-    }
-
-    let isActive = true;
-    const abortController = new AbortController();
-
-    setIsLoadingCategories(true);
-
-    void (async () => {
-      try {
-        const response = await fetch("/api/categories", {
-          cache: "no-store",
-          signal: abortController.signal
-        });
-        const payload = (await response.json().catch(() => null)) as unknown;
-
-        if (!response.ok) {
-          throw new Error("categories_unavailable");
-        }
-
-        const nextCategories = Array.isArray(payload)
-          ? payload.filter(
-              (entry): entry is ProductCategory =>
-                Boolean(
-                  entry &&
-                    typeof entry === "object" &&
-                    "id" in entry &&
-                    "name" in entry &&
-                    typeof entry.id === "string" &&
-                    typeof entry.name === "string"
-                )
-            )
-          : [];
-
-        if (!isActive) {
-          return;
-        }
-
-        setAvailableCategories(nextCategories);
-        setCategoryMessage(
-          nextCategories.length === 0
-            ? "Todavía no hay categorías disponibles."
-            : null
-        );
-      } catch (fetchError) {
-        if (!isActive || abortController.signal.aborted) {
-          return;
-        }
-
-        console.warn("No se pudieron cargar las categorías del formulario.");
-        setCategoryMessage("No se pudieron cargar las categorías ahora.");
-      } finally {
-        if (isActive) {
-          setIsLoadingCategories(false);
-        }
-      }
-    })();
-
-    return () => {
-      isActive = false;
-      abortController.abort();
-    };
-  }, [categories]);
-
-  useEffect(() => {
-    return () => {
-      imageItemsRef.current.forEach((item) => {
-        if (item.source === "file") {
-          URL.revokeObjectURL(item.previewUrl);
-        }
-      });
-    };
-  }, []);
-
-  function addFiles(files: FileList | null) {
-    if (!files || files.length === 0) {
-      return;
-    }
-
-    setImageItems((current) => [
-      ...current,
-      ...Array.from(files).map((file) => ({
-        id: `file-${crypto.randomUUID()}`,
-        source: "file" as const,
-        file,
-        label: file.name,
-        previewUrl: URL.createObjectURL(file)
-      }))
-    ]);
-  }
-
-  function moveImageItem(index: number, direction: "up" | "down") {
-    setImageItems((current) => {
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
-
-      if (targetIndex < 0 || targetIndex >= current.length) {
-        return current;
-      }
-
-      return moveItem(current, index, targetIndex);
-    });
-  }
-
-  function removeImageItem(id: string) {
-    setImageItems((current) => {
-      const item = current.find((entry) => entry.id === id);
-
-      if (item?.source === "file") {
-        URL.revokeObjectURL(item.previewUrl);
-      }
-
-      return current.filter((entry) => entry.id !== id);
-    });
-  }
-
-  function replacePendingFilesWithUploadedUrls(urls: string[]) {
-    let uploadedIndex = 0;
-
-    return imageItems
-      .map((item) => {
-        if (item.source !== "file") {
-          return item;
-        }
-
-        const nextUrl = urls[uploadedIndex];
-        uploadedIndex += 1;
-
-        if (!nextUrl) {
-          return null;
-        }
-
-          return createStoredImageItem(`stored-${crypto.randomUUID()}`, nextUrl);
-      })
-      .filter((item): item is ProductImageItem => Boolean(item));
-  }
 
   return (
     <form
@@ -316,11 +129,8 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
           try {
             let uploadedImages: string[] = [];
-            let imageItemsToPersist = imageItems;
-            const pendingFiles = imageItems.filter(
-              (item): item is Extract<ProductImageItem, { source: "file" }> =>
-                item.source === "file"
-            );
+            let imageItemsToPersist = images.items;
+            const pendingFiles = images.getPendingFiles(images.items);
 
             if (pendingFiles.length > 0) {
               const uploadFormData = new FormData();
@@ -330,18 +140,15 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               });
 
               try {
-                const uploadResponse = await fetch("/api/admin/uploads", {
-                  method: "POST",
-                  body: uploadFormData
+                const uploadPayload = await api.post<{
+                  files?: Array<{ url?: string }>;
+                  url?: string;
+                }>("/api/admin/uploads", uploadFormData, {
+                  fallbackMessage:
+                    "No se pudieron subir las imágenes. El producto se guardará sin esas imágenes."
                 });
-                const uploadPayload = await uploadResponse.json().catch(() => null);
 
-                if (!uploadResponse.ok) {
-                  setWarning(
-                    uploadPayload?.error ??
-                      "No se pudieron subir las imágenes. El producto se guardará sin esas imágenes."
-                  );
-                } else {
+                {
                   uploadedImages = Array.isArray(uploadPayload?.files)
                     ? uploadPayload.files
                         .map((entry: { url?: string }) => entry.url)
@@ -353,25 +160,26 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                       ? [uploadPayload.url]
                       : [];
 
-                  imageItemsToPersist = replacePendingFilesWithUploadedUrls(uploadedImages);
-                  setImageItems(imageItemsToPersist);
+                  imageItemsToPersist = images.replacePendingWithUrls(
+                    uploadedImages,
+                    images.items
+                  );
+                  images.setItems(imageItemsToPersist);
                 }
-              } catch {
+              } catch (uploadError) {
                 setWarning(
-                  "No se pudieron subir las imágenes. El producto se guardará sin esas imágenes."
+                  getApiErrorMessage(
+                    uploadError,
+                    "No se pudieron subir las imágenes. El producto se guardará sin esas imágenes."
+                  )
                 );
-                imageItemsToPersist = imageItems.filter(
-                  (item): item is Extract<ProductImageItem, { source: "stored" }> =>
-                    item.source === "stored"
+                imageItemsToPersist = images.items.filter(
+                  (item) => item.source === "stored"
                 );
               }
             }
 
-            const images = imageItemsToPersist
-              .map((item) => {
-                return item.source === "stored" ? item.value : null;
-              })
-              .filter((value): value is string => Boolean(value));
+            const imageUrls = images.getStoredUrls(imageItemsToPersist);
 
             const payload = {
               ...(product ? { sku: formData.get("sku") } : {}),
@@ -387,30 +195,23 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               featuredPriority: Number(formData.get("featuredPriority") || 1),
               weight: formData.get("weight") || null,
               flavor: formData.get("flavor") || null,
-              images
+              images: imageUrls
             };
 
-            const response = await fetch(
-              product ? `/api/admin/products/${product.id}` : "/api/admin/products",
-              {
-                method: product ? "PUT" : "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
-              }
-            );
+            const endpoint = product
+              ? `/api/admin/products/${product.id}`
+              : "/api/admin/products";
 
-            if (!response.ok) {
-              const result = await response.json().catch(() => null);
-              setError(result?.error ?? "No se pudo guardar el producto.");
-              return;
+            if (product) {
+              await api.put(endpoint, payload);
+            } else {
+              await api.post(endpoint, payload);
             }
 
             router.push("/admin/productos");
             router.refresh();
-          } catch {
-            setError("No se pudo guardar el producto.");
+          } catch (saveError) {
+            setError(getApiErrorMessage(saveError, "No se pudo guardar el producto."));
           }
         });
       }}
@@ -545,7 +346,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             accept="image/jpeg,image/png,image/webp"
             multiple
             onChange={(event) => {
-              addFiles(event.target.files);
+              images.addFiles(event.target.files);
               event.currentTarget.value = "";
             }}
           />
@@ -560,13 +361,13 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           </p>
         </div>
 
-        {imageItems.length === 0 ? (
+        {images.items.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-line bg-ink/40 p-4 text-sm text-mist">
             Podés publicar el producto sin imágenes y agregarlas más adelante.
           </div>
         ) : (
           <div className="space-y-3">
-            {imageItems.map((item, index) => (
+            {images.items.map((item, index) => (
               <div
                 key={item.id}
                 className="rounded-3xl border border-line bg-ink/60 p-4"
@@ -605,7 +406,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                       type="button"
                       variant="secondary"
                       className="px-4 py-2"
-                      onClick={() => moveImageItem(index, "up")}
+                      onClick={() => images.move(index, "up")}
                       disabled={index === 0}
                     >
                       Subir
@@ -614,8 +415,8 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                       type="button"
                       variant="secondary"
                       className="px-4 py-2"
-                      onClick={() => moveImageItem(index, "down")}
-                      disabled={index === imageItems.length - 1}
+                      onClick={() => images.move(index, "down")}
+                      disabled={index === images.items.length - 1}
                     >
                       Bajar
                     </Button>
@@ -623,7 +424,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                       type="button"
                       variant="danger"
                       className="px-4 py-2"
-                      onClick={() => removeImageItem(item.id)}
+                      onClick={() => images.remove(item.id)}
                     >
                       Quitar
                     </Button>

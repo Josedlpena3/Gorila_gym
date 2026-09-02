@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/utils";
 
 type RangoKey = "hoy" | "semana" | "mes" | "trimestre";
@@ -57,14 +58,13 @@ export function ReportesVentasClient() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/reportes/ventas?rango=${r}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.error ?? "Error al cargar el reporte.");
-      }
-      setData(await res.json());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error inesperado.");
+        setData(
+          await api.get(`/api/admin/reportes/ventas?rango=${r}`, {
+            fallbackMessage: "Error al cargar el reporte."
+          })
+        );
+      } catch (err) {
+        setError(getApiErrorMessage(err, "Error inesperado."));
     } finally {
       setLoading(false);
     }

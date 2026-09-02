@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 
 export function DeleteProductButton({ productId }: { productId: string }) {
   const router = useRouter();
@@ -13,18 +14,14 @@ export function DeleteProductButton({ productId }: { productId: string }) {
 
   function handleDelete() {
     startTransition(async () => {
-      const response = await fetch(`/api/admin/products/${productId}`, {
-        method: "DELETE"
-      });
-
-      if (!response.ok) {
-        toast.error("No se pudo eliminar el producto.");
-        return;
+      try {
+        await api.delete(`/api/admin/products/${productId}`);
+        setIsConfirmOpen(false);
+        toast.success("Producto eliminado.");
+        router.refresh();
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, "No se pudo eliminar el producto."));
       }
-
-      setIsConfirmOpen(false);
-      toast.success("Producto eliminado.");
-      router.refresh();
     });
   }
 
