@@ -3,11 +3,9 @@ import { ProductCard } from "@/components/catalog/product-card";
 import type { ProductCardDto } from "@/types";
 
 export function HomeFeaturedProducts({
-  products,
-  requiresLogin
+  products
 }: {
   products: ProductCardDto[];
-  requiresLogin: boolean;
 }) {
   return (
     <section className="space-y-4">
@@ -22,11 +20,7 @@ export function HomeFeaturedProducts({
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            requiresLogin={requiresLogin}
-          />
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
 

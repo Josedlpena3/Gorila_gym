@@ -3,23 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ProductCard } from "@/components/catalog/product-card";
+import { ProductCardSkeleton } from "@/components/catalog/product-card-skeleton";
 import { Button } from "@/components/ui/button";
 import type { CatalogProductsPageDto, ProductCardDto } from "@/types";
-
-function ProductCardSkeleton() {
-  return (
-    <div className="section-card animate-pulse overflow-hidden">
-      <div className="aspect-square bg-steel/80" />
-      <div className="space-y-3 p-4 sm:p-5">
-        <div className="h-3 w-1/3 rounded-full bg-steel/80" />
-        <div className="h-5 w-full rounded-full bg-steel/80" />
-        <div className="h-5 w-3/4 rounded-full bg-steel/80" />
-        <div className="mt-4 h-4 w-1/2 rounded-full bg-steel/80" />
-        <div className="mt-2 h-10 w-full rounded-[22px] bg-steel/80" />
-      </div>
-    </div>
-  );
-}
 
 function mergeProducts(current: ProductCardDto[], incoming: ProductCardDto[]) {
   const seen = new Set(current.map((product) => product.id));
@@ -39,11 +25,9 @@ function mergeProducts(current: ProductCardDto[], incoming: ProductCardDto[]) {
 
 export function CatalogProductFeed({
   initialData,
-  requiresLogin,
   queryString
 }: {
   initialData: CatalogProductsPageDto;
-  requiresLogin: boolean;
   queryString: string;
 }) {
   const [products, setProducts] = useState(initialData.products);
@@ -147,11 +131,7 @@ export function CatalogProductFeed({
     <div className="space-y-6">
       <div className="grid grid-cols-2 items-stretch gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:gap-6">
         {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            requiresLogin={requiresLogin}
-          />
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
 

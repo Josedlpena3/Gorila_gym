@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useSession } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 
 type VerifyState = "verifying" | "success" | "error";
@@ -11,6 +12,7 @@ type VerifyEmailClientProps = {
 };
 
 export function VerifyEmailClient({ token }: VerifyEmailClientProps) {
+  const { refresh } = useSession();
   const [state, setState] = useState<VerifyState>("verifying");
   const [message, setMessage] = useState("Estamos verificando tu email...");
 
@@ -52,6 +54,10 @@ export function VerifyEmailClient({ token }: VerifyEmailClientProps) {
           payload?.message ??
             "Tu email fue verificado correctamente. Ya podés iniciar sesión."
         );
+
+        // Relee la sesión para que el aviso de "email sin verificar" desaparezca
+        // sin necesidad de recargar la página.
+        void refresh();
       } catch (error) {
         if (cancelled) {
           return;
@@ -71,7 +77,7 @@ export function VerifyEmailClient({ token }: VerifyEmailClientProps) {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [refresh, token]);
 
   const title =
     state === "verifying"

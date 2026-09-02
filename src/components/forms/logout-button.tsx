@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { useSession } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function LogoutButton({ className }: { className?: string }) {
   const router = useRouter();
+  const { refresh } = useSession();
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -17,6 +19,9 @@ export function LogoutButton({ className }: { className?: string }) {
       onClick={() =>
         startTransition(async () => {
           await fetch("/api/auth/logout", { method: "POST" });
+          // El header lee la sesión del cliente, así que hay que refrescarla:
+          // router.refresh() solo revalida el árbol del servidor.
+          await refresh();
           router.push("/catalogo");
           router.refresh();
         })

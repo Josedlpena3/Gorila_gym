@@ -1,19 +1,24 @@
 import Link from "next/link";
 import { HomeFeaturedProducts } from "@/components/site/home-featured-products";
 import { getHomeProducts } from "@/modules/products/product.service";
-import { tryGetCurrentUser } from "@/modules/users/user.service";
+
+// ISR: el HTML se genera una vez y se sirve desde el CDN. Las mutaciones del
+// admin lo invalidan al instante (revalidateProductPages en product.service),
+// así que esta ventana solo cubre cambios de stock por ventas.
+export const revalidate = 60;
 
 const primaryLinkClass =
   "inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-neon px-5 py-3 text-sm font-semibold text-white transition hover:bg-neon/90 sm:w-auto";
 
 export default async function HomePage() {
-  const [homeProducts, user] = await Promise.all([
-    getHomeProducts(8).catch((error) => {
-      console.error("[home] no se pudieron cargar los productos", error);
-      return [];
-    }),
-    tryGetCurrentUser("home-page")
-  ]);
+  // El error se captura porque esta página sí se prerenderiza en el build: si
+  // la base no responde durante un deploy, preferimos una home sin destacados
+  // (que se recompone sola en la siguiente revalidación) antes que un deploy
+  // fallado. El catálogo, que es dinámico, sigue funcionando igual.
+  const homeProducts = await getHomeProducts(8).catch((error) => {
+    console.error("[home] no se pudieron cargar los productos", error);
+    return [];
+  });
 
   return (
     <div className="page-shell space-y-8">
@@ -38,10 +43,7 @@ export default async function HomePage() {
       </section>
 
       {homeProducts.length > 0 ? (
-        <HomeFeaturedProducts
-          products={homeProducts}
-          requiresLogin={!user}
-        />
+        <HomeFeaturedProducts products={homeProducts} />
       ) : null}
     </div>
   );

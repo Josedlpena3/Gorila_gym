@@ -3,18 +3,13 @@
 import Link from "next/link";
 import { Menu, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "@/components/auth/session-provider";
 import { LogoutButton } from "@/components/forms/logout-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-type MobileNavMenuProps = {
-  user: {
-    firstName: string;
-    role: string;
-  } | null;
-};
-
-export function MobileNavMenu({ user }: MobileNavMenuProps) {
+export function MobileNavMenu() {
+  const { user } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

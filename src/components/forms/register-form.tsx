@@ -3,12 +3,14 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useSession } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { syncGuestCartToServer } from "@/lib/guest-cart";
 
 export function RegisterForm() {
   const router = useRouter();
+  const { refresh } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
@@ -78,6 +80,10 @@ export function RegisterForm() {
               window.sessionStorage.removeItem("emailVerificationLink");
             }
           }
+
+          // El registro deja la sesión iniciada: hay que refrescarla para que
+          // el header y el aviso de verificación reflejen la cuenta nueva.
+          await refresh();
 
           try {
             const syncResult = await syncGuestCartToServer();

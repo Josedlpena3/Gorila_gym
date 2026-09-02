@@ -2,7 +2,6 @@ import { CatalogProductFeed } from "@/components/catalog/catalog-product-feed";
 import { CatalogToolbar } from "@/components/catalog/catalog-toolbar";
 import { StatusCard } from "@/components/layout/status-card";
 import { listCatalogProducts, listCategories } from "@/modules/products/product.service";
-import { tryGetCurrentUser } from "@/modules/users/user.service";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type CatalogFilterKey =
@@ -91,9 +90,8 @@ export default async function CatalogPage({
   const currentCategory = getSelectedCategoryParam(searchParams);
   const apiQuery = buildCatalogApiQuery(searchParams);
 
-  const [data, user, categories] = await Promise.all([
+  const [data, categories] = await Promise.all([
     loadCatalogProducts(searchParams),
-    tryGetCurrentUser("catalog-page"),
     listCategories().catch(() => [])
   ]);
 
@@ -121,11 +119,7 @@ export default async function CatalogPage({
         categories={categories}
       />
 
-      <CatalogProductFeed
-        initialData={data}
-        requiresLogin={!user}
-        queryString={apiQuery}
-      />
+      <CatalogProductFeed initialData={data} queryString={apiQuery} />
     </div>
   );
 }

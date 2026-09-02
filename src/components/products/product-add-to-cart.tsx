@@ -12,8 +12,6 @@ type Props = {
   productPrice: number;
   productStock: number;
   disabled?: boolean;
-  requiresLogin?: boolean;
-  nextPath?: string;
 };
 
 const MAX_QTY = 99;
