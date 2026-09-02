@@ -75,6 +75,34 @@ const productInclude = {
   }
 };
 
+// La grilla no usa categoría, descripción ni la galería completa: pedirlas
+// obligaba a un join de categoría por producto y a serializar ~18 KB por página
+// que nunca se renderizan.
+const productCardSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  brand: true,
+  price: true,
+  stock: true,
+  objective: true,
+  weight: true,
+  flavor: true,
+  images: {
+    orderBy: {
+      position: "asc" as const
+    },
+    select: {
+      url: true,
+      isPrimary: true
+    }
+  }
+} satisfies Prisma.ProductSelect;
+
+type ProductCardRecord = Prisma.ProductGetPayload<{
+  select: typeof productCardSelect;
+}>;
+
 const catalogOrderBy = [
   { featured: "desc" as const },
   { featuredPriority: "asc" as const },
@@ -463,7 +491,7 @@ function getBulkProductDebugInfo(input: unknown) {
   };
 }
 
-function mapProductCard(product: Prisma.ProductGetPayload<{ include: typeof productInclude }>): ProductCardDto {
+function mapProductCard(product: ProductCardRecord): ProductCardDto {
   const primaryImage = product.images.find((image) => image.isPrimary) ?? product.images[0];
 
   return {
@@ -471,19 +499,10 @@ function mapProductCard(product: Prisma.ProductGetPayload<{ include: typeof prod
     slug: product.slug,
     name: product.name,
     brand: product.brand,
-    category: product.category.name,
     price: decimalToNumber(product.price) ?? 0,
     stock: product.stock,
     image: primaryImage?.url ?? null,
-    images: product.images.map((image) => ({
-      id: image.id,
-      url: image.url,
-      alt: image.alt
-    })),
-    description: product.description,
     objective: product.objective,
-    featured: product.featured,
-    featuredPriority: product.featuredPriority,
     weight: product.weight,
     flavor: product.flavor
   };
@@ -494,10 +513,11 @@ function mapProductDetail(
 ): ProductDetailDto {
   return {
     ...mapProductCard(product),
+    category: product.category.name,
     description: product.description,
     benefits: product.benefits,
-    weight: product.weight,
-    flavor: product.flavor,
+    featured: product.featured,
+    featuredPriority: product.featuredPriority,
     images: product.images.map((image) => ({
       id: image.id,
       url: image.url,
@@ -576,7 +596,7 @@ async function listProductsWithStockPriority({
     inStockTake > 0
       ? prisma.product.findMany({
           where: inStockWhere,
-          include: productInclude,
+          select: productCardSelect,
           orderBy,
           skip: inStockSkip,
           take: inStockTake
@@ -585,7 +605,7 @@ async function listProductsWithStockPriority({
     outOfStockTake > 0
       ? prisma.product.findMany({
           where: outOfStockWhere,
-          include: productInclude,
+          select: productCardSelect,
           orderBy,
           skip: outOfStockSkip,
           take: outOfStockTake
@@ -658,7 +678,7 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
           in: pageIds
         }
       },
-      include: productInclude
+      select: productCardSelect
     });
     const productsById = new Map(products.map((product) => [product.id, product]));
 
@@ -668,8 +688,7 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
         .filter(
           (
             product
-          ): product is Prisma.ProductGetPayload<{ include: typeof productInclude }> =>
-            Boolean(product)
+          ): product is ProductCardRecord => Boolean(product)
         )
         .map(mapProductCard),
       total,

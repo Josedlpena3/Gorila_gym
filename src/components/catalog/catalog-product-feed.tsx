@@ -41,16 +41,11 @@ export function CatalogProductFeed({
   const lastAutoLoadedPageRef = useRef<number | null>(null);
   const hasMore = page < totalPages;
 
-  useEffect(() => {
-    setProducts(initialData.products);
-    setPage(initialData.page);
-    setTotal(initialData.total);
-    setTotalPages(initialData.totalPages);
-    setError(null);
-    setIsLoading(false);
-    isLoadingRef.current = false;
-    lastAutoLoadedPageRef.current = null;
-  }, [initialData, queryString]);
+  // El reinicio al cambiar de filtro lo resuelve el `key={queryString}` que pone
+  // la página: React remonta y el estado arranca de initialData. Antes esto era
+  // un useEffect con `initialData` en las dependencias, y como el servidor
+  // devuelve un objeto nuevo en cada render, reseteaba el estado y volvía a
+  // renderizar la grilla entera de más.
 
   const loadMore = useCallback(async () => {
     if (isLoadingRef.current || !hasMore) {
