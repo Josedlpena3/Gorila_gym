@@ -120,8 +120,8 @@ export function ReportesVentasClient() {
       {/* Products table */}
       <div className="section-card p-5">
         <div className="mb-4">
-          <p className="text-sm uppercase tracking-[0.28em] text-mist">Detalle</p>
-          <h2 className="text-2xl font-black uppercase tracking-[0.08em] text-sand">
+          <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Detalle</p>
+          <h2 className="text-2xl font-black uppercase tracking-display text-sand">
             Productos vendidos
           </h2>
         </div>
@@ -141,7 +141,7 @@ export function ReportesVentasClient() {
         ) : (
           <div className="space-y-2">
             {/* Header */}
-            <div className="grid grid-cols-[1fr,auto,auto] gap-4 px-4 py-2 text-xs uppercase tracking-[0.2em] text-mist">
+            <div className="grid grid-cols-[1fr,auto,auto] gap-4 px-4 py-2 text-xs uppercase tracking-eyebrow text-mist">
               <span>Producto</span>
               <span className="text-right">Unidades</span>
               <span className="w-28 text-right">Ingresos</span>

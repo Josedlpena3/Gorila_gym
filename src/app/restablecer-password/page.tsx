@@ -13,7 +13,7 @@ export default function ResetPasswordPage({
     return (
       <div className="page-shell">
         <div className="section-card mx-auto max-w-lg p-8 text-center">
-          <h1 className="text-3xl font-black uppercase tracking-[0.08em] text-sand">
+          <h1 className="text-3xl font-black uppercase tracking-display text-sand">
             Falta el token de recuperación
           </h1>
           <p className="mt-4 text-mist">
@@ -30,8 +30,8 @@ export default function ResetPasswordPage({
   return (
     <div className="page-shell">
       <div className="section-card mx-auto max-w-lg p-8">
-        <p className="text-sm uppercase tracking-[0.3em] text-mist">Nueva clave</p>
-        <h1 className="mt-3 text-4xl font-black uppercase tracking-[0.08em] text-sand">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Nueva clave</p>
+        <h1 className="mt-3 text-4xl font-black uppercase tracking-display text-sand">
           Restablecer contraseña
         </h1>
         <p className="mt-3 text-mist">

@@ -148,7 +148,7 @@ export function AdminStockClient({ products }: { products: StockProduct[] }) {
                     </Badge>
                     <Badge>{product.category}</Badge>
                   </div>
-                  <p className="mt-2 font-black uppercase tracking-[0.06em] text-sand">
+                  <p className="mt-2 font-black uppercase tracking-hero text-sand">
                     {product.name}
                   </p>
                   <p className="mt-0.5 text-xs text-mist">

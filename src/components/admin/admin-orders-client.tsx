@@ -8,6 +8,7 @@ import { OrderStatusForm } from "@/components/admin/order-status-form";
 import { OrderWhatsappButton } from "@/components/admin/order-whatsapp-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select } from "@/components/ui/select";
 import {
   DELIVERY_METHOD_LABELS,
@@ -212,6 +213,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
   const [grouping, setGrouping] = useState<OrderGrouping>("day");
   const [expandedOrderIds, setExpandedOrderIds] = useState<string[]>([]);
   const [pendingDeleteOrderId, setPendingDeleteOrderId] = useState<string | null>(null);
+  const [confirmDeleteOrderId, setConfirmDeleteOrderId] = useState<string | null>(null);
   const [deleteErrorOrderId, setDeleteErrorOrderId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editingDiscountOrderId, setEditingDiscountOrderId] = useState<string | null>(null);
@@ -234,10 +236,6 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
   }
 
   async function handleDeleteCancelledOrder(orderId: string) {
-    if (!window.confirm("¿Eliminar pedido cancelado?")) {
-      return;
-    }
-
     setPendingDeleteOrderId(orderId);
     setDeleteErrorOrderId(null);
     setDeleteError(null);
@@ -254,6 +252,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
         return;
       }
 
+      setConfirmDeleteOrderId(null);
       router.refresh();
     } catch {
       setDeleteErrorOrderId(orderId);
@@ -370,8 +369,8 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
       <section className="section-card p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.28em] text-mist">Vista</p>
-            <h2 className="text-2xl font-black uppercase tracking-[0.08em] text-sand">
+            <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Vista</p>
+            <h2 className="text-2xl font-black uppercase tracking-display text-sand">
               Pedidos agrupados
             </h2>
           </div>
@@ -402,7 +401,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
           <section key={group.id} className="space-y-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-xl font-black uppercase tracking-[0.08em] text-sand">
+                <h3 className="text-xl font-black uppercase tracking-display text-sand">
                   {group.label}
                 </h3>
                 <p className="text-sm text-mist">
@@ -437,15 +436,15 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                     <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                       <div className="grid gap-4 sm:grid-cols-2 xl:flex xl:items-center xl:gap-8">
                         <div>
-                          <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                          <p className="text-xs uppercase tracking-eyebrow text-mist">
                             ID pedido
                           </p>
-                          <p className="mt-1 text-lg font-black uppercase tracking-[0.08em] text-sand">
+                          <p className="mt-1 text-lg font-black uppercase tracking-display text-sand">
                             {order.code}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                          <p className="text-xs uppercase tracking-eyebrow text-mist">
                             Fecha
                           </p>
                           <p className="mt-1 text-sm text-sand">
@@ -453,7 +452,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                          <p className="text-xs uppercase tracking-eyebrow text-mist">
                             Estado
                           </p>
                           <div className="mt-2">
@@ -463,7 +462,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                           </div>
                         </div>
                         <div>
-                          <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                          <p className="text-xs uppercase tracking-eyebrow text-mist">
                             Total
                           </p>
                           <p className="mt-1 text-xl font-black text-sand">
@@ -492,7 +491,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-                              <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                              <p className="text-xs uppercase tracking-eyebrow text-mist">
                                 Contacto
                               </p>
                               <p className="mt-3 text-sand">Cliente: {order.customer}</p>
@@ -501,7 +500,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                               <p>Fecha: {formatDate(order.createdAt)}</p>
                             </div>
                             <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-                              <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                              <p className="text-xs uppercase tracking-eyebrow text-mist">
                                 Entrega y pago
                               </p>
                               <p className="mt-3 text-sand">
@@ -528,7 +527,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                             <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist sm:col-span-2">
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="space-y-1">
-                                  <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                                  <p className="text-xs uppercase tracking-eyebrow text-mist">
                                     Descuento
                                   </p>
                                   <p className="mt-2 text-sand">
@@ -686,7 +685,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                                 type="button"
                                 variant="danger"
                                 disabled={isDeleting}
-                                onClick={() => void handleDeleteCancelledOrder(order.id)}
+                                onClick={() => setConfirmDeleteOrderId(order.id)}
                               >
                                 {isDeleting ? "Eliminando..." : "Eliminar pedido"}
                               </Button>
@@ -698,7 +697,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                         </div>
 
                         <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
-                          <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                          <p className="text-xs uppercase tracking-eyebrow text-mist">
                             Productos
                           </p>
                           <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -728,6 +727,20 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
           </section>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteOrderId !== null}
+        title="Eliminar pedido cancelado"
+        description="El pedido se borra de forma permanente y deja de aparecer en los reportes de ventas."
+        confirmLabel="Eliminar pedido"
+        isPending={pendingDeleteOrderId !== null}
+        onConfirm={() => {
+          if (confirmDeleteOrderId) {
+            void handleDeleteCancelledOrder(confirmDeleteOrderId);
+          }
+        }}
+        onCancel={() => setConfirmDeleteOrderId(null)}
+      />
     </div>
   );
 }

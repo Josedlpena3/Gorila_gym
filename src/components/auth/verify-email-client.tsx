@@ -89,8 +89,8 @@ export function VerifyEmailClient({ token }: VerifyEmailClientProps) {
   return (
     <div className="page-shell">
       <div className="section-card mx-auto max-w-xl p-8 text-center sm:p-10">
-        <p className="text-sm uppercase tracking-[0.3em] text-mist">Verificación</p>
-        <h1 className="mt-3 text-3xl font-black uppercase tracking-[0.08em] text-sand sm:text-4xl">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Verificación</p>
+        <h1 className="mt-3 text-3xl font-black uppercase tracking-display text-sand sm:text-4xl">
           {title}
         </h1>
         <p className="mt-4 text-sm leading-7 text-mist sm:text-base">{message}</p>

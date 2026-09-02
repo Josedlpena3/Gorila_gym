@@ -17,9 +17,9 @@ export default async function CartPage() {
 
   if (cart.items.length === 0) {
     return (
-      <div className="page-shell">
-        <div className="section-card mx-auto max-w-2xl p-6 text-center sm:p-10">
-          <h1 className="text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-3xl">
+      <div className="page-shell flex min-h-[50vh] items-center justify-center">
+        <div className="section-card mx-auto w-full max-w-2xl p-6 text-center sm:p-10">
+          <h1 className="text-2xl font-black uppercase tracking-display text-sand sm:text-3xl">
             Tu carrito está vacío
           </h1>
           <p className="mt-4 text-mist">
@@ -46,8 +46,8 @@ export default async function CartPage() {
         <section className="section-card p-4 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-mist">Carrito</p>
-              <h1 className="text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-3xl">
+              <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Carrito</p>
+              <h1 className="text-2xl font-black uppercase tracking-display text-sand sm:text-3xl">
                 Tu selección
               </h1>
             </div>
@@ -74,7 +74,7 @@ export default async function CartPage() {
         </section>
 
         <aside className="section-card h-fit p-4 sm:p-6 lg:sticky lg:top-24">
-          <h2 className="text-xl font-black uppercase tracking-[0.08em] text-sand sm:text-2xl">
+          <h2 className="text-xl font-black uppercase tracking-display text-sand sm:text-2xl">
             Resumen
           </h2>
           <div className="mt-6 space-y-3 border-t border-line pt-4 text-sm">

@@ -39,7 +39,7 @@ export function ProductCard({ product }: { product: ProductCardDto }) {
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="flex flex-1 flex-col">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-mist sm:text-xs sm:tracking-[0.28em]">
+          <p className="text-[11px] uppercase tracking-eyebrow text-mist sm:text-xs sm:tracking-eyebrow-wide">
             {product.brand}
           </p>
           {(product.weight || product.flavor) ? (

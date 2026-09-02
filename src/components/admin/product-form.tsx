@@ -417,7 +417,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     >
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black uppercase tracking-[0.08em]">{title}</h1>
+          <h1 className="text-2xl font-black uppercase tracking-display">{title}</h1>
           <p className="text-sm text-mist">
             Gestioná el catálogo con una carga estable y preparada para producción.
           </p>
@@ -592,7 +592,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs uppercase tracking-[0.24em] text-mist">
+                      <p className="text-xs uppercase tracking-eyebrow text-mist">
                         Imagen {index + 1} {index === 0 ? "· Principal" : ""}
                       </p>
                       <p className="mt-2 truncate text-sm font-semibold text-sand">

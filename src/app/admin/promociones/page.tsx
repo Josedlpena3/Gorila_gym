@@ -8,8 +8,8 @@ export default async function AdminPromotionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm uppercase tracking-[0.3em] text-mist">Promociones</p>
-        <h1 className="text-4xl font-black uppercase tracking-[0.08em] text-sand">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Promociones</p>
+        <h1 className="text-4xl font-black uppercase tracking-display text-sand">
           Descuentos y campañas
         </h1>
       </div>
@@ -28,7 +28,7 @@ export default async function AdminPromotionsPage() {
                     </Badge>
                     {discount.province ? <Badge>{discount.province}</Badge> : null}
                   </div>
-                  <h2 className="mt-4 text-2xl font-black uppercase tracking-[0.08em] text-sand">
+                  <h2 className="mt-4 text-2xl font-black uppercase tracking-display text-sand">
                     {discount.name}
                   </h2>
                   <p className="mt-2 text-sm text-mist">

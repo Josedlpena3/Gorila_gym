@@ -1,7 +1,11 @@
-"use client";
-
 import * as React from "react";
 import { cn } from "@/lib/utils";
+
+// Sin "use client": el componente no usa hooks ni maneja eventos por su cuenta,
+// solo reenvía props. Con la directiva, cada <Button> renderizado desde un
+// componente servidor (los tres del header, por ejemplo) creaba un límite de
+// cliente y se hidrataba sin necesidad. Los componentes cliente lo siguen
+// importando con normalidad.
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost" | "danger";

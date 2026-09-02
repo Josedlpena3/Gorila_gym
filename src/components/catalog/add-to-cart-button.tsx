@@ -90,9 +90,11 @@ export function AddToCartButton({
             }
 
             const error = await response.json().catch(() => null);
-            alert(error?.error ?? "No se pudo agregar el producto al carrito.");
+            const { toast } = await import("sonner");
+            toast.error(error?.error ?? "No se pudo agregar el producto al carrito.");
           } catch {
-            alert("No se pudo agregar el producto al carrito.");
+            const { toast } = await import("sonner");
+            toast.error("No se pudo agregar el producto al carrito.");
           }
         })
       }

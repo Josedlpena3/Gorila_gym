@@ -42,7 +42,7 @@ export default function RootLayout({
           </a>
           <SiteHeader />
           <EmailVerificationBanner />
-          <main id="contenido" tabIndex={-1} className="min-h-[calc(100vh-160px)] py-10 focus:outline-none">
+          <main id="contenido" tabIndex={-1} className="min-h-[calc(100dvh-160px)] py-10 focus:outline-none">
             {children}
           </main>
           <SiteFooter />

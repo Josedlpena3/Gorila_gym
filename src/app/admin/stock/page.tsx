@@ -7,8 +7,8 @@ export default async function AdminStockPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm uppercase tracking-[0.3em] text-mist">Stock</p>
-        <h1 className="text-4xl font-black uppercase tracking-[0.08em] text-sand">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Stock</p>
+        <h1 className="text-4xl font-black uppercase tracking-display text-sand">
           Control de inventario
         </h1>
       </div>

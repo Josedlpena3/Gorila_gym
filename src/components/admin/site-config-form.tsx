@@ -60,8 +60,8 @@ export function SiteConfigForm({
       }}
     >
       <div>
-        <p className="text-sm uppercase tracking-[0.28em] text-mist">Admin</p>
-        <h1 className="mt-2 text-3xl font-black uppercase tracking-[0.08em] text-sand">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Admin</p>
+        <h1 className="mt-2 text-3xl font-black uppercase tracking-display text-sand">
           Encontranos
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-mist">
@@ -138,7 +138,7 @@ export function SiteConfigForm({
         </Field>
       </div>
       <div className="rounded-[28px] border border-line bg-ink/60 p-5">
-        <p className="text-xs uppercase tracking-[0.24em] text-mist">Publicación</p>
+        <p className="text-xs uppercase tracking-eyebrow text-mist">Publicación</p>
         <p className="mt-3 text-lg font-semibold text-sand">{form.address}</p>
         {form.googleMapsUrl.trim() ? (
           <div className="mt-4 overflow-hidden rounded-[24px] border border-line bg-steel/50">

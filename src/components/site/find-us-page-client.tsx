@@ -77,8 +77,8 @@ export function FindUsPageClient() {
     return (
       <div className="page-shell">
         <div className="section-card mx-auto max-w-5xl p-4 sm:p-8">
-          <p className="text-xs uppercase tracking-[0.28em] text-mist">Encontranos</p>
-          <h1 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-4xl">
+          <p className="text-xs uppercase tracking-eyebrow-wide text-mist">Encontranos</p>
+          <h1 className="mt-3 text-2xl font-black uppercase tracking-display text-sand sm:text-4xl">
             Cargando ubicación
           </h1>
           <div className="mt-6 flex flex-col gap-6 lg:grid lg:grid-cols-[0.95fr,1.05fr]">
@@ -119,8 +119,8 @@ export function FindUsPageClient() {
         <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[0.95fr,1.05fr] lg:items-start lg:gap-8">
           <div className="mx-auto flex w-full max-w-md flex-col gap-6 lg:mx-0 lg:max-w-none">
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-mist">Encontranos</p>
-              <h1 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-4xl">
+              <p className="text-xs uppercase tracking-eyebrow-wide text-mist">Encontranos</p>
+              <h1 className="mt-3 text-2xl font-black uppercase tracking-display text-sand sm:text-4xl">
                 Nuestro local
               </h1>
               <p className="mt-4 text-sm leading-7 text-mist sm:text-base">
@@ -138,7 +138,7 @@ export function FindUsPageClient() {
                   <MapPin className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-mist">Dirección</p>
+                  <p className="text-xs uppercase tracking-eyebrow text-mist">Dirección</p>
                   <p className="mt-2 text-lg font-semibold text-sand">
                     {siteConfig.address}
                   </p>

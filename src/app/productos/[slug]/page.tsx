@@ -80,10 +80,10 @@ export default async function ProductPage({
               {product.stock > 0 ? "En stock" : "Sin stock"}
             </Badge>
           </div>
-          <p className="mt-3 text-xs uppercase tracking-[0.28em] text-mist sm:text-sm sm:tracking-[0.32em]">
+          <p className="mt-3 text-xs uppercase tracking-eyebrow-wide text-mist sm:text-sm sm:tracking-eyebrow-wide">
             {product.brand}
           </p>
-          <h1 className="mt-3 text-3xl font-black uppercase tracking-[0.06em] text-sand sm:text-4xl">
+          <h1 className="mt-3 text-3xl font-black uppercase tracking-hero text-sand sm:text-4xl">
             {product.name}
           </h1>
 
@@ -135,7 +135,7 @@ export default async function ProductPage({
 
           {product.benefits.length > 0 ? (
             <div className="mt-5">
-              <p className="text-sm uppercase tracking-[0.26em] text-mist">Beneficios</p>
+              <p className="text-sm uppercase tracking-eyebrow text-mist">Beneficios</p>
               <ul className="mt-3 grid gap-2.5 text-sm text-sand sm:grid-cols-2">
                 {product.benefits.map((benefit) => (
                   <li

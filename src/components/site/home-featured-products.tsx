@@ -10,10 +10,10 @@ export function HomeFeaturedProducts({
   return (
     <section className="space-y-4">
       <div>
-        <p className="text-xs uppercase tracking-[0.24em] text-mist sm:text-sm sm:tracking-[0.28em]">
+        <p className="text-xs uppercase tracking-eyebrow text-mist sm:text-sm sm:tracking-eyebrow-wide">
           Home
         </p>
-        <h2 className="text-2xl font-black uppercase tracking-[0.06em] text-sand sm:text-3xl">
+        <h2 className="text-2xl font-black uppercase tracking-hero text-sand sm:text-3xl">
           Destacados y novedades
         </h2>
       </div>

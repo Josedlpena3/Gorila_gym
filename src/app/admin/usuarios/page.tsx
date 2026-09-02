@@ -8,8 +8,8 @@ export default async function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm uppercase tracking-[0.3em] text-mist">Usuarios</p>
-        <h1 className="text-4xl font-black uppercase tracking-[0.08em] text-sand">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Usuarios</p>
+        <h1 className="text-4xl font-black uppercase tracking-display text-sand">
           Clientes y administradores
         </h1>
       </div>
@@ -25,7 +25,7 @@ export default async function AdminUsersPage() {
                   </Badge>
                   <Badge>{user.orders.length} pedidos</Badge>
                 </div>
-                <h2 className="mt-4 text-2xl font-black uppercase tracking-[0.08em] text-sand">
+                <h2 className="mt-4 text-2xl font-black uppercase tracking-display text-sand">
                   {user.firstName} {user.lastName}
                 </h2>
                 <p className="mt-2 text-sm text-mist">{user.email}</p>

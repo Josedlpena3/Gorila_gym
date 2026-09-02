@@ -111,7 +111,7 @@ export function GuestCartView() {
     return (
       <div className="page-shell">
         <div className="section-card mx-auto max-w-2xl p-6 text-center sm:p-10">
-          <h1 className="text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-3xl">
+          <h1 className="text-2xl font-black uppercase tracking-display text-sand sm:text-3xl">
             Tu carrito está vacío
           </h1>
           <p className="mt-4 text-mist">
@@ -138,8 +138,8 @@ export function GuestCartView() {
         <section className="section-card p-4 sm:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-mist">Carrito</p>
-              <h1 className="text-2xl font-black uppercase tracking-[0.08em] text-sand sm:text-3xl">
+              <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Carrito</p>
+              <h1 className="text-2xl font-black uppercase tracking-display text-sand sm:text-3xl">
                 Tu selección
               </h1>
               <p className="mt-2 text-sm text-mist">
@@ -172,7 +172,7 @@ export function GuestCartView() {
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
                   <div>
-                    <p className="text-sm uppercase tracking-[0.24em] text-mist">{item.brand}</p>
+                    <p className="text-sm uppercase tracking-eyebrow text-mist">{item.brand}</p>
                     <h2 className="mt-2 text-lg font-semibold leading-tight text-sand sm:text-xl">
                       {item.name}
                     </h2>
@@ -195,7 +195,7 @@ export function GuestCartView() {
         </section>
 
         <aside className="section-card h-fit p-4 sm:p-6 lg:sticky lg:top-24">
-          <h2 className="text-xl font-black uppercase tracking-[0.08em] text-sand sm:text-2xl">
+          <h2 className="text-xl font-black uppercase tracking-display text-sand sm:text-2xl">
             Resumen
           </h2>
           <div className="mt-6 space-y-3 border-t border-line pt-4 text-sm">

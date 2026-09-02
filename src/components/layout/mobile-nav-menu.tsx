@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { Menu, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useSession } from "@/components/auth/session-provider";
+import { getVisibleNavLinks, isActiveNavLink } from "@/lib/navigation";
+import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { LogoutButton } from "@/components/forms/logout-button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +14,7 @@ import { Button } from "@/components/ui/button";
 
 export function MobileNavMenu() {
   const { user } = useSession();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -79,7 +83,7 @@ export function MobileNavMenu() {
                   onClick={() => setIsOpen(false)}
                 >
                   <p className="text-sm font-semibold text-sand">Mi cuenta</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.2em] text-mist">
+                  <p className="mt-1 text-xs uppercase tracking-eyebrow text-mist">
                     Ver perfil
                   </p>
                 </Link>
@@ -91,45 +95,29 @@ export function MobileNavMenu() {
               </div>
             ) : null}
 
-            <nav className="mt-4 space-y-1 text-sm font-semibold text-sand">
-              <Link
-                href="/catalogo"
-                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
-                onClick={() => setIsOpen(false)}
-              >
-                Catálogo
-              </Link>
-              <Link
-                href="/carrito"
-                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
-                onClick={() => setIsOpen(false)}
-              >
-                Carrito
-              </Link>
-              <Link
-                href="/mis-pedidos"
-                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
-                onClick={() => setIsOpen(false)}
-              >
-                Mis pedidos
-              </Link>
-              {user?.role === "ADMIN" ? (
-                <Link
-                  href="/admin"
-                  className="flex min-h-11 items-center gap-2 rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  Admin
-                </Link>
-              ) : null}
-              <Link
-                href="/encontranos"
-                className="flex min-h-11 items-center rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember"
-                onClick={() => setIsOpen(false)}
-              >
-                Encontranos
-              </Link>
+            <nav
+              aria-label="Navegación principal"
+              className="mt-4 space-y-1 text-sm font-semibold text-sand"
+            >
+              {getVisibleNavLinks(user?.role === "ADMIN").map((link) => {
+                const isActive = isActiveNavLink(pathname, link.href);
+
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    aria-current={isActive ? "page" : undefined}
+                    onClick={() => setIsOpen(false)}
+                    className={cn(
+                      "flex min-h-11 items-center gap-2 rounded-2xl px-3 py-3 transition hover:bg-white/5 hover:text-ember",
+                      isActive && "bg-white/5 text-ember"
+                    )}
+                  >
+                    {link.adminOnly ? <ShieldCheck className="h-4 w-4" /> : null}
+                    {link.label}
+                  </Link>
+                );
+              })}
             </nav>
 
             {user ? (

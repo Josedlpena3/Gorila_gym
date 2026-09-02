@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getFooterNavLinks } from "@/lib/navigation";
 
 export function SiteFooter() {
   return (
@@ -6,7 +7,7 @@ export function SiteFooter() {
       <div className="page-shell">
         <div className="grid gap-8 sm:grid-cols-3">
           <div>
-            <p className="font-black uppercase tracking-[0.14em] text-sand">Gorilla Strong</p>
+            <p className="font-black uppercase tracking-eyebrow text-sand">Gorilla Strong</p>
             <p className="mt-2 text-sm text-mist">
               Suplementación premium para acompañar tu entrenamiento.
             </p>
@@ -21,25 +22,22 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-mist">Tienda</p>
-            <nav className="mt-3 flex flex-col gap-2 text-sm">
-              <Link href="/catalogo" className="inline-flex min-h-[32px] items-center text-sand transition hover:text-ember">
-                Catálogo
-              </Link>
-              <Link href="/carrito" className="inline-flex min-h-[32px] items-center text-sand transition hover:text-ember">
-                Carrito
-              </Link>
-              <Link href="/mis-pedidos" className="inline-flex min-h-[32px] items-center text-sand transition hover:text-ember">
-                Mis pedidos
-              </Link>
-              <Link href="/encontranos" className="inline-flex min-h-[32px] items-center text-sand transition hover:text-ember">
-                Encontranos
-              </Link>
+            <p className="text-xs font-semibold uppercase tracking-eyebrow text-mist">Tienda</p>
+            <nav aria-label="Secciones de la tienda" className="mt-3 flex flex-col gap-2 text-sm">
+              {getFooterNavLinks().map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="inline-flex min-h-[32px] items-center text-sand transition hover:text-ember"
+                >
+                  {link.label}
+                </Link>
+              ))}
             </nav>
           </div>
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-mist">Atención</p>
+            <p className="text-xs font-semibold uppercase tracking-eyebrow text-mist">Atención</p>
             <p className="mt-3 text-sm text-mist">
               Atención personalizada para coordinar entrega y seguimiento.
             </p>

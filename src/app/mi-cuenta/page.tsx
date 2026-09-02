@@ -14,8 +14,8 @@ export default async function AccountPage() {
   return (
     <div className="page-shell grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
       <section className="section-card p-6">
-        <p className="text-sm uppercase tracking-[0.3em] text-mist">Mi cuenta</p>
-        <h1 className="mt-3 text-3xl font-black uppercase tracking-[0.08em] text-sand">
+        <p className="text-sm uppercase tracking-eyebrow-wide text-mist">Mi cuenta</p>
+        <h1 className="mt-3 text-3xl font-black uppercase tracking-display text-sand">
           Perfil y dirección
         </h1>
         <div className="mt-8">
@@ -23,8 +23,8 @@ export default async function AccountPage() {
         </div>
 
         <div className="mt-8 border-t border-line pt-8">
-          <p className="text-sm uppercase tracking-[0.24em] text-mist">Seguridad</p>
-          <h2 className="mt-2 text-2xl font-black uppercase tracking-[0.08em] text-sand">
+          <p className="text-sm uppercase tracking-eyebrow text-mist">Seguridad</p>
+          <h2 className="mt-2 text-2xl font-black uppercase tracking-display text-sand">
             Cambiar contraseña
           </h2>
           <p className="mt-2 text-sm text-mist">

@@ -109,7 +109,7 @@ export function AdminProductsClient({
                     Stock: {product.stock}
                   </Badge>
                 </div>
-                <h2 className="mt-3 text-xl font-black uppercase tracking-[0.08em] text-sand">
+                <h2 className="mt-3 text-xl font-black uppercase tracking-display text-sand">
                   {product.name}
                 </h2>
                 <p className="mt-1 text-sm text-mist">

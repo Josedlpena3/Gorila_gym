@@ -29,7 +29,8 @@ export function CartItem({ item }: { item: CartItemData }) {
     if (response.ok) {
       router.refresh();
     } else {
-      alert("No se pudo quitar el producto.");
+      const { toast } = await import("sonner");
+      toast.error("No se pudo quitar el producto.");
     }
   }
 
@@ -53,7 +54,7 @@ export function CartItem({ item }: { item: CartItemData }) {
 
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-mist">{item.brand}</p>
+          <p className="text-sm uppercase tracking-eyebrow text-mist">{item.brand}</p>
           <h2 className="mt-2 text-lg font-semibold leading-tight text-sand sm:text-xl">
             {item.name}
           </h2>
