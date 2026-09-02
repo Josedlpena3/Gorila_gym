@@ -80,11 +80,6 @@ export default async function ProductPage({
             <Badge variant={product.stock > 0 ? "success" : "warning"}>
               {product.stock > 0 ? "En stock" : "Sin stock"}
             </Badge>
-            {product.stock > 0 && product.stock <= 3 ? (
-              <span className="rounded-full bg-neon/15 px-3 py-1 text-xs font-semibold text-ember">
-                Quedan {product.stock}
-              </span>
-            ) : null}
           </div>
 
           <p className="mt-5 text-xs font-semibold uppercase tracking-eyebrow-wide text-mist">

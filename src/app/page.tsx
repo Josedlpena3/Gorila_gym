@@ -1,41 +1,31 @@
 import Image from "next/image";
 import Link from "next/link";
-import { MessageCircle, Truck, Wallet } from "lucide-react";
+import { BrandMarquee } from "@/components/site/brand-marquee";
 import { HomeFeaturedProducts } from "@/components/site/home-featured-products";
-import { getHomeProducts } from "@/modules/products/product.service";
+import { PromoBanner } from "@/components/site/promo-banner";
+import { Reveal } from "@/components/ui/reveal";
+import {
+  getHomeProducts,
+  listProductBrands
+} from "@/modules/products/product.service";
 
 // ISR: el HTML se genera una vez y se sirve desde el CDN. Las mutaciones del
 // admin lo invalidan al instante (revalidateProductPages en product.service),
 // así que esta ventana solo cubre cambios de stock por ventas.
 export const revalidate = 60;
 
-const VALUE_PROPS = [
-  {
-    icon: Truck,
-    title: "Envíos a Villa Allende y zona",
-    description: "Coordinamos día y horario de entrega con vos."
-  },
-  {
-    icon: MessageCircle,
-    title: "Asesoramiento real",
-    description: "Te ayudamos a elegir según tu objetivo, sin vender de más."
-  },
-  {
-    icon: Wallet,
-    title: "Efectivo, transferencia o tarjeta",
-    description: "Elegís la forma de pago al confirmar el pedido."
-  }
-];
-
 export default async function HomePage() {
   // El error se captura porque esta página sí se prerenderiza en el build: si
   // la base no responde durante un deploy, preferimos una home sin destacados
   // (que se recompone sola en la siguiente revalidación) antes que un deploy
   // fallado. El catálogo, que es dinámico, sigue funcionando igual.
-  const homeProducts = await getHomeProducts(8).catch((error) => {
-    console.error("[home] no se pudieron cargar los productos", error);
-    return [];
-  });
+  const [homeProducts, brands] = await Promise.all([
+    getHomeProducts(8).catch((error) => {
+      console.error("[home] no se pudieron cargar los productos", error);
+      return [];
+    }),
+    listProductBrands().catch(() => [] as string[])
+  ]);
 
   // El hero muestra un producto real del catálogo en vez de texto sobre un
   // degradado vacío. Con el fondo recortado, el envase se apoya sobre el tema
@@ -43,7 +33,9 @@ export default async function HomePage() {
   const heroProduct = homeProducts.find((product) => product.image) ?? null;
 
   return (
-    <div className="page-shell space-y-14 sm:space-y-20">
+    <div className="page-shell space-y-10 sm:space-y-14">
+      <PromoBanner />
+
       <section className="relative overflow-hidden rounded-3xl border border-hairline bg-surface shadow-card">
         <div
           aria-hidden="true"
@@ -108,29 +100,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section aria-label="Por qué comprarnos">
-        <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-          {VALUE_PROPS.map(({ icon: Icon, title, description }) => (
-            <div
-              key={title}
-              className="flex items-start gap-3.5 rounded-2xl border border-hairline bg-surface p-4 shadow-card sm:p-5"
-            >
-              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neon/15 text-ember">
-                <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-sand">{title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-mist">
-                  {description}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <Reveal>
+        <BrandMarquee brands={brands} />
+      </Reveal>
 
       {homeProducts.length > 0 ? (
-        <HomeFeaturedProducts products={homeProducts} />
+        <Reveal delay={80}>
+          <HomeFeaturedProducts products={homeProducts} />
+        </Reveal>
       ) : null}
     </div>
   );

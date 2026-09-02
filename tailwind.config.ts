@@ -44,6 +44,20 @@ const config: Config = {
         sand: "#FFFFFF",
         success: "#22c55e"
       },
+      keyframes: {
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" }
+        },
+        "pulse-glow": {
+          "0%, 100%": { opacity: "0.5" },
+          "50%": { opacity: "0.85" }
+        }
+      },
+      animation: {
+        marquee: "marquee 38s linear infinite",
+        "pulse-glow": "pulse-glow 6s ease-in-out infinite"
+      },
       boxShadow: {
         premium: "0 24px 80px rgba(0, 0, 0, 0.35)",
         // El brillo interior superior es lo que da sensación de material: sugiere

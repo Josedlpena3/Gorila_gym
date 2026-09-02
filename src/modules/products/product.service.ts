@@ -776,6 +776,25 @@ export async function getHomeProducts(limit = 8) {
  * Slugs de productos activos para el sitemap. Devuelve solo lo indispensable:
  * el sitemap no necesita precios, imágenes ni descripciones.
  */
+/**
+ * Marcas distintas del catálogo activo, para la cinta de la home. Es un
+ * `distinct` sobre una columna, cacheado junto al resto de los productos.
+ */
+export const listProductBrands = unstable_cache(
+  async () => {
+    const rows = await prisma.product.findMany({
+      where: { active: true },
+      select: { brand: true },
+      distinct: ["brand"],
+      orderBy: { brand: "asc" }
+    });
+
+    return rows.map((row) => row.brand).filter(Boolean);
+  },
+  ["product-brands"],
+  { revalidate: 3600, tags: [PRODUCTS_CACHE_TAG] }
+);
+
 export async function listSitemapProducts() {
   return prisma.product.findMany({
     where: { active: true },

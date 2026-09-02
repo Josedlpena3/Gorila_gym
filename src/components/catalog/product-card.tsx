@@ -7,7 +7,6 @@ import type { ProductCardDto } from "@/types";
 
 export function ProductCard({ product }: { product: ProductCardDto }) {
   const isOutOfStock = product.stock <= 0;
-  const isLowStock = !isOutOfStock && product.stock <= 3;
   // Peso y sabor en una sola línea: son los dos datos que un comprador compara
   // entre productos, y como badges sueltos competían con el nombre.
   const meta = [product.weight, product.flavor].filter(Boolean).join(" · ");
@@ -42,10 +41,6 @@ export function ProductCard({ product }: { product: ProductCardDto }) {
         {isOutOfStock ? (
           <span className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1 text-[10px] font-bold uppercase tracking-eyebrow text-mist backdrop-blur-sm">
             Sin stock
-          </span>
-        ) : isLowStock ? (
-          <span className="absolute right-3 top-3 rounded-full bg-neon px-3 py-1 text-[10px] font-bold uppercase tracking-eyebrow text-white">
-            Últimas {product.stock}
           </span>
         ) : null}
       </Link>

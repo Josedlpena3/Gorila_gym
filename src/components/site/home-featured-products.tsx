@@ -18,9 +18,6 @@ export function HomeFeaturedProducts({
           <h2 className="text-2xl font-black uppercase tracking-hero text-sand sm:text-3xl">
             Destacados
           </h2>
-          <p className="mt-1.5 text-sm text-mist">
-            Lo que más se lleva la gente del local.
-          </p>
         </div>
         <Link
           href="/catalogo"
