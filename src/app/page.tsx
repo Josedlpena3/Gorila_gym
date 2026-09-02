@@ -50,12 +50,12 @@ export default async function HomePage() {
           className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(220,38,38,0.16),transparent_45%),radial-gradient(circle_at_88%_75%,rgba(255,255,255,0.05),transparent_40%)]"
         />
 
-        <div className="relative grid items-center gap-8 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[1.05fr,0.95fr] lg:gap-12 lg:px-14 lg:py-16">
+        <div className="relative grid items-center gap-8 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[1.15fr,0.85fr] lg:gap-12 lg:px-14 lg:py-16">
           <div className="text-center lg:text-left">
             <p className="text-[11px] font-semibold uppercase tracking-eyebrow-wide text-ember">
               Suplementación deportiva · Villa Allende
             </p>
-            <h1 className="mt-4 text-[2.1rem] font-black uppercase leading-[0.98] tracking-hero text-sand sm:text-5xl lg:text-[3.6rem]">
+            <h1 className="mt-4 text-[2rem] font-black uppercase leading-[1.02] tracking-[0.02em] text-sand sm:text-[2.75rem] lg:text-[3.05rem]">
               Entrená fuerte.
               <span className="block text-ember">Suplementate mejor.</span>
             </h1>
