@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 
 type CartItemControlsProps = {
   productId: string;
@@ -38,24 +39,16 @@ export function CartItemControls({ productId, quantity, stock, onRemove }: CartI
     async (nextQty: number) => {
       setSyncing(true);
       try {
-        const response = await fetch("/api/cart/items", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productId, quantity: nextQty })
-        });
-
-        if (response.ok) {
-          committedQtyRef.current = nextQty;
-          router.refresh();
-        } else {
-          const error = await response.json().catch(() => null);
-          const { toast } = await import("sonner");
-          toast.error(error?.error ?? "No se pudo actualizar el carrito.");
-          // Revert to last committed value
-          setLocalQty(committedQtyRef.current);
-          setInputValue(String(committedQtyRef.current));
-          localQtyRef.current = committedQtyRef.current;
-        }
+        await api.patch("/api/cart/items", { productId, quantity: nextQty });
+        committedQtyRef.current = nextQty;
+        router.refresh();
+      } catch (error) {
+        const { toast } = await import("sonner");
+        toast.error(getApiErrorMessage(error, "No se pudo actualizar el carrito."));
+        // Revert to last committed value
+        setLocalQty(committedQtyRef.current);
+        setInputValue(String(committedQtyRef.current));
+        localQtyRef.current = committedQtyRef.current;
       } finally {
         setSyncing(false);
       }

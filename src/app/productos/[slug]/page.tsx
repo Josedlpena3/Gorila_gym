@@ -32,7 +32,7 @@ export async function generateMetadata({
   const product = await getProductCached(params.slug).catch(() => null);
 
   if (!product) {
-    return { title: "Producto no encontrado | Gorilla Strong" };
+    return { title: "Producto no encontrado" };
   }
 
   const description = product.description.length > 155
@@ -40,7 +40,7 @@ export async function generateMetadata({
     : product.description;
 
   return {
-    title: `${product.name} – ${product.brand} | Gorilla Strong`,
+    title: `${product.name} – ${product.brand}`,
     description,
     openGraph: {
       title: `${product.name} – ${product.brand}`,

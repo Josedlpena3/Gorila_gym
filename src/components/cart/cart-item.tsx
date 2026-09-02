@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CartItemControls } from "@/components/cart/cart-item-controls";
+import { api, getApiErrorMessage } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/utils";
 
 type CartItemData = {
@@ -20,17 +21,12 @@ export function CartItem({ item }: { item: CartItemData }) {
   const router = useRouter();
 
   async function handleRemove() {
-    const response = await fetch("/api/cart/items", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: item.productId })
-    });
-
-    if (response.ok) {
+    try {
+      await api.delete("/api/cart/items", { productId: item.productId });
       router.refresh();
-    } else {
+    } catch (error) {
       const { toast } = await import("sonner");
-      toast.error("No se pudo quitar el producto.");
+      toast.error(getApiErrorMessage(error, "No se pudo quitar el producto."));
     }
   }
 

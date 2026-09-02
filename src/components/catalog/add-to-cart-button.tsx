@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { useSession } from "@/components/auth/session-provider";
 import { Button } from "@/components/ui/button";
+import { api, getApiErrorMessage, isApiErrorWithStatus } from "@/lib/api-client";
 import { addGuestCartItem } from "@/lib/guest-cart";
 
 type AddToCartButtonProps = {
@@ -63,38 +64,23 @@ export function AddToCartButton({
           }
 
           try {
-            const response = await fetch("/api/cart/items", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                productId,
-                quantity
-              })
-            });
-
-            if (response.ok) {
-              router.push("/carrito");
-              router.refresh();
-              return;
-            }
-
+            await api.post("/api/cart/items", { productId, quantity });
+            router.push("/carrito");
+            router.refresh();
+          } catch (error) {
             // 401 = sin sesión o sesión vencida. Antes esto era un error a la
             // cara del cliente; ahora el producto se guarda en el carrito de
             // invitado y se recupera al iniciar sesión.
-            if (response.status === 401) {
+            if (isApiErrorWithStatus(error, 401)) {
               await refresh();
               saveToGuestCart();
               return;
             }
 
-            const error = await response.json().catch(() => null);
             const { toast } = await import("sonner");
-            toast.error(error?.error ?? "No se pudo agregar el producto al carrito.");
-          } catch {
-            const { toast } = await import("sonner");
-            toast.error("No se pudo agregar el producto al carrito.");
+            toast.error(
+              getApiErrorMessage(error, "No se pudo agregar el producto al carrito.")
+            );
           }
         })
       }
