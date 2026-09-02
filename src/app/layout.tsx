@@ -45,6 +45,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={figtree.variable}>
+      <head>
+        {/* Sin JavaScript el IntersectionObserver nunca corre y los bloques con
+            aparición al scrollear quedarían invisibles. */}
+        <noscript>
+          <style>{`.js-reveal{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
+      </head>
       <body>
         <SessionProvider>
           <a

@@ -109,6 +109,32 @@ export default async function HomePage() {
           <HomeFeaturedProducts products={homeProducts} />
         </Reveal>
       ) : null}
+
+      {/* Cierre: quien llegó hasta acá scrolleando ya no tiene el enlace del
+          encabezado a la vista, así que el catálogo vuelve a estar a un click. */}
+      <Reveal>
+        <section className="relative overflow-hidden rounded-3xl border border-hairline bg-surface px-5 py-10 text-center shadow-card sm:px-8 sm:py-14">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(220,38,38,0.14),transparent_55%)]"
+          />
+          <div className="relative">
+            <h2 className="text-2xl font-black uppercase tracking-hero text-sand sm:text-3xl">
+              Todo el catálogo te espera
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-sm text-mist sm:text-base">
+              Proteínas, creatinas, pre entrenos, barritas y más. Filtrá por
+              categoría y encontrá lo tuyo.
+            </p>
+            <Link
+              href="/catalogo"
+              className="mt-7 inline-flex min-h-12 items-center justify-center rounded-full bg-neon px-8 text-sm font-semibold text-white shadow-glow transition hover:bg-ember"
+            >
+              Ver catálogo
+            </Link>
+          </div>
+        </section>
+      </Reveal>
     </div>
   );
 }

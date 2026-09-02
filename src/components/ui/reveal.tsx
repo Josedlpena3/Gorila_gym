@@ -57,7 +57,10 @@ export function Reveal({
       ref={ref}
       style={{ transitionDelay: isVisible ? `${delay}ms` : "0ms" }}
       className={cn(
-        "motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
+        // La clase la usa el <noscript> del layout para forzar visibilidad:
+        // sin JavaScript el observador nunca corre y el bloque quedaría en
+        // opacidad 0 para siempre.
+        "js-reveal motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
         isVisible
           ? "translate-y-0 opacity-100"
           : "motion-safe:translate-y-4 motion-safe:opacity-0",

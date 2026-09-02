@@ -3,12 +3,12 @@ import { Banknote } from "lucide-react";
 
 /**
  * El 10% por pago en efectivo se aplica a mano al cobrar, no lo calcula el
- * checkout: `applyPaymentSurcharge` devuelve el total sin cambios. Por eso el
- * cartel aclara "al momento de pagar" — si dijera solamente "10% OFF", el
- * cliente vería el total completo en el checkout y pensaría que no se aplicó.
+ * checkout: `applyPaymentSurcharge` devuelve el total sin cambios.
  *
- * Si algún día el descuento se calcula en el sistema, este texto y la nota del
- * checkout (checkout-form, sección de forma de pago) se ajustan juntos.
+ * El cartel solo anuncia el beneficio; la aclaración de cuándo se aplica vive
+ * en el checkout, que es donde el cliente ve el total completo y podría creer
+ * que no se lo hicieron. Si algún día el descuento se calcula en el sistema,
+ * este texto y esa nota se ajustan juntos.
  */
 export function PromoBanner() {
   return (
@@ -29,9 +29,6 @@ export function PromoBanner() {
       <span className="relative text-sm text-mist">
         <strong className="font-black text-sand">10% OFF</strong> pagando en
         efectivo
-      </span>
-      <span className="relative text-xs text-mist/70">
-        · sin código, te lo descontamos al momento de pagar
       </span>
     </Link>
   );
