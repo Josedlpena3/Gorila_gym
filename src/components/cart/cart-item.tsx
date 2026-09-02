@@ -41,6 +41,7 @@ export function CartItem({ item }: { item: CartItemData }) {
             src={item.image}
             alt={item.name}
             fill
+            sizes="112px"
             className="object-contain p-3"
           />
         ) : (
