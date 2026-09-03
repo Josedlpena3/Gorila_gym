@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeaderAuth } from "@/components/layout/header-auth";
 import { MobileNavMenu } from "@/components/layout/mobile-nav-menu";
 import { SiteNav } from "@/components/layout/site-nav";
+import { GorillaRoar } from "@/components/site/gorilla-roar";
 
 /**
  * El header es estático a propósito: el estado de sesión lo resuelven
@@ -16,16 +16,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-hairline/70 bg-ink/80 backdrop-blur">
       <div className="page-shell flex h-16 items-center justify-between gap-3 sm:h-20 sm:gap-4">
         <Link href="/" className="flex min-w-0 items-center gap-3">
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 sm:h-12 sm:w-12">
-            <Image
-              src="/branding/logo-gorila.png"
-              alt="Gorilla Strong"
-              width={96}
-              height={96}
-              priority
-              className="h-full w-full object-cover"
-            />
-          </div>
+          <GorillaRoar mode="hover" size="sm" priority />
           <div className="min-w-0 leading-tight">
             <p className="truncate text-[10px] font-black uppercase tracking-eyebrow text-sand sm:text-xs sm:tracking-eyebrow">
               Gorilla Strong

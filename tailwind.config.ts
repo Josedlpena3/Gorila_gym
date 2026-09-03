@@ -45,6 +45,36 @@ const config: Config = {
         success: "#22c55e"
       },
       keyframes: {
+        // El logo es un gorila rugiendo, así que la animación es un rugido.
+        //
+        // `roar` y `shockwave` comparten los 3,2 s del ciclo y la onda lleva su
+        // espera adentro de los keyframes en vez de un animation-delay: así
+        // arrancan juntas y la onda sale exactamente cuando el gorila ruge, no
+        // al principio del ciclo.
+        roar: {
+          "0%, 58%, 100%": { transform: "scale(1) rotate(0deg)" },
+          "64%": { transform: "scale(1.16) rotate(-5deg)" },
+          "70%": { transform: "scale(1.06) rotate(4deg)" },
+          "77%": { transform: "scale(1.13) rotate(-3deg)" },
+          "86%": { transform: "scale(1) rotate(0deg)" }
+        },
+        shockwave: {
+          "0%, 58%": { transform: "scale(1)", opacity: "0" },
+          "62%": { transform: "scale(1)", opacity: "0.6" },
+          "100%": { transform: "scale(2.2)", opacity: "0" }
+        },
+        // Versiones de un solo golpe para el hover: rugen apenas entra el
+        // mouse, sin la espera del ciclo largo.
+        "roar-burst": {
+          "0%, 100%": { transform: "scale(1) rotate(0deg)" },
+          "18%": { transform: "scale(1.16) rotate(-5deg)" },
+          "40%": { transform: "scale(1.06) rotate(4deg)" },
+          "62%": { transform: "scale(1.13) rotate(-3deg)" }
+        },
+        "shockwave-burst": {
+          "0%": { transform: "scale(1)", opacity: "0.6" },
+          "100%": { transform: "scale(2.2)", opacity: "0" }
+        },
         marquee: {
           from: { transform: "translateX(0)" },
           to: { transform: "translateX(-50%)" }
@@ -55,6 +85,10 @@ const config: Config = {
         }
       },
       animation: {
+        roar: "roar 3.2s ease-in-out infinite",
+        shockwave: "shockwave 3.2s ease-out infinite",
+        "roar-burst": "roar-burst 0.9s ease-in-out",
+        "shockwave-burst": "shockwave-burst 0.9s ease-out",
         marquee: "marquee 38s linear infinite",
         "pulse-glow": "pulse-glow 6s ease-in-out infinite"
       },
