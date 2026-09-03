@@ -212,7 +212,7 @@ export function OrderWhatsappButton({
 
         window.open(whatsappUrl, "_blank", "noopener,noreferrer");
       }}
-      className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-400 hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:border-line disabled:bg-white/5 disabled:text-mist"
+      className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-400 hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:border-hairline disabled:bg-white/5 disabled:text-mist"
       aria-label={tooltip}
     >
       <MessageCircle className="h-4 w-4" />

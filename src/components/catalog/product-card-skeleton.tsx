@@ -5,13 +5,13 @@
 export function ProductCardSkeleton() {
   return (
     <div className="section-card animate-pulse overflow-hidden">
-      <div className="aspect-square bg-steel/80" />
+      <div className="aspect-square bg-surface-raised" />
       <div className="space-y-3 p-4 sm:p-5">
-        <div className="h-3 w-1/3 rounded-full bg-steel/80" />
-        <div className="h-5 w-full rounded-full bg-steel/80" />
-        <div className="h-5 w-3/4 rounded-full bg-steel/80" />
-        <div className="mt-4 h-4 w-1/2 rounded-full bg-steel/80" />
-        <div className="mt-2 h-10 w-full rounded-[22px] bg-steel/80" />
+        <div className="h-3 w-1/3 rounded-full bg-surface-raised" />
+        <div className="h-5 w-full rounded-full bg-surface-raised" />
+        <div className="h-5 w-3/4 rounded-full bg-surface-raised" />
+        <div className="mt-4 h-4 w-1/2 rounded-full bg-surface-raised" />
+        <div className="mt-2 h-10 w-full rounded-[22px] bg-surface-raised" />
       </div>
     </div>
   );

@@ -32,18 +32,18 @@ const RANGOS: { key: RangoKey; label: string }[] = [
 function SkeletonCard() {
   return (
     <div className="section-card animate-pulse p-5">
-      <div className="h-3 w-1/3 rounded-full bg-steel/80" />
-      <div className="mt-4 h-8 w-1/2 rounded-full bg-steel/80" />
+      <div className="h-3 w-1/3 rounded-full bg-surface-raised" />
+      <div className="mt-4 h-8 w-1/2 rounded-full bg-surface-raised" />
     </div>
   );
 }
 
 function SkeletonRow() {
   return (
-    <div className="flex items-center justify-between rounded-[20px] border border-line bg-ink/60 px-4 py-3">
-      <div className="h-4 w-1/3 rounded-full bg-steel/80" />
-      <div className="h-4 w-12 rounded-full bg-steel/80" />
-      <div className="h-4 w-20 rounded-full bg-steel/80" />
+    <div className="flex items-center justify-between rounded-[20px] border border-hairline bg-surface-sunken px-4 py-3">
+      <div className="h-4 w-1/3 rounded-full bg-surface-raised" />
+      <div className="h-4 w-12 rounded-full bg-surface-raised" />
+      <div className="h-4 w-20 rounded-full bg-surface-raised" />
     </div>
   );
 }
@@ -150,7 +150,7 @@ export function ReportesVentasClient() {
             {productos.map((p, i) => (
               <div
                 key={p.productId ?? p.productName}
-                className="grid grid-cols-[1fr,auto,auto] items-center gap-4 rounded-[20px] border border-line bg-ink/60 px-4 py-3"
+                className="grid grid-cols-[1fr,auto,auto] items-center gap-4 rounded-[20px] border border-hairline bg-surface-sunken px-4 py-3"
               >
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   {i === 0 ? <Badge variant="success">Top</Badge> : null}

@@ -86,7 +86,7 @@ export function OrderVisualForm({
   }
 
   return (
-    <div className="space-y-3 rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
+    <div className="space-y-3 rounded-3xl border border-hairline bg-surface-sunken p-4 text-sm text-mist">
       <p className="text-xs uppercase tracking-eyebrow text-mist">Marcado interno</p>
 
       <label className="flex items-center gap-3 text-sand">
@@ -102,7 +102,7 @@ export function OrderVisualForm({
             setFeedback(null);
             setError(null);
           }}
-          className="h-4 w-4 rounded border-line bg-ink/70 accent-lime-400"
+          className="h-4 w-4 rounded border-hairline bg-surface-sunken accent-lime-400"
         />
         Marcar pedido
       </label>

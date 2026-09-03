@@ -77,7 +77,7 @@ export default async function CartPage() {
           <h2 className="text-xl font-black uppercase tracking-display text-sand sm:text-2xl">
             Resumen
           </h2>
-          <div className="mt-6 space-y-3 border-t border-line pt-4 text-sm">
+          <div className="mt-6 space-y-3 border-t border-hairline pt-4 text-sm">
             <div className="flex items-center justify-between text-mist">
               <span>Subtotal</span>
               <span>{formatCurrency(cart.subtotal)}</span>

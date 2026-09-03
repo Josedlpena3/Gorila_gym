@@ -124,7 +124,7 @@ export function CartItemControls({ productId, quantity, stock, onRemove }: CartI
   return (
     <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
       <div className="flex items-center gap-2">
-        <div className="flex min-h-11 items-center rounded-full border border-line">
+        <div className="flex min-h-11 items-center rounded-full border border-hairline">
           <button
             type="button"
             className="flex h-11 w-11 items-center justify-center text-lg"

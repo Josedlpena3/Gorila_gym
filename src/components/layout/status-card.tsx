@@ -11,7 +11,7 @@ const actionClasses: Record<NonNullable<StatusCardAction["variant"]>, string> = 
   primary:
     "bg-neon text-white hover:bg-neon/90",
   secondary:
-    "border border-line bg-white/5 text-sand hover:border-neon/60 hover:bg-white/10"
+    "border border-hairline bg-white/5 text-sand hover:border-neon/60 hover:bg-white/10"
 };
 
 export function StatusCard({

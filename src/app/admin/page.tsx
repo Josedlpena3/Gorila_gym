@@ -47,7 +47,7 @@ export default async function AdminDashboardPage() {
           {dashboard.recentOrders.map((order) => (
             <div
               key={order.id}
-              className="rounded-[28px] border border-line bg-ink/60 p-4"
+              className="rounded-[28px] border border-hairline bg-surface-sunken p-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

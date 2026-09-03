@@ -312,10 +312,10 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                     </div>
 
                     {isExpanded ? (
-                      <div className="mt-5 space-y-4 border-t border-line/80 pt-5">
+                      <div className="mt-5 space-y-4 border-t border-hairline/80 pt-5">
                         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                           <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
+                            <div className="rounded-3xl border border-hairline bg-surface-sunken p-4 text-sm text-mist">
                               <p className="text-xs uppercase tracking-eyebrow text-mist">
                                 Contacto
                               </p>
@@ -324,7 +324,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                               <p>Celular: {order.customerPhone || order.contactPhone}</p>
                               <p>Fecha: {formatDate(order.createdAt)}</p>
                             </div>
-                            <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
+                            <div className="rounded-3xl border border-hairline bg-surface-sunken p-4 text-sm text-mist">
                               <p className="text-xs uppercase tracking-eyebrow text-mist">
                                 Entrega y pago
                               </p>
@@ -349,7 +349,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                                 Ubicación: {order.city}, {order.province}
                               </p>
                             </div>
-                            <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist sm:col-span-2">
+                            <div className="rounded-3xl border border-hairline bg-surface-sunken p-4 text-sm text-mist sm:col-span-2">
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="space-y-1">
                                   <p className="text-xs uppercase tracking-eyebrow text-mist">
@@ -381,7 +381,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                               {isEditingDiscount ? (
                                 <div className="mt-4 space-y-3">
                                   {/* Mode toggle */}
-                                  <div className="flex gap-1 rounded-2xl border border-line bg-ink/60 p-1">
+                                  <div className="flex gap-1 rounded-2xl border border-hairline bg-surface-sunken p-1">
                                     {(["code", "percent"] as const).map((mode) => (
                                       <button
                                         key={mode}
@@ -410,7 +410,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                                           }))
                                         }
                                         placeholder="Ingresar código..."
-                                        className="w-full rounded-2xl border border-line bg-ink/70 px-4 py-3 text-sm text-sand focus:border-neon/70 focus:outline-none"
+                                        className="w-full rounded-2xl border border-hairline bg-surface-sunken px-4 py-3 text-sm text-sand focus:border-neon/70 focus:outline-none"
                                       />
                                       <Button
                                         type="button"
@@ -446,7 +446,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                                             }))
                                           }
                                           placeholder="Ej: 20"
-                                          className="w-full rounded-2xl border border-line bg-ink/70 px-4 py-3 pr-10 text-sm text-sand focus:border-neon/70 focus:outline-none"
+                                          className="w-full rounded-2xl border border-hairline bg-surface-sunken px-4 py-3 pr-10 text-sm text-sand focus:border-neon/70 focus:outline-none"
                                         />
                                         <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-mist">
                                           %
@@ -521,7 +521,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                           </div>
                         </div>
 
-                        <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
+                        <div className="rounded-3xl border border-hairline bg-surface-sunken p-4 text-sm text-mist">
                           <p className="text-xs uppercase tracking-eyebrow text-mist">
                             Productos
                           </p>
@@ -529,7 +529,7 @@ export function AdminOrdersClient({ orders }: { orders: AdminOrderSummaryDto[] }
                             {order.items.map((item) => (
                               <div
                                 key={item.id}
-                                className="rounded-2xl border border-line bg-ink/70 p-3"
+                                className="rounded-2xl border border-hairline bg-surface-sunken p-3"
                               >
                                 <p className="font-semibold text-sand">{item.name}</p>
                                 <p>{item.brand}</p>

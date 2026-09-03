@@ -72,6 +72,24 @@ textarea {
     #0e0f12;
 }
 
+/*
+ * Base de los campos de formulario. Input, Select y Textarea repetían la misma
+ * cadena de clases con diferencias mínimas.
+ *
+ * El campo es un hueco: más oscuro que la tarjeta que lo contiene, en vez de
+ * más claro. Y el foco ahora tiene anillo además de cambio de borde — antes
+ * solo cambiaba el borde, que sobre un tema oscuro casi no se nota.
+ */
+.field-base {
+  @apply w-full rounded-2xl border border-hairline bg-surface-sunken px-4 py-3
+    text-base text-sand transition
+    placeholder:text-mist/50
+    hover:border-white/20
+    focus:border-neon/70 focus:outline-none focus:ring-2 focus:ring-neon/25
+    disabled:cursor-not-allowed disabled:opacity-50
+    sm:text-sm;
+}
+
 /* Línea divisoria del ancho del contenido, para cerrar secciones sin cajas. */
 .rule-soft {
   @apply border-t border-hairline/70;
