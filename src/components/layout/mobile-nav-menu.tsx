@@ -51,7 +51,7 @@ export function MobileNavMenu() {
     <div ref={menuRef} className="relative md:hidden">
       <button
         type="button"
-        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-line bg-white/5 text-sand transition hover:border-neon/60 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-neon/60"
+        className="flex h-12 w-12 items-center justify-center rounded-2xl border border-hairline bg-white/5 text-sand transition hover:border-neon/60 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-neon/60"
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label={isOpen ? "Cerrar menú principal" : "Abrir menú principal"}
@@ -73,10 +73,10 @@ export function MobileNavMenu() {
             role="dialog"
             aria-modal="true"
             aria-label="Menú principal"
-            className="absolute right-0 top-full z-30 mt-3 w-[min(20rem,calc(100vw-2rem))] rounded-[28px] border border-line bg-ink/95 p-4 shadow-premium backdrop-blur"
+            className="absolute right-0 top-full z-30 mt-3 w-[min(20rem,calc(100vw-2rem))] rounded-[28px] border border-hairline bg-ink/95 p-4 shadow-premium backdrop-blur"
           >
             {user ? (
-              <div className="border-b border-line pb-4">
+              <div className="border-b border-hairline pb-4">
                 <Link
                   href="/mi-cuenta"
                   className="block rounded-2xl transition hover:text-ember"
@@ -121,11 +121,11 @@ export function MobileNavMenu() {
             </nav>
 
             {user ? (
-              <div className="mt-4 border-t border-line pt-4">
+              <div className="mt-4 border-t border-hairline pt-4">
                 <LogoutButton className="w-full justify-center rounded-2xl" />
               </div>
             ) : (
-              <div className="mt-4 grid gap-2 border-t border-line pt-4">
+              <div className="mt-4 grid gap-2 border-t border-hairline pt-4">
                 <Link href="/login" onClick={() => setIsOpen(false)}>
                   <Button variant="ghost" className="w-full rounded-2xl">
                     Ingresar

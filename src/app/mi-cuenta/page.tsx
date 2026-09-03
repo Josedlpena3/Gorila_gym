@@ -22,7 +22,7 @@ export default async function AccountPage() {
           <ProfileForm user={user} />
         </div>
 
-        <div className="mt-8 border-t border-line pt-8">
+        <div className="mt-8 border-t border-hairline pt-8">
           <p className="text-sm uppercase tracking-eyebrow text-mist">Seguridad</p>
           <h2 className="mt-2 text-2xl font-black uppercase tracking-display text-sand">
             Cambiar contraseña
@@ -60,7 +60,7 @@ export default async function AccountPage() {
             necesites.
           </div>
         ) : null}
-        <div className="rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
+        <div className="rounded-3xl border border-hairline bg-surface-sunken p-4 text-sm text-mist">
           Tus datos quedan listos para agilizar la coordinación y limitar errores de entrega.
         </div>
       </aside>

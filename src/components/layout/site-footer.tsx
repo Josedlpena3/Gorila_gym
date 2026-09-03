@@ -3,7 +3,7 @@ import { getFooterNavLinks } from "@/lib/navigation";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-line/70 py-10">
+    <footer className="border-t border-hairline/70 py-10">
       <div className="page-shell">
         <div className="grid gap-8 sm:grid-cols-3">
           <div>
@@ -44,7 +44,7 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-line/50 pt-5 text-xs text-mist">
+        <div className="mt-8 border-t border-hairline/50 pt-5 text-xs text-mist">
           © {new Date().getFullYear()} Gorilla Strong. Todos los derechos reservados.
         </div>
       </div>

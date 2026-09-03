@@ -31,7 +31,7 @@ export function CartItem({ item }: { item: CartItemData }) {
   }
 
   return (
-    <article className="flex gap-3 rounded-[28px] border border-line bg-ink/60 p-4 sm:gap-4">
+    <article className="flex gap-3 rounded-[28px] border border-hairline bg-surface-sunken p-4 sm:gap-4">
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl sm:h-28 sm:w-28">
         {item.image ? (
           <Image
@@ -42,7 +42,7 @@ export function CartItem({ item }: { item: CartItemData }) {
             className="object-contain p-3"
           />
         ) : (
-          <div className="flex h-full items-center justify-center bg-steel text-xs text-mist">
+          <div className="flex h-full items-center justify-center bg-surface text-xs text-mist">
             Sin imagen
           </div>
         )}
