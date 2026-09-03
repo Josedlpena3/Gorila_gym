@@ -83,7 +83,7 @@ export default async function OrdersPage({
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 rounded-[24px] border border-line bg-ink/50 p-4">
+                <div className="flex flex-col gap-3 rounded-[24px] border border-hairline bg-ink/50 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-sm text-mist">Contacto</p>
@@ -117,7 +117,7 @@ export default async function OrdersPage({
                   {order.items.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-3xl border border-line bg-ink/60 p-4"
+                      className="rounded-3xl border border-hairline bg-surface-sunken p-4"
                     >
                       <p className="font-semibold text-sand">{item.name}</p>
                       <p className="mt-1 text-sm text-mist">{item.brand}</p>

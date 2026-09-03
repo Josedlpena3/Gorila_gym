@@ -68,7 +68,7 @@ function SelectorButton({
         "min-h-[52px] rounded-[24px] border px-4 py-3 text-left text-sm font-semibold transition",
         active
           ? "border-neon bg-neon/10 text-sand"
-          : "border-line bg-ink/60 text-mist hover:border-neon/40 hover:text-sand"
+          : "border-hairline bg-surface-sunken text-mist hover:border-neon/40 hover:text-sand"
       ].join(" ")}
     >
       {children}
@@ -648,7 +648,7 @@ export function CheckoutForm({
           ))}
         </div>
 
-        <div className="mt-6 space-y-3 border-t border-line pt-4 text-sm">
+        <div className="mt-6 space-y-3 border-t border-hairline pt-4 text-sm">
           <div className="flex justify-between text-mist">
             <span>Total de productos</span>
             <span>{formatCurrency(activeCart.subtotal)}</span>
@@ -683,7 +683,7 @@ export function CheckoutForm({
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-line bg-ink/60 p-4 text-sm text-mist">
+        <div className="mt-6 rounded-3xl border border-hairline bg-surface-sunken p-4 text-sm text-mist">
           Primero registramos el pedido y después abrimos WhatsApp con el mensaje listo.
         </div>
 

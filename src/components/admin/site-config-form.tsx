@@ -128,11 +128,11 @@ export function SiteConfigForm({
           )}
         </Field>
       </div>
-      <div className="rounded-[28px] border border-line bg-ink/60 p-5">
+      <div className="rounded-[28px] border border-hairline bg-surface-sunken p-5">
         <p className="text-xs uppercase tracking-eyebrow text-mist">Publicación</p>
         <p className="mt-3 text-lg font-semibold text-sand">{form.address}</p>
         {form.googleMapsUrl.trim() ? (
-          <div className="mt-4 overflow-hidden rounded-[24px] border border-line bg-steel/50">
+          <div className="mt-4 overflow-hidden rounded-[24px] border border-hairline bg-surface-sunken">
             <iframe
               src={form.googleMapsUrl}
               title="Vista previa del mapa"

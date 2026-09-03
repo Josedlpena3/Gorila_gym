@@ -362,7 +362,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         </div>
 
         {images.items.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-line bg-ink/40 p-4 text-sm text-mist">
+          <div className="rounded-3xl border border-dashed border-hairline bg-ink/40 p-4 text-sm text-mist">
             Podés publicar el producto sin imágenes y agregarlas más adelante.
           </div>
         ) : (
@@ -370,11 +370,11 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             {images.items.map((item, index) => (
               <div
                 key={item.id}
-                className="rounded-3xl border border-line bg-ink/60 p-4"
+                className="rounded-3xl border border-hairline bg-surface-sunken p-4"
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex min-w-0 flex-1 gap-4">
-                    <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-line bg-steel">
+                    <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-hairline bg-surface">
                       {item.source === "file" ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img

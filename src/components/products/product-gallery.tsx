@@ -70,7 +70,7 @@ function IconButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-ink/75 text-sand transition hover:border-neon/60 hover:text-ember ${className}`.trim()}
+      className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-hairline bg-ink/75 text-sand transition hover:border-neon/60 hover:text-ember ${className}`.trim()}
     >
       {children}
     </button>
@@ -146,7 +146,7 @@ export function ProductGallery({
 
   if (!activeImage) {
     return (
-      <div className="relative overflow-hidden rounded-[34px] border border-line bg-steel">
+      <div className="relative overflow-hidden rounded-[34px] border border-hairline bg-surface">
         <div className="flex h-[300px] w-full items-center justify-center text-sm text-mist sm:h-[360px] lg:h-[420px]">
           Sin imagen disponible
         </div>
@@ -157,7 +157,7 @@ export function ProductGallery({
   return (
     <>
       <div>
-        <div className="relative overflow-hidden rounded-[34px] border border-line bg-steel">
+        <div className="relative overflow-hidden rounded-[34px] border border-hairline bg-surface">
           <button
             type="button"
             onClick={() => setIsLightboxOpen(true)}
@@ -215,7 +215,7 @@ export function ProductGallery({
               </IconButton>
             </div>
 
-            <div className="relative flex-1 overflow-hidden rounded-[34px] border border-line bg-ink/80">
+            <div className="relative flex-1 overflow-hidden rounded-[34px] border border-hairline bg-ink/80">
               <div className="relative h-full min-h-[320px] w-full">
                 <Image
                   src={activeImage.url}
@@ -256,7 +256,7 @@ export function ProductGallery({
                     aria-label={`Ver imagen ${index + 1} de ${items.length}`}
                     aria-current={activeIndex === index ? "true" : undefined}
                     className={`relative h-20 min-w-[88px] overflow-hidden rounded-2xl border ${
-                      activeIndex === index ? "border-neon" : "border-line"
+                      activeIndex === index ? "border-neon" : "border-hairline"
                     }`}
                   >
                     <Image

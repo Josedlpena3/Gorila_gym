@@ -56,7 +56,7 @@ function GuestItemControls({
 
   return (
     <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
-      <div className="flex min-h-11 items-center rounded-full border border-line">
+      <div className="flex min-h-11 items-center rounded-full border border-hairline">
         <button
           type="button"
           className="flex h-11 w-11 items-center justify-center text-lg"
@@ -153,9 +153,9 @@ export function GuestCartView() {
             {cart.items.map((item) => (
               <article
                 key={item.id}
-                className="flex gap-3 rounded-[28px] border border-line bg-ink/60 p-4 sm:gap-4"
+                className="flex gap-3 rounded-[28px] border border-hairline bg-surface-sunken p-4 sm:gap-4"
               >
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl bg-steel sm:h-28 sm:w-28">
+                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-3xl bg-surface sm:h-28 sm:w-28">
                   {item.image ? (
                     <Image
                       src={item.image}
@@ -198,7 +198,7 @@ export function GuestCartView() {
           <h2 className="text-xl font-black uppercase tracking-display text-sand sm:text-2xl">
             Resumen
           </h2>
-          <div className="mt-6 space-y-3 border-t border-line pt-4 text-sm">
+          <div className="mt-6 space-y-3 border-t border-hairline pt-4 text-sm">
             <div className="flex items-center justify-between text-mist">
               <span>Subtotal</span>
               <span>{formatCurrency(cart.subtotal)}</span>

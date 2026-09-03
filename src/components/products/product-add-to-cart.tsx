@@ -46,7 +46,7 @@ export function ProductAddToCart(props: Props) {
   return (
     <div className="flex flex-col gap-3">
       {!props.disabled ? (
-        <div className="flex min-h-11 w-fit items-center rounded-full border border-line">
+        <div className="flex min-h-11 w-fit items-center rounded-full border border-hairline">
           <button
             type="button"
             className="flex h-11 w-11 items-center justify-center text-lg text-sand transition hover:text-ember disabled:opacity-30"

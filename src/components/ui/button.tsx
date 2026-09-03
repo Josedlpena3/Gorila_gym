@@ -13,12 +13,12 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-neon text-white hover:bg-neon/90 disabled:bg-neon/50 disabled:text-white/60",
+    "bg-neon text-white shadow-glow hover:bg-ember disabled:bg-neon/40 disabled:text-white/60 disabled:shadow-none",
   secondary:
-    "border border-line bg-white/5 text-sand hover:border-neon/60 hover:bg-white/10",
-  ghost: "bg-transparent text-sand hover:bg-white/5",
+    "border border-hairline bg-white/[0.06] text-sand hover:border-white/25 hover:bg-white/10",
+  ghost: "bg-transparent text-mist hover:bg-white/5 hover:text-sand",
   danger:
-    "border border-red-500/50 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+    "border border-red-500/40 bg-red-500/10 text-red-100 hover:border-red-500/60 hover:bg-red-500/20"
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -26,7 +26,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex min-h-11 touch-manipulation items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-neon/60 disabled:cursor-not-allowed",
+        // `active:scale` da respuesta al toque: antes el botón no acusaba
+        // recibo del click y se sentía muerto en móvil.
+        // `focus-visible` en vez de `focus` evita el anillo al hacer click con
+        // el mouse, pero lo mantiene para quien navega con teclado.
+        "inline-flex min-h-11 touch-manipulation items-center justify-center gap-2",
+        "rounded-full px-5 py-3 text-sm font-semibold",
+        "transition duration-200 motion-safe:active:scale-[0.97]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60 focus-visible:ring-offset-2 focus-visible:ring-offset-ink",
+        "disabled:cursor-not-allowed disabled:opacity-60 motion-safe:disabled:active:scale-100",
         variants[variant],
         className
       )}

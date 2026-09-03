@@ -77,7 +77,7 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className="relative w-full max-w-md rounded-[28px] border border-line bg-ink p-6 shadow-premium"
+        className="relative w-full max-w-md rounded-[28px] border border-hairline bg-ink p-6 shadow-premium"
       >
         <h2
           id={titleId}
