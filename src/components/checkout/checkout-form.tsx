@@ -5,7 +5,7 @@ import { Banknote } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
-import { GorillaRoar } from "@/components/site/gorilla-roar";
+import { GorillaScream } from "@/components/site/gorilla-scream";
 import { Button } from "@/components/ui/button";
 import { Field, FormError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -164,7 +164,7 @@ export function CheckoutForm({
   if (!user && activeCart === null) {
     return (
       <div className="section-card flex flex-col items-center gap-4 p-8 text-center sm:p-10">
-        <GorillaRoar mode="loop" size="md" />
+        <GorillaScream pace="quick" size="md" />
         <p className="text-sm text-mist">Cargando tu carrito...</p>
       </div>
     );

@@ -45,35 +45,27 @@ const config: Config = {
         success: "#22c55e"
       },
       keyframes: {
-        // El logo es un gorila rugiendo, así que la animación es un rugido.
+        // El gorila del logo grita solo, cada tanto.
         //
-        // `roar` y `shockwave` comparten los 3,2 s del ciclo y la onda lleva su
-        // espera adentro de los keyframes en vez de un animation-delay: así
-        // arrancan juntas y la onda sale exactamente cuando el gorila ruge, no
-        // al principio del ciclo.
-        roar: {
-          "0%, 58%, 100%": { transform: "scale(1) rotate(0deg)" },
-          "64%": { transform: "scale(1.16) rotate(-5deg)" },
-          "70%": { transform: "scale(1.06) rotate(4deg)" },
-          "77%": { transform: "scale(1.13) rotate(-3deg)" },
-          "86%": { transform: "scale(1) rotate(0deg)" }
+        // El ciclo es casi todo reposo: el grito ocupa el último 20% y arranca
+        // con un envión hacia atrás —encoge un poco— antes de estallar, que es
+        // lo que lo hace leer como un grito y no como un latido.
+        //
+        // `scream` y `scream-wave` comparten el ciclo y la onda lleva su espera
+        // adentro de los keyframes, no en un animation-delay: así salen juntas
+        // sin importar cuándo se monte el componente.
+        scream: {
+          "0%, 78%, 100%": { transform: "scale(1) rotate(0deg)" },
+          "82%": { transform: "scale(0.93) rotate(4deg)" },
+          "86%": { transform: "scale(1.22) rotate(-7deg)" },
+          "89%": { transform: "scale(1.09) rotate(5deg)" },
+          "92%": { transform: "scale(1.17) rotate(-4deg)" },
+          "96%": { transform: "scale(1.04) rotate(2deg)" }
         },
-        shockwave: {
-          "0%, 58%": { transform: "scale(1)", opacity: "0" },
-          "62%": { transform: "scale(1)", opacity: "0.6" },
-          "100%": { transform: "scale(2.2)", opacity: "0" }
-        },
-        // Versiones de un solo golpe para el hover: rugen apenas entra el
-        // mouse, sin la espera del ciclo largo.
-        "roar-burst": {
-          "0%, 100%": { transform: "scale(1) rotate(0deg)" },
-          "18%": { transform: "scale(1.16) rotate(-5deg)" },
-          "40%": { transform: "scale(1.06) rotate(4deg)" },
-          "62%": { transform: "scale(1.13) rotate(-3deg)" }
-        },
-        "shockwave-burst": {
-          "0%": { transform: "scale(1)", opacity: "0.6" },
-          "100%": { transform: "scale(2.2)", opacity: "0" }
+        "scream-wave": {
+          "0%, 84%": { transform: "scale(1)", opacity: "0" },
+          "87%": { transform: "scale(1)", opacity: "0.7" },
+          "100%": { transform: "scale(2.3)", opacity: "0" }
         },
         marquee: {
           from: { transform: "translateX(0)" },
@@ -85,10 +77,13 @@ const config: Config = {
         }
       },
       animation: {
-        roar: "roar 3.2s ease-in-out infinite",
-        shockwave: "shockwave 3.2s ease-out infinite",
-        "roar-burst": "roar-burst 0.9s ease-in-out",
-        "shockwave-burst": "shockwave-burst 0.9s ease-out",
+        // Dos ritmos del mismo grito: pausado para el header, donde vive
+        // permanentemente, y más seguido para los estados de carga, que duran
+        // poco y necesitan mostrar actividad.
+        scream: "scream 7s ease-in-out infinite",
+        "scream-wave": "scream-wave 7s ease-out infinite",
+        "scream-quick": "scream 2.6s ease-in-out infinite",
+        "scream-wave-quick": "scream-wave 2.6s ease-out infinite",
         marquee: "marquee 38s linear infinite",
         "pulse-glow": "pulse-glow 6s ease-in-out infinite"
       },

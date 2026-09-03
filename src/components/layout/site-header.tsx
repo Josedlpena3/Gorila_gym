@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { HeaderAuth } from "@/components/layout/header-auth";
 import { MobileNavMenu } from "@/components/layout/mobile-nav-menu";
 import { SiteNav } from "@/components/layout/site-nav";
-import { GorillaRoar } from "@/components/site/gorilla-roar";
+import { GorillaScream } from "@/components/site/gorilla-scream";
 
 /**
  * El header es estático a propósito: el estado de sesión lo resuelven
@@ -16,7 +16,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-hairline/70 bg-ink/80 backdrop-blur">
       <div className="page-shell flex h-16 items-center justify-between gap-3 sm:h-20 sm:gap-4">
         <Link href="/" className="flex min-w-0 items-center gap-3">
-          <GorillaRoar mode="hover" size="sm" priority />
+          <GorillaScream size="sm" priority />
           <div className="min-w-0 leading-tight">
             <p className="truncate text-[10px] font-black uppercase tracking-eyebrow text-sand sm:text-xs sm:tracking-eyebrow">
               Gorilla Strong
