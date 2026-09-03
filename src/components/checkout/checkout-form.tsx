@@ -1,6 +1,7 @@
 "use client";
 
 import { DeliveryMethod, PaymentMethod } from "@prisma/client";
+import { Banknote } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
@@ -567,6 +568,24 @@ export function CheckoutForm({
               </SelectorButton>
             ) : null}
           </div>
+          {/* El 10% por efectivo se aplica a mano al cobrar, no lo calcula el
+              checkout. Sin esta nota el cliente ve el total completo acá y cree
+              que no se lo hicieron. */}
+          {paymentMethod === PaymentMethod.CASH ? (
+            <p className="mt-3 flex items-start gap-2 rounded-2xl border border-neon/30 bg-neon/[0.07] p-3 text-sm text-mist">
+              <Banknote
+                className="mt-0.5 h-4 w-4 shrink-0 text-ember"
+                aria-hidden="true"
+              />
+              <span>
+                <strong className="font-semibold text-sand">
+                  Tenés 10% OFF pagando en efectivo.
+                </strong>{" "}
+                El total de acá abajo es sin el descuento: te lo hacemos al
+                momento de cobrarte.
+              </span>
+            </p>
+          ) : null}
           {paymentMethod === PaymentMethod.BANK_TRANSFER && transferAvailable ? (
             <p className="mt-3 text-sm text-mist">
               Si querés, podés adelantar la transferencia. Alias:{" "}

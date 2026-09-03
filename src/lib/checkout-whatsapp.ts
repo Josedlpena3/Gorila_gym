@@ -112,9 +112,12 @@ export function buildCheckoutWhatsappMessage(input: {
     ].join("\n");
   }
 
+  // El 10% por efectivo se aplica a mano al cobrar: va en el mensaje para que
+  // el pedido llegue con el recordatorio y no se olvide de descontarlo.
   return [
     ...baseMessage,
     "",
-    "Elegiste la opción: Efectivo"
+    "Elegiste la opción: Efectivo",
+    "Corresponde 10% OFF por pago en efectivo."
   ].join("\n");
 }

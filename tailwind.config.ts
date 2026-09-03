@@ -28,6 +28,15 @@ const config: Config = {
       colors: {
         ink: "#0a0a0a",
         steel: "#141414",
+        // Escala de superficies: cada nivel se despega del anterior. Antes
+        // había un solo tono de tarjeta casi idéntico al fondo, y por eso todo
+        // se veía plano.
+        surface: {
+          DEFAULT: "#15161A",
+          raised: "#1C1E23",
+          sunken: "#0E0F12"
+        },
+        hairline: "#2A2D34",
         mist: "#A1A1AA",
         line: "#27272A",
         neon: "#DC2626",
@@ -35,8 +44,28 @@ const config: Config = {
         sand: "#FFFFFF",
         success: "#22c55e"
       },
+      keyframes: {
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" }
+        },
+        "pulse-glow": {
+          "0%, 100%": { opacity: "0.5" },
+          "50%": { opacity: "0.85" }
+        }
+      },
+      animation: {
+        marquee: "marquee 38s linear infinite",
+        "pulse-glow": "pulse-glow 6s ease-in-out infinite"
+      },
       boxShadow: {
-        premium: "0 24px 80px rgba(0, 0, 0, 0.35)"
+        premium: "0 24px 80px rgba(0, 0, 0, 0.35)",
+        // El brillo interior superior es lo que da sensación de material: sugiere
+        // una fuente de luz arriba y despega la tarjeta del fondo.
+        card: "inset 0 1px 0 0 rgba(255,255,255,0.055), 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px -12px rgba(0,0,0,0.7)",
+        "card-hover":
+          "inset 0 1px 0 0 rgba(255,255,255,0.09), 0 2px 4px rgba(0,0,0,0.4), 0 16px 40px -16px rgba(0,0,0,0.85)",
+        glow: "0 0 0 1px rgba(220,38,38,0.35), 0 12px 40px -12px rgba(220,38,38,0.45)"
       },
       backgroundImage: {
         hero:
