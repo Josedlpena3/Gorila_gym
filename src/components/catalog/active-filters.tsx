@@ -4,16 +4,16 @@ import { X } from "lucide-react";
 import { useCatalogParams } from "@/components/catalog/use-catalog-params";
 import { OBJECTIVE_LABELS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
-import type { CatalogFilterKey } from "@/components/catalog/use-catalog-params";
 
 type ActiveChip = {
-  key: CatalogFilterKey;
+  id: string;
   label: string;
-  clear: Partial<Record<CatalogFilterKey, null>>;
+  /** Cada chip sabe cómo quitarse a sí mismo sin tocar el resto. */
+  remove: () => void;
 };
 
 /**
- * Resumen de lo que está filtrando ahora mismo, con cada criterio removible.
+ * Resumen de lo que está filtrando ahora mismo, fuera del panel.
  *
  * Los filtros viven en un panel que se cierra, así que sin esto el usuario no
  * tiene forma de saber por qué ve 12 productos en vez de 156 — ni cómo volver
@@ -24,11 +24,11 @@ export function ActiveFilters({
 }: {
   categories: Array<{ id: string; name: string }>;
 }) {
-  const { get, apply, clearAll } = useCatalogParams();
+  const { get, getList, apply, toggleInList, clearAll } = useCatalogParams();
 
   const query = get("q");
   const categoryId = get("categoryId");
-  const brand = get("brand");
+  const brands = getList("brand");
   const objective = get("objective");
   const minPrice = get("minPrice");
   const maxPrice = get("maxPrice");
@@ -36,7 +36,11 @@ export function ActiveFilters({
   const chips: ActiveChip[] = [];
 
   if (query) {
-    chips.push({ key: "q", label: `“${query}”`, clear: { q: null } });
+    chips.push({
+      id: "q",
+      label: `“${query}”`,
+      remove: () => apply({ q: null })
+    });
   }
 
   if (categoryId) {
@@ -44,22 +48,27 @@ export function ActiveFilters({
 
     if (category) {
       chips.push({
-        key: "categoryId",
+        id: `cat-${category.id}`,
         label: category.name,
-        clear: { categoryId: null }
+        remove: () => apply({ categoryId: null })
       });
     }
   }
 
-  if (brand) {
-    chips.push({ key: "brand", label: brand, clear: { brand: null } });
+  // Una marca, un chip: quitar ENA no debería llevarse también a Mervick.
+  for (const brand of brands) {
+    chips.push({
+      id: `brand-${brand}`,
+      label: brand,
+      remove: () => toggleInList("brand", brand)
+    });
   }
 
   if (objective) {
     chips.push({
-      key: "objective",
+      id: "objective",
       label: OBJECTIVE_LABELS[objective] ?? objective,
-      clear: { objective: null }
+      remove: () => apply({ objective: null })
     });
   }
 
@@ -68,9 +77,10 @@ export function ActiveFilters({
     const to = maxPrice ? formatCurrency(Number(maxPrice)) : null;
 
     chips.push({
-      key: "minPrice",
-      label: from && to ? `${from} – ${to}` : from ? `Desde ${from}` : `Hasta ${to}`,
-      clear: { minPrice: null, maxPrice: null }
+      id: "price",
+      label:
+        from && to ? `${from} – ${to}` : from ? `Desde ${from}` : `Hasta ${to}`,
+      remove: () => apply({ minPrice: null, maxPrice: null })
     });
   }
 
@@ -79,21 +89,17 @@ export function ActiveFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[11px] font-semibold uppercase tracking-eyebrow text-mist">
-        Filtrando por
-      </span>
-
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
       {chips.map((chip) => (
         <button
-          key={chip.key}
+          key={chip.id}
           type="button"
-          onClick={() => apply(chip.clear)}
-          className="group inline-flex min-h-8 items-center gap-1.5 rounded-full border border-neon/40 bg-neon/10 px-3 py-1 text-xs font-semibold text-sand transition hover:border-neon/70 hover:bg-neon/20"
+          onClick={chip.remove}
+          className="group inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-lg border border-hairline bg-surface px-2 py-0.5 text-xs text-mist transition hover:border-white/25 hover:text-sand"
         >
-          {chip.label}
+          <span className="truncate">{chip.label}</span>
           <X
-            className="h-3 w-3 text-mist transition group-hover:text-sand"
+            className="h-3 w-3 shrink-0 opacity-50 transition group-hover:opacity-100"
             aria-hidden="true"
           />
           <span className="sr-only">Quitar filtro</span>
@@ -104,9 +110,9 @@ export function ActiveFilters({
         <button
           type="button"
           onClick={clearAll}
-          className="min-h-8 text-xs font-semibold text-mist underline-offset-4 transition hover:text-sand hover:underline"
+          className="min-h-7 px-1 text-xs font-medium text-ember underline-offset-4 transition hover:underline"
         >
-          Limpiar todo
+          Limpiar filtros
         </button>
       ) : null}
     </div>
