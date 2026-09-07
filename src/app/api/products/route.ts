@@ -16,6 +16,7 @@ export async function GET(request: Request) {
       objective: searchParams.get("objective") ?? undefined,
       minPrice: searchParams.get("minPrice") ?? undefined,
       maxPrice: searchParams.get("maxPrice") ?? undefined,
+      sort: searchParams.get("sort") ?? undefined,
       page: searchParams.get("page") ?? undefined,
       limit: searchParams.get("limit") ?? undefined
     });

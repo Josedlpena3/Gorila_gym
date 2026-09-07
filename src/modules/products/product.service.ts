@@ -9,7 +9,8 @@ import { isStoredUploadUrl } from "@/lib/uploads";
 import { decimalToNumber, normalizeText, slugify } from "@/lib/utils";
 import {
   catalogProductQuerySchema,
-  productSchema
+  productSchema,
+  type CatalogSortKey
 } from "@/modules/products/product.schemas";
 import type {
   CatalogProductsPageDto,
@@ -107,12 +108,34 @@ type ProductCardRecord = Prisma.ProductGetPayload<{
   select: typeof productCardSelect;
 }>;
 
-const catalogOrderBy = [
-  { featured: "desc" as const },
-  { featuredPriority: "asc" as const },
-  { createdAt: "desc" as const },
-  { id: "desc" as const }
-] satisfies Prisma.ProductOrderByWithRelationInput[];
+/**
+ * Traduce el criterio de la URL a un orden de Prisma.
+ *
+ * Todos terminan en `id: desc` como desempate: sin un campo único al final, dos
+ * productos con el mismo precio pueden salir en distinto orden entre páginas y
+ * el scroll infinito repetiría o saltearía productos.
+ *
+ * `relevancia` conserva exactamente el orden que el catálogo ya tenía —
+ * destacados primero— para que quien no toque el selector vea lo de siempre.
+ */
+const CATALOG_ORDER_BY: Record<
+  CatalogSortKey,
+  Prisma.ProductOrderByWithRelationInput[]
+> = {
+  relevancia: [
+    { featured: "desc" },
+    { featuredPriority: "asc" },
+    { createdAt: "desc" },
+    { id: "desc" }
+  ],
+  "precio-asc": [{ price: "asc" }, { id: "desc" }],
+  "precio-desc": [{ price: "desc" }, { id: "desc" }],
+  novedades: [{ createdAt: "desc" }, { id: "desc" }]
+};
+
+function buildCatalogOrderBy(sort: CatalogSortKey | undefined) {
+  return CATALOG_ORDER_BY[sort ?? "relevancia"];
+}
 
 const catalogSearchSelect = {
   id: true,
@@ -546,9 +569,15 @@ function buildCatalogProductWhere(
           }
         }
       : {}),
+    // La marca se compara sin distinguir mayúsculas porque los datos tienen la
+    // misma marca cargada de varias formas: ENA, Ena y ena son 15 productos que
+    // de otro modo quedarían partidos en tres filtros que no se solapan.
     ...(data.brand
       ? {
-          brand: data.brand
+          brand: {
+            equals: data.brand,
+            mode: "insensitive" as const
+          }
         }
       : {}),
     ...(data.objective
@@ -638,7 +667,7 @@ async function listCatalogPageUncached(
 
   const { total, products } = await listProductsWithStockPriority({
     where: buildCatalogProductWhere(data),
-    orderBy: catalogOrderBy,
+    orderBy: buildCatalogOrderBy(data.sort),
     skip: (page - 1) * limit,
     take: limit
   });
@@ -668,12 +697,13 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
   const limit = data.limit ?? 20;
 
   const where = buildCatalogProductWhere(data);
+  const hasExplicitSort = Boolean(data.sort) && data.sort !== "relevancia";
 
   if (data.q) {
     const candidates = await prisma.product.findMany({
       where,
       select: catalogSearchSelect,
-      orderBy: catalogOrderBy,
+      orderBy: buildCatalogOrderBy(data.sort),
       take: 500
     });
 
@@ -693,7 +723,14 @@ export async function listCatalogProducts(filters: unknown = {}): Promise<Catalo
         } =>
           entry.score !== null
       )
-      .sort((left, right) => left.score - right.score || left.index - right.index);
+      // Con un orden explícito se respeta el que pidió el usuario: `index` es la
+      // posición que trajo la base, ya ordenada por precio o fecha. Sin orden
+      // explícito manda el puntaje de relevancia de la búsqueda.
+      .sort((left, right) =>
+        hasExplicitSort
+          ? left.index - right.index
+          : left.score - right.score || left.index - right.index
+      );
 
     const orderedMatches = [
       ...matches.filter((entry) => entry.inStock),
@@ -764,7 +801,7 @@ export async function getHomeProducts(limit = 8) {
     where: {
       active: true
     },
-    orderBy: catalogOrderBy,
+    orderBy: buildCatalogOrderBy(undefined),
     skip: 0,
     take: limit
   });
@@ -780,6 +817,79 @@ export async function getHomeProducts(limit = 8) {
  * Marcas distintas del catálogo activo, para la cinta de la home. Es un
  * `distinct` sobre una columna, cacheado junto al resto de los productos.
  */
+/**
+ * Opciones para los filtros del catálogo: marcas y rango de precios reales.
+ *
+ * Las marcas se agrupan sin distinguir mayúsculas porque los datos las tienen
+ * cargadas de varias formas —ENA, Ena y ena son la misma marca en 15
+ * productos—. De cada grupo se muestra la grafía más frecuente; como
+ * `buildCatalogProductWhere` compara la marca de forma insensible, filtrar por
+ * cualquiera de las variantes trae el grupo completo.
+ *
+ * Se cachea una hora junto al resto de los productos: las marcas y el rango
+ * cambian solo cuando el admin toca el catálogo, y eso ya invalida la etiqueta.
+ */
+export const listCatalogFacets = unstable_cache(
+  async () => {
+    const [rows, priceRange] = await Promise.all([
+      prisma.product.groupBy({
+        by: ["brand"],
+        where: { active: true },
+        _count: { brand: true }
+      }),
+      prisma.product.aggregate({
+        where: { active: true },
+        _min: { price: true },
+        _max: { price: true }
+      })
+    ]);
+
+    // `topCount` guarda cuántos productos tiene la grafía elegida, aparte del
+    // total del grupo: sin eso la comparación sería contra el acumulado y la
+    // etiqueta terminaría siendo la última que se procesó, no la más usada.
+    const groups = new Map<
+      string,
+      { label: string; count: number; topCount: number }
+    >();
+
+    for (const row of rows) {
+      const brand = row.brand?.trim();
+
+      if (!brand) {
+        continue;
+      }
+
+      const key = brand.toLowerCase();
+      const count = row._count.brand;
+      const existing = groups.get(key);
+
+      if (!existing) {
+        groups.set(key, { label: brand, count, topCount: count });
+        continue;
+      }
+
+      existing.count += count;
+
+      // Gana la grafía más frecuente. Sin desempate por mayúsculas: "ENA" es
+      // así de verdad y renombrarla a "Ena" sería peor que dejarla.
+      if (count > existing.topCount) {
+        existing.label = brand;
+        existing.topCount = count;
+      }
+    }
+
+    return {
+      brands: [...groups.values()]
+        .map(({ label, count }) => ({ label, count }))
+        .sort((a, b) => a.label.localeCompare(b.label, "es")),
+      minPrice: Math.floor(decimalToNumber(priceRange._min.price) ?? 0),
+      maxPrice: Math.ceil(decimalToNumber(priceRange._max.price) ?? 0)
+    };
+  },
+  ["catalog-facets"],
+  { revalidate: 3600, tags: [PRODUCTS_CACHE_TAG] }
+);
+
 export const listProductBrands = unstable_cache(
   async () => {
     const rows = await prisma.product.findMany({

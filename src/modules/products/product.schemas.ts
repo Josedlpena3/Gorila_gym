@@ -67,7 +67,24 @@ export const productSchema = z.object({
   images: z.array(imageSourceSchema).default([])
 });
 
+/**
+ * Criterios de ordenamiento del catálogo. Se validan como enum para que un
+ * valor arbitrario en la URL no llegue nunca a Prisma.
+ */
+export const CATALOG_SORT_KEYS = [
+  "relevancia",
+  "precio-asc",
+  "precio-desc",
+  "novedades"
+] as const;
+
+export type CatalogSortKey = (typeof CATALOG_SORT_KEYS)[number];
+
 export const productFiltersSchema = z.object({
+  sort: z.preprocess(
+    (value) => (value === "" || value === null ? undefined : value),
+    z.enum(CATALOG_SORT_KEYS).optional()
+  ),
   q: optionalText,
   categoryId: optionalText,
   category: optionalText,
