@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { ZodError } from "zod";
 import { handleRouteError } from "@/lib/errors";
 import { AppError } from "@/lib/errors";
 import { consumeRateLimit, getRequestIp } from "@/lib/rate-limit";
@@ -54,7 +53,6 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log("BODY RECIBIDO:", body);
     const user = await getCurrentUser();
     if (!user) {
       await guardGuestOrderRequest(request);
@@ -64,10 +62,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.log(
-      "ERROR VALIDACIÓN:",
-      error instanceof ZodError ? error.flatten() : error
-    );
     return handleRouteError(error);
   }
 }

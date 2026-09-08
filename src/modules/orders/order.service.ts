@@ -263,8 +263,6 @@ function resolveCheckoutDiscount(input: {
   total: number;
   deliveryMethod: DeliveryMethod;
 }) {
-  console.log("discountCode recibido:", input.discountCode);
-
   const discountCode = input.discountCode?.trim() ?? null;
 
   if (!hasDiscountCode(discountCode)) {
@@ -697,6 +695,23 @@ async function buildOrderPricing(input: {
   });
 }
 
+/**
+ * Revalida las páginas que muestran pedidos. Va en try/catch: sin esto, un
+ * pedido que se guardó bien en la transacción podía terminar devolviéndole un
+ * 500 al cliente si `revalidatePath` fallaba después —fuera de un request de
+ * Next, por ejemplo, o por cualquier corte transitorio—, y el cliente veía un
+ * error de compra sobre un pedido que en realidad sí se había confirmado y ya
+ * había descontado el stock.
+ */
+function revalidateOrderPages() {
+  try {
+    revalidatePath("/mis-pedidos");
+    revalidatePath("/admin/pedidos");
+  } catch (error) {
+    console.warn("[orders] no se pudo revalidar el cache de páginas", error);
+  }
+}
+
 export async function getCheckoutQuote(
   user: UserContext,
   cart: Awaited<ReturnType<typeof getCartByUserId>>,
@@ -784,7 +799,6 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
   const paymentMethod = data.paymentMethod;
   const recipientName = data.name;
   const recipientContact = splitOrderRecipientName(recipientName);
-  console.log("Nombre recibido:", data.name);
   const snapshot = resolveCheckoutSnapshot({
     deliveryMethod,
     recipientName,
@@ -814,10 +828,16 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
       }
     });
 
+    // Chequeo temprano: da un error legible sin llegar a tocar la base de
+    // pedidos cuando el producto ya no existe o está desactivado. No alcanza
+    // como única defensa contra el stock: entre este `findMany` y el
+    // `UPDATE` de más abajo, otra compra concurrente del mismo producto puede
+    // colarse. La única enforcement real es el UPDATE condicional al
+    // descontar el stock.
     for (const item of cart.items) {
       const product = products.find((entry) => entry.id === item.productId);
 
-      if (!product || !product.active || product.stock < item.quantity) {
+      if (!product || !product.active) {
         throw new AppError(`Stock insuficiente para ${item.name}`);
       }
     }
@@ -912,17 +932,29 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
       },
       include: orderInclude
     });
-    console.log("Nombre guardado:", order.recipientName);
-
+    // `updateMany` con `stock: { gte }` en el WHERE es un compare-and-swap a
+    // nivel de fila: Postgres serializa dos UPDATE concurrentes sobre el mismo
+    // producto, así que el segundo ve el stock ya descontado por el primero y
+    // `count` da 0 si ya no alcanza. Sin esto, dos compras del último producto
+    // pueden leer stock=1 al mismo tiempo, las dos pasar el chequeo, y las dos
+    // descontar: el stock termina en -1 y se vendió algo que no había
+    // (reproducido con un test de dos pedidos simultáneos antes de este fix).
     for (const item of cart.items) {
-      await tx.product.update({
-        where: { id: item.productId },
+      const decremented = await tx.product.updateMany({
+        where: {
+          id: item.productId,
+          stock: { gte: item.quantity }
+        },
         data: {
           stock: {
             decrement: item.quantity
           }
         }
       });
+
+      if (decremented.count === 0) {
+        throw new AppError(`Stock insuficiente para ${item.name}`);
+      }
     }
 
     await tx.cartItem.deleteMany({
@@ -983,8 +1015,7 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
     console.error("No se pudo enviar la notificación interna del pedido", error);
   });
 
-  revalidatePath("/mis-pedidos");
-  revalidatePath("/admin/pedidos");
+  revalidateOrderPages();
 
   return {
     order: mappedOrder,
@@ -1000,7 +1031,6 @@ export async function createGuestOrder(input: unknown) {
   const paymentMethod = data.paymentMethod;
   const recipientName = data.name;
   const recipientContact = splitOrderRecipientName(recipientName);
-  console.log("Nombre recibido:", data.name);
   const snapshot = resolveCheckoutSnapshot({
     deliveryMethod,
     recipientName,
@@ -1112,17 +1142,26 @@ export async function createGuestOrder(input: unknown) {
       },
       include: orderInclude
     });
-    console.log("Nombre guardado:", order.recipientName);
-
+    // Mismo compare-and-swap que en el pedido de usuario autenticado: el
+    // chequeo de arriba lee el stock antes de crear el pedido, así que una
+    // segunda compra concurrente del mismo producto puede pasar ese chequeo
+    // también. El UPDATE condicional es la única enforcement real.
     for (const item of resolvedItems) {
-      await tx.product.update({
-        where: { id: item.productId },
+      const decremented = await tx.product.updateMany({
+        where: {
+          id: item.productId,
+          stock: { gte: item.quantity }
+        },
         data: {
           stock: {
             decrement: item.quantity
           }
         }
       });
+
+      if (decremented.count === 0) {
+        throw new AppError(`Stock insuficiente para ${item.name}`, 409);
+      }
     }
 
     return order;
@@ -1135,12 +1174,6 @@ export async function createGuestOrder(input: unknown) {
   }
 
   const mappedOrder = mapOrder(finalizedOrder);
-
-  console.log("[ORDER][GUEST]", {
-    id: mappedOrder.id,
-    phone: mappedOrder.contactPhone,
-    total: mappedOrder.total
-  });
 
   void sendAdminOrderNotificationEmail({
     order: {
@@ -1170,7 +1203,7 @@ export async function createGuestOrder(input: unknown) {
     console.error("No se pudo enviar la notificación interna del pedido", error);
   });
 
-  revalidatePath("/admin/pedidos");
+  revalidateOrderPages();
 
   return {
     order: mappedOrder,
@@ -1359,11 +1392,15 @@ export async function updateAdminOrder(
     });
   }
 
-  if (didStatusChange) {
-    revalidatePath("/mis-pedidos");
+  try {
+    if (didStatusChange) {
+      revalidatePath("/mis-pedidos");
+    }
+    revalidatePath("/admin");
+    revalidatePath("/admin/pedidos");
+  } catch (error) {
+    console.warn("[orders] no se pudo revalidar el cache de páginas", error);
   }
-  revalidatePath("/admin");
-  revalidatePath("/admin/pedidos");
 
   return {
     ...mappedOrder,
@@ -1406,10 +1443,14 @@ export async function deleteCancelledOrder(orderId: string, adminUserId: string)
     }
   });
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/pedidos");
-  revalidatePath("/admin/usuarios");
-  revalidatePath("/mis-pedidos");
+  try {
+    revalidatePath("/admin");
+    revalidatePath("/admin/pedidos");
+    revalidatePath("/admin/usuarios");
+    revalidatePath("/mis-pedidos");
+  } catch (error) {
+    console.warn("[orders] no se pudo revalidar el cache de páginas", error);
+  }
 }
 
 export async function updateOrderDiscount(
@@ -1484,9 +1525,13 @@ export async function updateOrderDiscount(
     }
   });
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/pedidos");
-  revalidatePath("/mis-pedidos");
+  try {
+    revalidatePath("/admin");
+    revalidatePath("/admin/pedidos");
+    revalidatePath("/mis-pedidos");
+  } catch (error) {
+    console.warn("[orders] no se pudo revalidar el cache de páginas", error);
+  }
 
   return mapOrder(updatedOrder);
 }
@@ -1553,9 +1598,13 @@ export async function applyManualOrderDiscount(
     }
   });
 
-  revalidatePath("/admin");
-  revalidatePath("/admin/pedidos");
-  revalidatePath("/mis-pedidos");
+  try {
+    revalidatePath("/admin");
+    revalidatePath("/admin/pedidos");
+    revalidatePath("/mis-pedidos");
+  } catch (error) {
+    console.warn("[orders] no se pudo revalidar el cache de páginas", error);
+  }
 
   return mapOrder(updatedOrder);
 }
