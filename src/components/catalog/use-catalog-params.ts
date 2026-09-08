@@ -113,14 +113,32 @@ export function useCatalogParams() {
     });
   }, [current, pathname, router]);
 
-  // Cada marca cuenta como un filtro, y el rango de precio cuenta como uno solo
-  // aunque use dos parámetros: es lo que el usuario percibe como "un filtro".
-  const activeCount =
-    getList("brand").length +
-    (["categoryId", "objective"] as const).filter((key) =>
-      searchParams.get(key)
-    ).length +
-    (searchParams.get("minPrice") || searchParams.get("maxPrice") ? 1 : 0);
+  /**
+   * Saca categoría y marcas —y cualquier filtro viejo que ya no se muestra—
+   * pero deja la búsqueda. El buscador es un control aparte y tiene su propia X.
+   */
+  const clearFilters = useCallback(() => {
+    apply({
+      categoryId: null,
+      brand: null,
+      objective: null,
+      minPrice: null,
+      maxPrice: null,
+      sort: null
+    });
+  }, [apply]);
 
-  return { get, getList, apply, toggleInList, clearAll, isPending, activeCount };
+  const activeCount =
+    (searchParams.get("categoryId") ? 1 : 0) + getList("brand").length;
+
+  return {
+    get,
+    getList,
+    apply,
+    toggleInList,
+    clearAll,
+    clearFilters,
+    isPending,
+    activeCount
+  };
 }
