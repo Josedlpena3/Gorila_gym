@@ -258,6 +258,16 @@ function hasDiscountCode(discountCode: string | null | undefined) {
   return Boolean(discountCode && discountCode.trim() !== "");
 }
 
+/**
+ * Único lugar que decide si un código de descuento vale.
+ *
+ * Antes esta función devolvía `{ invalid: true }` y quien la llamaba decidía
+ * qué hacer con eso. `createOrderFromCart` y `createGuestOrder` no miraban ese
+ * campo: un código que no existe, no corresponde a la forma de entrega, o
+ * cualquier otra condición que no cumpla, se ignoraba en silencio y el pedido
+ * se creaba a precio completo sin avisarle a nadie que el código no sirvió.
+ * Acá se corta: si el código no vale, no hay pedido.
+ */
 function resolveCheckoutDiscount(input: {
   discountCode: string | null | undefined;
   total: number;
@@ -269,7 +279,17 @@ function resolveCheckoutDiscount(input: {
     return buildEmptyCheckoutDiscountResult(input.total);
   }
 
-  return applyCheckoutDiscount(discountCode, input.total, input.deliveryMethod);
+  const discount = applyCheckoutDiscount(
+    discountCode,
+    input.total,
+    input.deliveryMethod
+  );
+
+  if (discount.invalid) {
+    throw new AppError("Código de descuento inválido", 400);
+  }
+
+  return discount;
 }
 
 function splitOrderRecipientName(name: string) {
@@ -313,15 +333,13 @@ function recalculateOrderTotals(input: {
   discountCode: string | null | undefined;
 }) {
   const baseTotal = input.subtotal + input.shippingCost;
+  // resolveCheckoutDiscount ya lanza si el código no vale: acá no hace falta
+  // repetir el chequeo.
   const discount = resolveCheckoutDiscount({
     discountCode: input.discountCode,
     total: baseTotal,
     deliveryMethod: input.deliveryMethod
   });
-
-  if (discount.invalid) {
-    throw new AppError("Código de descuento inválido", 400);
-  }
 
   return {
     discountCode: discount.discountCode,
@@ -703,6 +721,72 @@ async function buildOrderPricing(input: {
  * error de compra sobre un pedido que en realidad sí se había confirmado y ya
  * había descontado el stock.
  */
+/**
+ * Idempotencia de la creación de pedido: la clave la genera el cliente una
+ * vez por intento de compra y la repite en cada reintento (doble click, F5,
+ * un fetch que se reintenta solo). Si ya existe un pedido con esa clave, se
+ * devuelve ese pedido en vez de crear uno nuevo.
+ *
+ * Dos capas, porque ninguna sola alcanza:
+ *
+ *  1. Este chequeo, antes de abrir la transacción. Cubre el caso común: el
+ *     primer request ya terminó, la respuesta se perdió o el cliente todavía
+ *     no la vio, y llega un reintento. Barato, evita re-validar stock y
+ *     descuento para nada.
+ *
+ *  2. La restricción UNIQUE de la base sobre `idempotencyKey`, que es la que
+ *     de verdad decide cuando dos requests con la misma clave llegan casi
+ *     juntos y ninguno de los dos vio al otro en el paso 1 —esta función
+ *     sola no alcanza para eso: leer-y-decidir en JavaScript tiene la misma
+ *     ventana de carrera que tenía el stock antes de este mismo fix—. El que
+ *     pierde la carrera del INSERT recibe un error de restricción única, que
+ *     `resolveIdempotentOrderConflict` atrapa para devolver el pedido del que
+ *     ganó en vez de propagar el error.
+ */
+async function findOrderByIdempotencyKey(idempotencyKey: string) {
+  const existing = await prisma.order.findUnique({
+    where: { idempotencyKey },
+    include: orderInclude
+  });
+
+  return existing ? mapOrder(existing) : null;
+}
+
+function isIdempotencyKeyConflict(error: unknown) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+
+  if (error.code !== "P2002") {
+    return false;
+  }
+
+  const target = (error.meta as { target?: unknown } | undefined)?.target;
+
+  return String(target ?? "").includes("idempotencyKey");
+}
+
+/**
+ * Si `error` es el conflicto de la clave de idempotencia, devuelve el pedido
+ * que ya existe con esa clave —el que ganó la carrera del INSERT—. Si es
+ * cualquier otro error, o no hay clave, lo vuelve a lanzar para que lo maneje
+ * quien corresponda.
+ */
+async function resolveIdempotentOrderConflict(
+  error: unknown,
+  idempotencyKey: string | undefined
+) {
+  if (idempotencyKey && isIdempotencyKeyConflict(error)) {
+    const existing = await findOrderByIdempotencyKey(idempotencyKey);
+
+    if (existing) {
+      return existing;
+    }
+  }
+
+  throw error;
+}
+
 function revalidateOrderPages() {
   try {
     revalidatePath("/mis-pedidos");
@@ -789,6 +873,20 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
 
   const data = createOrderSchema.parse(input);
 
+  // Reintento de un intento de compra que ya se resolvió: se devuelve el
+  // pedido existente sin volver a tocar carrito, stock ni descuento. Sin esto,
+  // un F5 en el momento justo podía cobrar el carrito dos veces.
+  if (data.idempotencyKey) {
+    const existingOrder = await findOrderByIdempotencyKey(data.idempotencyKey);
+
+    if (existingOrder) {
+      return {
+        order: existingOrder,
+        checkoutUrl: existingOrder.payment.checkoutUrl
+      };
+    }
+  }
+
   const cart = await getCartByUserId(user.id);
 
   if (cart.items.length === 0) {
@@ -818,153 +916,168 @@ export async function createOrderFromCart(user: UserContext, input: unknown) {
 
   assertPositiveTotal(pricing.total);
 
-  const createdOrder = await prisma.$transaction(async (tx) => {
-    const productIds = cart.items.map((item) => item.productId);
-    const products = await tx.product.findMany({
-      where: {
-        id: {
-          in: productIds
-        }
-      }
-    });
+  let createdOrder: Awaited<ReturnType<typeof getOrderRecord>>;
 
-    // Chequeo temprano: da un error legible sin llegar a tocar la base de
-    // pedidos cuando el producto ya no existe o está desactivado. No alcanza
-    // como única defensa contra el stock: entre este `findMany` y el
-    // `UPDATE` de más abajo, otra compra concurrente del mismo producto puede
-    // colarse. La única enforcement real es el UPDATE condicional al
-    // descontar el stock.
-    for (const item of cart.items) {
-      const product = products.find((entry) => entry.id === item.productId);
-
-      if (!product || !product.active) {
-        throw new AppError(`Stock insuficiente para ${item.name}`);
-      }
-    }
-
-    await tx.user.update({
-      where: { id: user.id },
-      data: {
-        phone: data.phone
-      }
-    });
-
-    const existingDefaultAddress = await tx.address.findFirst({
-      where: {
-        userId: user.id,
-        isDefault: true
-      }
-    });
-
-    const savedAddress =
-      deliveryMethod === DeliveryMethod.SHIPMENT
-        ? existingDefaultAddress
-          ? await tx.address.update({
-              where: { id: existingDefaultAddress.id },
-              data: {
-                recipientName,
-                street: snapshot.street,
-                number: snapshot.number,
-                city: snapshot.city,
-                province: snapshot.province,
-                postalCode: snapshot.postalCode,
-                country: snapshot.country,
-                isDefault: true
-              }
-            })
-          : await tx.address.create({
-              data: {
-                userId: user.id,
-                label: "Principal",
-                recipientName,
-                street: snapshot.street,
-                number: snapshot.number,
-                city: snapshot.city,
-                province: snapshot.province,
-                postalCode: snapshot.postalCode,
-                country: snapshot.country,
-                isDefault: true
-              }
-            })
-        : null;
-
-    const order = await tx.order.create({
-      data: {
-        code: orderCode,
-        userId: user.id,
-        addressId: savedAddress?.id,
-        deliveryMethod,
-        paymentMethod,
-        status: OrderStatus.PENDING_CONFIRMATION,
-        subtotal: cart.subtotal,
-        discountTotal: pricing.discountAmount,
-        shippingCost: pricing.shippingCost,
-        total: pricing.total,
-        notes: data.notes?.trim() || undefined,
-        recipientName,
-        contactPhone: data.phone,
-        street: snapshot.street,
-        number: snapshot.number,
-        floor: snapshot.floor,
-        apartment: snapshot.apartment,
-        city: snapshot.city,
-        province: snapshot.province,
-        postalCode: snapshot.postalCode,
-        items: {
-          create: cart.items.map((item) => ({
-            productId: item.productId,
-            nameSnapshot: item.name,
-            brandSnapshot: item.brand,
-            price: item.unitPrice,
-            quantity: item.quantity,
-            subtotal: item.subtotal
-          }))
-        },
-        payment: {
-          create: buildManualPaymentData({
-            paymentMethod,
-            total: pricing.total,
-            orderCode,
-            discountCode: discount.discountCode,
-            discountApplied: discount.discountApplied
-          })
-        }
-      },
-      include: orderInclude
-    });
-    // `updateMany` con `stock: { gte }` en el WHERE es un compare-and-swap a
-    // nivel de fila: Postgres serializa dos UPDATE concurrentes sobre el mismo
-    // producto, así que el segundo ve el stock ya descontado por el primero y
-    // `count` da 0 si ya no alcanza. Sin esto, dos compras del último producto
-    // pueden leer stock=1 al mismo tiempo, las dos pasar el chequeo, y las dos
-    // descontar: el stock termina en -1 y se vendió algo que no había
-    // (reproducido con un test de dos pedidos simultáneos antes de este fix).
-    for (const item of cart.items) {
-      const decremented = await tx.product.updateMany({
+  try {
+    createdOrder = await prisma.$transaction(async (tx) => {
+      const productIds = cart.items.map((item) => item.productId);
+      const products = await tx.product.findMany({
         where: {
-          id: item.productId,
-          stock: { gte: item.quantity }
-        },
-        data: {
-          stock: {
-            decrement: item.quantity
+          id: {
+            in: productIds
           }
         }
       });
 
-      if (decremented.count === 0) {
-        throw new AppError(`Stock insuficiente para ${item.name}`);
-      }
-    }
+      // Chequeo temprano: da un error legible sin llegar a tocar la base de
+      // pedidos cuando el producto ya no existe o está desactivado. No alcanza
+      // como única defensa contra el stock: entre este `findMany` y el
+      // `UPDATE` de más abajo, otra compra concurrente del mismo producto puede
+      // colarse. La única enforcement real es el UPDATE condicional al
+      // descontar el stock.
+      for (const item of cart.items) {
+        const product = products.find((entry) => entry.id === item.productId);
 
-    await tx.cartItem.deleteMany({
-      where: {
-        cartId: cart.id
+        if (!product || !product.active) {
+          throw new AppError(`Stock insuficiente para ${item.name}`);
+        }
       }
+
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          phone: data.phone
+        }
+      });
+
+      const existingDefaultAddress = await tx.address.findFirst({
+        where: {
+          userId: user.id,
+          isDefault: true
+        }
+      });
+
+      const savedAddress =
+        deliveryMethod === DeliveryMethod.SHIPMENT
+          ? existingDefaultAddress
+            ? await tx.address.update({
+                where: { id: existingDefaultAddress.id },
+                data: {
+                  recipientName,
+                  street: snapshot.street,
+                  number: snapshot.number,
+                  city: snapshot.city,
+                  province: snapshot.province,
+                  postalCode: snapshot.postalCode,
+                  country: snapshot.country,
+                  isDefault: true
+                }
+              })
+            : await tx.address.create({
+                data: {
+                  userId: user.id,
+                  label: "Principal",
+                  recipientName,
+                  street: snapshot.street,
+                  number: snapshot.number,
+                  city: snapshot.city,
+                  province: snapshot.province,
+                  postalCode: snapshot.postalCode,
+                  country: snapshot.country,
+                  isDefault: true
+                }
+              })
+          : null;
+
+      const order = await tx.order.create({
+        data: {
+          code: orderCode,
+          idempotencyKey: data.idempotencyKey ?? null,
+          userId: user.id,
+          addressId: savedAddress?.id,
+          deliveryMethod,
+          paymentMethod,
+          status: OrderStatus.PENDING_CONFIRMATION,
+          subtotal: cart.subtotal,
+          discountTotal: pricing.discountAmount,
+          shippingCost: pricing.shippingCost,
+          total: pricing.total,
+          notes: data.notes?.trim() || undefined,
+          recipientName,
+          contactPhone: data.phone,
+          street: snapshot.street,
+          number: snapshot.number,
+          floor: snapshot.floor,
+          apartment: snapshot.apartment,
+          city: snapshot.city,
+          province: snapshot.province,
+          postalCode: snapshot.postalCode,
+          items: {
+            create: cart.items.map((item) => ({
+              productId: item.productId,
+              nameSnapshot: item.name,
+              brandSnapshot: item.brand,
+              price: item.unitPrice,
+              quantity: item.quantity,
+              subtotal: item.subtotal
+            }))
+          },
+          payment: {
+            create: buildManualPaymentData({
+              paymentMethod,
+              total: pricing.total,
+              orderCode,
+              discountCode: discount.discountCode,
+              discountApplied: discount.discountApplied
+            })
+          }
+        },
+        include: orderInclude
+      });
+      // `updateMany` con `stock: { gte }` en el WHERE es un compare-and-swap a
+      // nivel de fila: Postgres serializa dos UPDATE concurrentes sobre el mismo
+      // producto, así que el segundo ve el stock ya descontado por el primero y
+      // `count` da 0 si ya no alcanza. Sin esto, dos compras del último producto
+      // pueden leer stock=1 al mismo tiempo, las dos pasar el chequeo, y las dos
+      // descontar: el stock termina en -1 y se vendió algo que no había
+      // (reproducido con un test de dos pedidos simultáneos antes de este fix).
+      for (const item of cart.items) {
+        const decremented = await tx.product.updateMany({
+          where: {
+            id: item.productId,
+            stock: { gte: item.quantity }
+          },
+          data: {
+            stock: {
+              decrement: item.quantity
+            }
+          }
+        });
+
+        if (decremented.count === 0) {
+          throw new AppError(`Stock insuficiente para ${item.name}`);
+        }
+      }
+
+      await tx.cartItem.deleteMany({
+        where: {
+          cartId: cart.id
+        }
+      });
+
+      return order;
     });
+  } catch (error) {
+    const existingOrder = await resolveIdempotentOrderConflict(
+      error,
+      data.idempotencyKey
+    );
 
-    return order;
-  });
+    return {
+      order: existingOrder,
+      checkoutUrl: existingOrder.payment.checkoutUrl
+    };
+  }
 
   const finalizedOrder = await getOrderRecord(createdOrder.id);
 
@@ -1027,6 +1140,18 @@ export async function createGuestOrder(input: unknown) {
   await releaseExpiredOrders();
 
   const data = createGuestOrderSchema.parse(input);
+
+  if (data.idempotencyKey) {
+    const existingOrder = await findOrderByIdempotencyKey(data.idempotencyKey);
+
+    if (existingOrder) {
+      return {
+        order: existingOrder,
+        checkoutUrl: existingOrder.payment.checkoutUrl
+      };
+    }
+  }
+
   const deliveryMethod = data.deliveryMethod;
   const paymentMethod = data.paymentMethod;
   const recipientName = data.name;
@@ -1038,134 +1163,149 @@ export async function createGuestOrder(input: unknown) {
   });
   const orderCode = generateOrderCode();
 
-  const createdOrder = await prisma.$transaction(async (tx) => {
-    const groupedItems = data.items.reduce<Map<string, number>>((acc, item) => {
-      acc.set(item.productId, (acc.get(item.productId) ?? 0) + item.quantity);
-      return acc;
-    }, new Map());
-    const productIds = [...groupedItems.keys()];
-    const products = await tx.product.findMany({
-      where: {
-        id: {
-          in: productIds
-        }
-      }
-    });
+  let createdOrder: Awaited<ReturnType<typeof getOrderRecord>>;
 
-    if (products.length !== productIds.length) {
-      throw new AppError("Hay productos del carrito que ya no están disponibles", 409);
-    }
-
-    const resolvedItems = productIds.map((productId) => {
-      const product = products.find((entry) => entry.id === productId);
-      const quantity = groupedItems.get(productId) ?? 0;
-
-      if (!product || !product.active || quantity <= 0) {
-        throw new AppError("Hay productos del carrito que ya no están disponibles", 409);
-      }
-
-      if (product.stock < quantity) {
-        throw new AppError(`Stock insuficiente para ${product.name}`, 409);
-      }
-
-      const unitPrice = decimalToNumber(product.price) ?? 0;
-
-      return {
-        productId,
-        quantity,
-        name: product.name,
-        brand: product.brand,
-        unitPrice,
-        subtotal: unitPrice * quantity
-      };
-    });
-
-    if (resolvedItems.length === 0) {
-      throw new AppError("Tu carrito está vacío", 400);
-    }
-
-    const subtotal = resolvedItems.reduce((total, item) => total + item.subtotal, 0);
-    const discount = resolveCheckoutDiscount({
-      discountCode: data.discountCode,
-      total: subtotal,
-      deliveryMethod
-    });
-    const pricing = {
-      shippingCost: 0,
-      discountAmount: discount.discountAmount,
-      total: applyPaymentSurcharge(discount.total, paymentMethod)
-    };
-
-    assertPositiveTotal(pricing.total);
-
-    const order = await tx.order.create({
-      data: {
-        code: orderCode,
-        userId: null,
-        addressId: null,
-        deliveryMethod,
-        paymentMethod,
-        status: OrderStatus.PENDING_CONFIRMATION,
-        subtotal,
-        discountTotal: pricing.discountAmount,
-        shippingCost: pricing.shippingCost,
-        total: pricing.total,
-        notes: data.notes?.trim() || undefined,
-        recipientName,
-        contactPhone: data.phone,
-        street: snapshot.street,
-        number: snapshot.number,
-        floor: snapshot.floor,
-        apartment: snapshot.apartment,
-        city: snapshot.city,
-        province: snapshot.province,
-        postalCode: snapshot.postalCode,
-        items: {
-          create: resolvedItems.map((item) => ({
-            productId: item.productId,
-            nameSnapshot: item.name,
-            brandSnapshot: item.brand,
-            price: item.unitPrice,
-            quantity: item.quantity,
-            subtotal: item.subtotal
-          }))
-        },
-        payment: {
-          create: buildManualPaymentData({
-            paymentMethod,
-            total: pricing.total,
-            orderCode,
-            discountCode: discount.discountCode,
-            discountApplied: discount.discountApplied
-          })
-        }
-      },
-      include: orderInclude
-    });
-    // Mismo compare-and-swap que en el pedido de usuario autenticado: el
-    // chequeo de arriba lee el stock antes de crear el pedido, así que una
-    // segunda compra concurrente del mismo producto puede pasar ese chequeo
-    // también. El UPDATE condicional es la única enforcement real.
-    for (const item of resolvedItems) {
-      const decremented = await tx.product.updateMany({
+  try {
+    createdOrder = await prisma.$transaction(async (tx) => {
+      const groupedItems = data.items.reduce<Map<string, number>>((acc, item) => {
+        acc.set(item.productId, (acc.get(item.productId) ?? 0) + item.quantity);
+        return acc;
+      }, new Map());
+      const productIds = [...groupedItems.keys()];
+      const products = await tx.product.findMany({
         where: {
-          id: item.productId,
-          stock: { gte: item.quantity }
-        },
-        data: {
-          stock: {
-            decrement: item.quantity
+          id: {
+            in: productIds
           }
         }
       });
 
-      if (decremented.count === 0) {
-        throw new AppError(`Stock insuficiente para ${item.name}`, 409);
+      if (products.length !== productIds.length) {
+        throw new AppError("Hay productos del carrito que ya no están disponibles", 409);
       }
-    }
 
-    return order;
-  });
+      const resolvedItems = productIds.map((productId) => {
+        const product = products.find((entry) => entry.id === productId);
+        const quantity = groupedItems.get(productId) ?? 0;
+
+        if (!product || !product.active || quantity <= 0) {
+          throw new AppError("Hay productos del carrito que ya no están disponibles", 409);
+        }
+
+        if (product.stock < quantity) {
+          throw new AppError(`Stock insuficiente para ${product.name}`, 409);
+        }
+
+        const unitPrice = decimalToNumber(product.price) ?? 0;
+
+        return {
+          productId,
+          quantity,
+          name: product.name,
+          brand: product.brand,
+          unitPrice,
+          subtotal: unitPrice * quantity
+        };
+      });
+
+      if (resolvedItems.length === 0) {
+        throw new AppError("Tu carrito está vacío", 400);
+      }
+
+      const subtotal = resolvedItems.reduce((total, item) => total + item.subtotal, 0);
+      const discount = resolveCheckoutDiscount({
+        discountCode: data.discountCode,
+        total: subtotal,
+        deliveryMethod
+      });
+      const pricing = {
+        shippingCost: 0,
+        discountAmount: discount.discountAmount,
+        total: applyPaymentSurcharge(discount.total, paymentMethod)
+      };
+
+      assertPositiveTotal(pricing.total);
+
+      const order = await tx.order.create({
+        data: {
+          code: orderCode,
+          idempotencyKey: data.idempotencyKey ?? null,
+          userId: null,
+          addressId: null,
+          deliveryMethod,
+          paymentMethod,
+          status: OrderStatus.PENDING_CONFIRMATION,
+          subtotal,
+          discountTotal: pricing.discountAmount,
+          shippingCost: pricing.shippingCost,
+          total: pricing.total,
+          notes: data.notes?.trim() || undefined,
+          recipientName,
+          contactPhone: data.phone,
+          street: snapshot.street,
+          number: snapshot.number,
+          floor: snapshot.floor,
+          apartment: snapshot.apartment,
+          city: snapshot.city,
+          province: snapshot.province,
+          postalCode: snapshot.postalCode,
+          items: {
+            create: resolvedItems.map((item) => ({
+              productId: item.productId,
+              nameSnapshot: item.name,
+              brandSnapshot: item.brand,
+              price: item.unitPrice,
+              quantity: item.quantity,
+              subtotal: item.subtotal
+            }))
+          },
+          payment: {
+            create: buildManualPaymentData({
+              paymentMethod,
+              total: pricing.total,
+              orderCode,
+              discountCode: discount.discountCode,
+              discountApplied: discount.discountApplied
+            })
+          }
+        },
+        include: orderInclude
+      });
+      // Mismo compare-and-swap que en el pedido de usuario autenticado: el
+      // chequeo de arriba lee el stock antes de crear el pedido, así que una
+      // segunda compra concurrente del mismo producto puede pasar ese chequeo
+      // también. El UPDATE condicional es la única enforcement real.
+      for (const item of resolvedItems) {
+        const decremented = await tx.product.updateMany({
+          where: {
+            id: item.productId,
+            stock: { gte: item.quantity }
+          },
+          data: {
+            stock: {
+              decrement: item.quantity
+            }
+          }
+        });
+
+        if (decremented.count === 0) {
+          throw new AppError(`Stock insuficiente para ${item.name}`, 409);
+        }
+      }
+
+      return order;
+    });
+  } catch (error) {
+    const existingOrder = await resolveIdempotentOrderConflict(
+      error,
+      data.idempotencyKey
+    );
+
+    return {
+      order: existingOrder,
+      checkoutUrl: existingOrder.payment.checkoutUrl
+    };
+  }
 
   const finalizedOrder = await getOrderRecord(createdOrder.id);
 

@@ -17,6 +17,10 @@ import {
 } from "@/lib/guest-cart";
 import { applyCheckoutDiscount } from "@/lib/checkout-discounts";
 import {
+  clearCheckoutIdempotencyKey,
+  getCheckoutIdempotencyKey
+} from "@/lib/checkout-idempotency";
+import {
   buildCheckoutWhatsappMessage,
   getOrderDeliveryMethodValue,
   getOrderPaymentMethodValue,
@@ -206,6 +210,15 @@ export function CheckoutForm({
       return;
     }
 
+    // El servidor también lo rechaza —es la validación que de verdad cuenta—,
+    // pero cortar acá evita abrir y cerrar la ventana de WhatsApp por un
+    // código que el campo ya venía marcando como inválido.
+    if (discountCode.trim() && discountPreview.invalid) {
+      pendingWhatsappWindow?.close();
+      setError("El código de descuento no es válido.");
+      return;
+    }
+
     setError(null);
 
     const formData = new FormData(formRef.current);
@@ -335,15 +348,17 @@ export function CheckoutForm({
       deliveryMethod: getOrderDeliveryMethodValue(deliveryMethod),
       paymentMethod: getOrderPaymentMethodValue(paymentMethod),
       discountCode: discountPreview.discountCode,
+      // La misma clave para todos los reintentos de este intento de compra:
+      // el servidor la usa para devolver el pedido ya creado en vez de armar
+      // uno nuevo si esta llamada es un doble click, un F5 a mitad de camino,
+      // o un reintento de red.
+      idempotencyKey: getCheckoutIdempotencyKey(),
       ...(shipmentAddress ? { address: shipmentAddress } : {})
     };
 
     if (!payload.discountCode) {
       delete payload.discountCode;
     }
-
-    console.log("Nombre enviado:", payload.name);
-    console.log("PAYLOAD ENVIADO:", payload);
 
     const response = await fetch("/api/orders", {
       method: "POST",
@@ -399,6 +414,7 @@ export function CheckoutForm({
     }
 
     clearGuestCart();
+    clearCheckoutIdempotencyKey();
     setCustomerName("");
     setSuccessOrderCode(
       typeof responsePayload?.order?.code === "string"

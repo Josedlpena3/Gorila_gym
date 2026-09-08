@@ -226,6 +226,10 @@ model Order {
   colored        Boolean        @default(false)
   color          String?
   sellerName     String?
+  /// Clave que manda el cliente para que un reintento del mismo intento de
+  /// compra (doble click, F5, un fetch que se reintenta solo) no cree un
+  /// segundo pedido. Nula en pedidos viejos, de antes de este campo.
+  idempotencyKey String?        @unique
   items          OrderItem[]
   payment        Payment?
   createdAt      DateTime       @default(now())

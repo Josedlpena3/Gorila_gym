@@ -89,6 +89,11 @@ function normalizeOrderInput(raw: unknown) {
 const createOrderBaseObjectSchema = z.object({
   name: z.string().trim().min(2, "Nombre inválido"),
   phone: phoneSchema,
+  // Genera este valor el cliente, una vez por intento de compra, y lo repite
+  // en cada reintento (doble click, F5, un fetch que reintenta solo). Es
+  // opcional porque los pedidos ya en producción se crearon sin él: no hay
+  // que romper esa compatibilidad.
+  idempotencyKey: z.string().uuid("Clave de idempotencia inválida").optional(),
   deliveryMethod: deliveryMethodSchema,
   paymentMethod: paymentMethodSchema,
   items: z
