@@ -1,12 +1,15 @@
 "use client";
 
-import { SlidersHorizontal, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Check, ChevronRight, Menu, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import {
+  getCategoryDisplayName,
+  sortCatalogCategories,
+  type CatalogCategory
+} from "@/components/catalog/catalog-categories";
 import { useCatalogParams } from "@/components/catalog/use-catalog-params";
-import { OBJECTIVE_LABELS } from "@/lib/constants";
 import { useFocusTrap } from "@/lib/use-focus-trap";
-import { formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export type CatalogFacets = {
   brands: Array<{ label: string; count: number }>;
@@ -14,67 +17,86 @@ export type CatalogFacets = {
   maxPrice: number;
 };
 
-function OptionChip({
-  active,
-  onClick,
-  children
+type AccordionSection = "categories" | "brands" | null;
+
+function AccordionTrigger({
+  label,
+  open,
+  summary,
+  controlsId,
+  onClick
 }: {
-  active: boolean;
+  label: string;
+  open: boolean;
+  summary?: string;
+  controlsId: string;
   onClick: () => void;
-  children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
+      aria-expanded={open}
+      aria-controls={controlsId}
       onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex min-h-9 items-center whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-        active
-          ? "border-neon bg-neon text-white"
-          : "border-hairline bg-surface-sunken text-mist hover:border-white/25 hover:text-sand"
-      }`}
+      className="flex min-h-14 w-full items-center justify-between gap-3 text-left"
     >
-      {children}
+      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mist">
+        {label}
+      </span>
+      <span className="flex min-w-0 items-center gap-2">
+        {summary ? (
+          <span className="truncate text-xs text-sand">{summary}</span>
+        ) : null}
+        <ChevronRight
+          className={cn(
+            "h-4 w-4 shrink-0 text-mist transition-transform",
+            open && "rotate-90"
+          )}
+          aria-hidden="true"
+        />
+      </span>
     </button>
   );
 }
 
 /**
- * Panel de filtros del catálogo.
+ * Menú de filtros del catálogo.
  *
- * En escritorio se despliega en el flujo, debajo de la barra. En móvil se
- * convierte en una hoja anclada abajo —donde llega el pulgar— con fondo oscuro
- * y foco atrapado, porque desplegarlo en el flujo empujaría la grilla fuera de
- * pantalla.
+ * El botón hamburger abre un panel a pantalla completa en el teléfono y un
+ * panel lateral en escritorio. Adentro hay un acordeón: una sección a la vez,
+ * para que categorías y marcas no compitan con la grilla de productos.
  *
- * La API acepta una marca y un objetivo por consulta, así que ambos son de
- * selección única: volver a tocar la opción activa la quita.
+ * Las marcas son de selección múltiple. Viajan en la URL como
+ * `?brand=ENA,Star%20Nutrition` y el backend las combina con OR, independiente
+ * de la categoría (AND).
  */
-export function CatalogFilters({ facets }: { facets: CatalogFacets }) {
-  const { get, apply, clearAll, activeCount } = useCatalogParams();
+export function CatalogFilters({
+  categories,
+  facets
+}: {
+  categories: CatalogCategory[];
+  facets: CatalogFacets;
+}) {
+  const { get, getList, apply, toggleInList, clearFilters, activeCount } =
+    useCatalogParams();
   const [isOpen, setIsOpen] = useState(false);
+  const [openSection, setOpenSection] = useState<AccordionSection>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const categoriesId = useId();
+  const brandsId = useId();
 
-  const brand = get("brand");
-  const objective = get("objective");
-  const minPrice = get("minPrice");
-  const maxPrice = get("maxPrice");
-
-  const [minDraft, setMinDraft] = useState(minPrice ?? "");
-  const [maxDraft, setMaxDraft] = useState(maxPrice ?? "");
-
-  // El precio se escribe con el teclado, así que solo se aplica al confirmar.
-  // Sincronizar el borrador cuando la URL cambia por otra vía (chip removido,
-  // "limpiar todo", botón atrás) evita que queden números fantasma en el campo.
-  useEffect(() => {
-    setMinDraft(minPrice ?? "");
-    setMaxDraft(maxPrice ?? "");
-  }, [minPrice, maxPrice]);
+  const currentCategoryId = get("categoryId");
+  const selectedBrands = getList("brand");
+  const sortedCategories = sortCatalogCategories(categories);
+  const selectedCategory = sortedCategories.find(
+    (category) => category.id === currentCategoryId
+  );
 
   useFocusTrap(panelRef, isOpen);
 
   useEffect(() => {
     if (!isOpen) {
+      setOpenSection(null);
       return;
     }
 
@@ -85,44 +107,47 @@ export function CatalogFilters({ facets }: { facets: CatalogFacets }) {
     }
 
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [isOpen]);
 
-  function applyPriceDraft() {
-    const min = minDraft.replace(/\D/g, "");
-    const max = maxDraft.replace(/\D/g, "");
-
-    // Si vienen invertidos se ordenan en vez de devolver cero resultados.
-    const [from, to] =
-      min && max && Number(min) > Number(max) ? [max, min] : [min, max];
-
-    apply({ minPrice: from || null, maxPrice: to || null });
+  function toggleSection(section: AccordionSection) {
+    setOpenSection((current) => (current === section ? null : section));
   }
 
   return (
-    <>
+    <div>
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
-        className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-hairline bg-surface-sunken px-3 py-1.5 text-sm font-semibold text-sand transition hover:border-white/25"
+        aria-haspopup="dialog"
+        aria-label="Abrir filtros"
+        className={cn(
+          "inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-2 rounded-xl border px-2.5 text-sm font-medium transition sm:px-3",
+          isOpen || activeCount > 0
+            ? "border-neon/60 bg-neon/10 text-sand"
+            : "border-hairline bg-surface-sunken text-mist hover:border-white/25 hover:text-sand"
+        )}
       >
-        <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-        Filtros
+        <Menu className="h-4 w-4" aria-hidden="true" />
+        <span className="hidden sm:inline">Filtros</span>
         {activeCount > 0 ? (
-          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-neon px-1.5 text-[11px] font-bold text-white">
+          <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-neon px-1 text-[10px] font-bold text-white">
             {activeCount}
           </span>
         ) : null}
       </button>
 
       {isOpen ? (
-        <>
+        <div className="fixed inset-0 z-50">
           <button
             type="button"
             aria-label="Cerrar filtros"
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
 
           <div
@@ -130,131 +155,152 @@ export function CatalogFilters({ facets }: { facets: CatalogFacets }) {
             role="dialog"
             aria-modal="true"
             aria-label="Filtros del catálogo"
-            className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-3xl border border-hairline bg-surface p-5 shadow-premium md:static md:z-auto md:mt-4 md:max-h-none md:rounded-2xl md:p-5 md:shadow-card"
+            className="absolute inset-y-0 left-0 flex h-full w-full max-w-none flex-col bg-ink shadow-premium sm:w-[22rem] sm:border-r sm:border-hairline"
           >
-            <div className="mb-4 flex items-center justify-between md:hidden">
-              <p className="text-base font-bold text-sand">Filtros</p>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline px-5 py-4">
+              <p className="text-sm font-bold text-sand">Filtros</p>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
                 aria-label="Cerrar filtros"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-mist transition hover:text-sand"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-mist transition hover:bg-white/10 hover:text-sand"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
-              {facets.brands.length > 0 ? (
-                <fieldset>
-                  <legend className="mb-2.5 text-[11px] font-semibold uppercase tracking-eyebrow text-mist">
-                    Marca
-                  </legend>
-                  <div className="flex flex-wrap gap-2">
-                    {facets.brands.map(({ label, count }) => (
-                      <OptionChip
-                        key={label}
-                        active={brand?.toLowerCase() === label.toLowerCase()}
-                        onClick={() =>
-                          apply({
-                            brand:
-                              brand?.toLowerCase() === label.toLowerCase()
-                                ? null
-                                : label
-                          })
-                        }
-                      >
-                        {label}
-                        <span className="ml-1.5 opacity-60">{count}</span>
-                      </OptionChip>
-                    ))}
-                  </div>
-                </fieldset>
-              ) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto px-5">
+              <div className="border-b border-hairline">
+                <AccordionTrigger
+                  label="Categorías"
+                  open={openSection === "categories"}
+                  summary={
+                    selectedCategory
+                      ? getCategoryDisplayName(selectedCategory)
+                      : undefined
+                  }
+                  controlsId={categoriesId}
+                  onClick={() => toggleSection("categories")}
+                />
+                <ul
+                  id={categoriesId}
+                  hidden={openSection !== "categories"}
+                  className="space-y-0.5 pb-4"
+                >
+                    {sortedCategories.map((category) => {
+                      const active = category.id === currentCategoryId;
+                      const label = getCategoryDisplayName(category);
 
-              <fieldset>
-                <legend className="mb-2.5 text-[11px] font-semibold uppercase tracking-eyebrow text-mist">
-                  Objetivo
-                </legend>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(OBJECTIVE_LABELS).map(([value, label]) => (
-                    <OptionChip
-                      key={value}
-                      active={objective === value}
-                      onClick={() =>
-                        apply({ objective: objective === value ? null : value })
-                      }
-                    >
-                      {label}
-                    </OptionChip>
-                  ))}
-                </div>
-              </fieldset>
+                      return (
+                        <li key={category.id}>
+                          <button
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() =>
+                              apply({
+                                categoryId: active ? null : category.id
+                              })
+                            }
+                            className={cn(
+                              "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-sm transition",
+                              active
+                                ? "bg-neon/15 text-sand"
+                                : "text-mist hover:bg-white/5 hover:text-sand"
+                            )}
+                          >
+                            {label}
+                            {active ? (
+                              <Check
+                                className="h-4 w-4 shrink-0 text-ember"
+                                aria-hidden="true"
+                              />
+                            ) : null}
+                          </button>
+                        </li>
+                      );
+                    })}
+                </ul>
+              </div>
 
-              <fieldset>
-                <legend className="mb-2.5 text-[11px] font-semibold uppercase tracking-eyebrow text-mist">
-                  Precio
-                </legend>
-                <div className="flex items-center gap-2">
-                  {(
-                    [
-                      ["Desde", minDraft, setMinDraft, facets.minPrice],
-                      ["Hasta", maxDraft, setMaxDraft, facets.maxPrice]
-                    ] as const
-                  ).map(([label, value, setValue, placeholder]) => (
-                    <label key={label} className="flex-1">
-                      <span className="sr-only">{label}</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={value}
-                        placeholder={String(placeholder)}
-                        onChange={(event) =>
-                          setValue(event.target.value.replace(/\D/g, ""))
-                        }
-                        onBlur={applyPriceDraft}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            applyPriceDraft();
-                          }
-                        }}
-                        className="min-h-9 w-full rounded-xl border border-hairline bg-surface-sunken px-3 py-1.5 text-sm text-sand transition placeholder:text-mist/40 hover:border-white/20 focus:border-neon/70 focus:outline-none focus:ring-2 focus:ring-neon/25"
-                      />
-                    </label>
-                  ))}
-                </div>
-                <p className="mt-2 text-[11px] text-mist">
-                  Del catálogo: {formatCurrency(facets.minPrice)} a{" "}
-                  {formatCurrency(facets.maxPrice)}
-                </p>
-              </fieldset>
+              <div>
+                <AccordionTrigger
+                  label="Marcas"
+                  open={openSection === "brands"}
+                  summary={
+                    selectedBrands.length > 0
+                      ? String(selectedBrands.length)
+                      : undefined
+                  }
+                  controlsId={brandsId}
+                  onClick={() => toggleSection("brands")}
+                />
+                <ul
+                  id={brandsId}
+                  hidden={openSection !== "brands"}
+                  className="space-y-0.5 pb-4"
+                >
+                    {facets.brands.map(({ label, count }) => {
+                      const active = selectedBrands.some(
+                        (brand) => brand.toLowerCase() === label.toLowerCase()
+                      );
+
+                      return (
+                        <li key={label}>
+                          <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={active}
+                            onClick={() => toggleInList("brand", label)}
+                            className={cn(
+                              "flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm transition",
+                              active
+                                ? "text-sand"
+                                : "text-mist hover:bg-white/5 hover:text-sand"
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                                active
+                                  ? "border-neon bg-neon text-white"
+                                  : "border-hairline bg-transparent"
+                              )}
+                              aria-hidden="true"
+                            >
+                              {active ? <Check className="h-3 w-3" /> : null}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate">{label}</span>
+                            <span className="text-[11px] tabular-nums opacity-50">
+                              {count}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                </ul>
+              </div>
             </div>
 
-            <div className="mt-5 flex gap-3 border-t border-hairline pt-4">
-              <Button
+            <div className="flex shrink-0 gap-2 border-t border-hairline px-5 py-4">
+              <button
                 type="button"
-                variant="secondary"
-                className="flex-1 md:flex-none"
-                onClick={() => {
-                  clearAll();
-                  setIsOpen(false);
-                }}
+                onClick={clearFilters}
                 disabled={activeCount === 0}
+                className="min-h-11 flex-1 rounded-xl border border-hairline text-sm font-medium text-mist transition hover:border-white/25 hover:text-sand disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Limpiar
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                className="flex-1 md:hidden"
                 onClick={() => setIsOpen(false)}
+                className="min-h-11 flex-1 rounded-xl bg-neon text-sm font-semibold text-white transition hover:bg-ember"
               >
                 Ver resultados
-              </Button>
+              </button>
             </div>
           </div>
-        </>
+        </div>
       ) : null}
-    </>
+    </div>
   );
 }

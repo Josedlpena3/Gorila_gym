@@ -36,6 +36,15 @@ export function useCatalogParams() {
     [searchParams]
   );
 
+  /** Valores múltiples viajan separados por comas: `?brand=ENA,Mervick`. */
+  const getList = useCallback(
+    (key: CatalogFilterKey) => {
+      const raw = searchParams.get(key);
+      return raw ? raw.split(",").map((v) => v.trim()).filter(Boolean) : [];
+    },
+    [searchParams]
+  );
+
   const apply = useCallback(
     (changes: Partial<Record<CatalogFilterKey, string | null>>) => {
       const next = new URLSearchParams(current);
@@ -71,6 +80,29 @@ export function useCatalogParams() {
     [current, pathname, router]
   );
 
+  /**
+   * Agrega o quita un valor de una lista. La comparación es insensible a
+   * mayúsculas porque las marcas están cargadas de varias formas y el chip
+   * muestra una grafía que puede no ser la que quedó en la URL.
+   */
+  const toggleInList = useCallback(
+    (key: CatalogFilterKey, value: string) => {
+      const raw = searchParams.get(key);
+      const list = raw
+        ? raw.split(",").map((v) => v.trim()).filter(Boolean)
+        : [];
+      const exists = list.some(
+        (item) => item.toLowerCase() === value.toLowerCase()
+      );
+      const next = exists
+        ? list.filter((item) => item.toLowerCase() !== value.toLowerCase())
+        : [...list, value];
+
+      apply({ [key]: next.length > 0 ? next.join(",") : null });
+    },
+    [apply, searchParams]
+  );
+
   const clearAll = useCallback(() => {
     if (!current) {
       return;
@@ -81,9 +113,32 @@ export function useCatalogParams() {
     });
   }, [current, pathname, router]);
 
-  const activeCount = (
-    ["categoryId", "brand", "objective", "minPrice", "maxPrice"] as const
-  ).filter((key) => searchParams.get(key)).length;
+  /**
+   * Saca categoría y marcas —y cualquier filtro viejo que ya no se muestra—
+   * pero deja la búsqueda. El buscador es un control aparte y tiene su propia X.
+   */
+  const clearFilters = useCallback(() => {
+    apply({
+      categoryId: null,
+      brand: null,
+      objective: null,
+      minPrice: null,
+      maxPrice: null,
+      sort: null
+    });
+  }, [apply]);
 
-  return { get, apply, clearAll, isPending, activeCount };
+  const activeCount =
+    (searchParams.get("categoryId") ? 1 : 0) + getList("brand").length;
+
+  return {
+    get,
+    getList,
+    apply,
+    toggleInList,
+    clearAll,
+    clearFilters,
+    isPending,
+    activeCount
+  };
 }

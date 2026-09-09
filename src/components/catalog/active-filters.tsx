@@ -1,76 +1,53 @@
 "use client";
 
 import { X } from "lucide-react";
+import {
+  getCategoryDisplayName,
+  type CatalogCategory
+} from "@/components/catalog/catalog-categories";
 import { useCatalogParams } from "@/components/catalog/use-catalog-params";
-import { OBJECTIVE_LABELS } from "@/lib/constants";
-import { formatCurrency } from "@/lib/utils";
-import type { CatalogFilterKey } from "@/components/catalog/use-catalog-params";
 
 type ActiveChip = {
-  key: CatalogFilterKey;
+  id: string;
   label: string;
-  clear: Partial<Record<CatalogFilterKey, null>>;
+  remove: () => void;
 };
 
 /**
- * Resumen de lo que está filtrando ahora mismo, con cada criterio removible.
+ * Chips de los filtros que están activos, fuera del menú.
  *
- * Los filtros viven en un panel que se cierra, así que sin esto el usuario no
- * tiene forma de saber por qué ve 12 productos en vez de 156 — ni cómo volver
- * atrás sin abrir el panel de nuevo.
+ * El panel se cierra: sin esto no hay forma de ver —ni de sacar— Creatinas o
+ * ENA sin volver a abrir el hamburger. La búsqueda no va acá: ya se ve en el
+ * input y se limpia con su propia X.
  */
 export function ActiveFilters({
   categories
 }: {
-  categories: Array<{ id: string; name: string }>;
+  categories: CatalogCategory[];
 }) {
-  const { get, apply, clearAll } = useCatalogParams();
+  const { get, getList, apply, toggleInList, clearFilters } = useCatalogParams();
 
-  const query = get("q");
   const categoryId = get("categoryId");
-  const brand = get("brand");
-  const objective = get("objective");
-  const minPrice = get("minPrice");
-  const maxPrice = get("maxPrice");
-
+  const brands = getList("brand");
   const chips: ActiveChip[] = [];
-
-  if (query) {
-    chips.push({ key: "q", label: `“${query}”`, clear: { q: null } });
-  }
 
   if (categoryId) {
     const category = categories.find((entry) => entry.id === categoryId);
 
     if (category) {
       chips.push({
-        key: "categoryId",
-        label: category.name,
-        clear: { categoryId: null }
+        id: `cat-${category.id}`,
+        label: getCategoryDisplayName(category),
+        remove: () => apply({ categoryId: null })
       });
     }
   }
 
-  if (brand) {
-    chips.push({ key: "brand", label: brand, clear: { brand: null } });
-  }
-
-  if (objective) {
+  for (const brand of brands) {
     chips.push({
-      key: "objective",
-      label: OBJECTIVE_LABELS[objective] ?? objective,
-      clear: { objective: null }
-    });
-  }
-
-  if (minPrice || maxPrice) {
-    const from = minPrice ? formatCurrency(Number(minPrice)) : null;
-    const to = maxPrice ? formatCurrency(Number(maxPrice)) : null;
-
-    chips.push({
-      key: "minPrice",
-      label: from && to ? `${from} – ${to}` : from ? `Desde ${from}` : `Hasta ${to}`,
-      clear: { minPrice: null, maxPrice: null }
+      id: `brand-${brand}`,
+      label: brand,
+      remove: () => toggleInList("brand", brand)
     });
   }
 
@@ -79,36 +56,30 @@ export function ActiveFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[11px] font-semibold uppercase tracking-eyebrow text-mist">
-        Filtrando por
-      </span>
-
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
       {chips.map((chip) => (
         <button
-          key={chip.key}
+          key={chip.id}
           type="button"
-          onClick={() => apply(chip.clear)}
-          className="group inline-flex min-h-8 items-center gap-1.5 rounded-full border border-neon/40 bg-neon/10 px-3 py-1 text-xs font-semibold text-sand transition hover:border-neon/70 hover:bg-neon/20"
+          onClick={chip.remove}
+          className="group inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-lg border border-hairline bg-surface px-2.5 py-1 text-xs text-mist transition hover:border-white/25 hover:text-sand"
         >
-          {chip.label}
+          <span className="truncate">{chip.label}</span>
           <X
-            className="h-3 w-3 text-mist transition group-hover:text-sand"
+            className="h-3 w-3 shrink-0 opacity-50 transition group-hover:opacity-100"
             aria-hidden="true"
           />
-          <span className="sr-only">Quitar filtro</span>
+          <span className="sr-only">Quitar filtro {chip.label}</span>
         </button>
       ))}
 
-      {chips.length > 1 ? (
-        <button
-          type="button"
-          onClick={clearAll}
-          className="min-h-8 text-xs font-semibold text-mist underline-offset-4 transition hover:text-sand hover:underline"
-        >
-          Limpiar todo
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={clearFilters}
+        className="min-h-8 px-1 text-xs font-medium text-ember underline-offset-4 transition hover:underline"
+      >
+        Limpiar filtros
+      </button>
     </div>
   );
 }

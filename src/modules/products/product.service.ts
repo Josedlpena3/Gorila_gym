@@ -569,15 +569,21 @@ function buildCatalogProductWhere(
           }
         }
       : {}),
-    // La marca se compara sin distinguir mayúsculas porque los datos tienen la
-    // misma marca cargada de varias formas: ENA, Ena y ena son 15 productos que
-    // de otro modo quedarían partidos en tres filtros que no se solapan.
-    ...(data.brand
+    // Varias marcas se combinan con OR: elegir ENA y Mervick trae los productos
+    // de las dos, no la intersección, que sería siempre vacía.
+    //
+    // Se compara sin distinguir mayúsculas porque los datos tienen la misma
+    // marca cargada de varias formas: ENA, Ena y ena son 15 productos que de
+    // otro modo quedarían partidos en filtros que no se solapan. Prisma no
+    // admite `mode: insensitive` dentro de `in`, así que va un OR de igualdades.
+    ...(data.brand && data.brand.length > 0
       ? {
-          brand: {
-            equals: data.brand,
-            mode: "insensitive" as const
-          }
+          OR: data.brand.map((brand) => ({
+            brand: {
+              equals: brand,
+              mode: "insensitive" as const
+            }
+          }))
         }
       : {}),
     ...(data.objective

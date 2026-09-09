@@ -80,6 +80,25 @@ export const CATALOG_SORT_KEYS = [
 
 export type CatalogSortKey = (typeof CATALOG_SORT_KEYS)[number];
 
+/**
+ * La marca llega como lista separada por comas: `?brand=ENA,Mervick`.
+ *
+ * Se acepta también un valor suelto, que es una lista de uno, así que los
+ * enlaces que ya circulaban con una sola marca siguen funcionando igual.
+ */
+const brandListSchema = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const brands = value
+    .split(",")
+    .map((brand) => brand.trim())
+    .filter(Boolean);
+
+  return brands.length > 0 ? brands : undefined;
+}, z.array(z.string()).optional());
+
 export const productFiltersSchema = z.object({
   sort: z.preprocess(
     (value) => (value === "" || value === null ? undefined : value),
@@ -88,7 +107,7 @@ export const productFiltersSchema = z.object({
   q: optionalText,
   categoryId: optionalText,
   category: optionalText,
-  brand: optionalText,
+  brand: brandListSchema,
   objective: z.preprocess(
     (value) => (value === "" ? undefined : value),
     z.nativeEnum(Objective).optional()
