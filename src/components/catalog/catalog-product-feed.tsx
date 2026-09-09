@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { SearchX } from "lucide-react";
 import { ProductCard } from "@/components/catalog/product-card";
 import { ProductCardSkeleton } from "@/components/catalog/product-card-skeleton";
 import { Button } from "@/components/ui/button";
@@ -125,10 +126,17 @@ export function CatalogProductFeed({
       </div>
 
       {products.length === 0 ? (
-        <div className="section-card flex flex-col items-center gap-4 p-8 text-center">
-          <p className="text-sm text-mist">No hay productos disponibles para esta búsqueda.</p>
-          <Link href="/catalogo">
-            <Button>Ver todos los productos</Button>
+        <div className="section-card flex flex-col items-center gap-3 p-10 text-center">
+          <SearchX className="h-9 w-9 text-mist/50" aria-hidden="true" />
+          <p className="text-base font-semibold text-sand">
+            Ningún producto coincide
+          </p>
+          <p className="max-w-sm text-sm text-mist">
+            Probá quitando algún filtro o buscando otra palabra. También podés
+            ver el catálogo completo.
+          </p>
+          <Link href="/catalogo" className="mt-2">
+            <Button>Ver todo el catálogo</Button>
           </Link>
         </div>
       ) : null}

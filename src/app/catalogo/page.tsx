@@ -1,7 +1,11 @@
 import { CatalogProductFeed } from "@/components/catalog/catalog-product-feed";
 import { CatalogToolbar } from "@/components/catalog/catalog-toolbar";
 import { StatusCard } from "@/components/layout/status-card";
-import { listCatalogProducts, listCategories } from "@/modules/products/product.service";
+import {
+  listCatalogFacets,
+  listCatalogProducts,
+  listCategories
+} from "@/modules/products/product.service";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type CatalogFilterKey =
@@ -10,7 +14,8 @@ type CatalogFilterKey =
   | "brand"
   | "objective"
   | "minPrice"
-  | "maxPrice";
+  | "maxPrice"
+  | "sort";
 
 const CATALOG_FILTER_KEYS: readonly CatalogFilterKey[] = [
   "q",
@@ -18,7 +23,8 @@ const CATALOG_FILTER_KEYS: readonly CatalogFilterKey[] = [
   "brand",
   "objective",
   "minPrice",
-  "maxPrice"
+  "maxPrice",
+  "sort"
 ];
 
 export const dynamic = "force-dynamic";
@@ -34,10 +40,6 @@ function getSearchParam(
 function getLegacyCategoryParam(searchParams: SearchParams) {
   const value = searchParams.category;
   return typeof value === "string" ? value : undefined;
-}
-
-function getSelectedCategoryParam(searchParams: SearchParams) {
-  return getSearchParam(searchParams, "categoryId") ?? getLegacyCategoryParam(searchParams);
 }
 
 function buildCatalogApiQuery(searchParams: SearchParams) {
@@ -72,6 +74,7 @@ async function loadCatalogProducts(searchParams: SearchParams) {
       objective: getSearchParam(searchParams, "objective"),
       minPrice: getSearchParam(searchParams, "minPrice"),
       maxPrice: getSearchParam(searchParams, "maxPrice"),
+      sort: getSearchParam(searchParams, "sort"),
       page: 1,
       limit: 20
     });
@@ -86,13 +89,16 @@ export default async function CatalogPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const currentQuery = getSearchParam(searchParams, "q");
-  const currentCategory = getSelectedCategoryParam(searchParams);
   const apiQuery = buildCatalogApiQuery(searchParams);
 
-  const [data, categories] = await Promise.all([
+  const [data, categories, facets] = await Promise.all([
     loadCatalogProducts(searchParams),
-    listCategories().catch(() => [])
+    listCategories().catch(() => []),
+    listCatalogFacets().catch(() => ({
+      brands: [],
+      minPrice: 0,
+      maxPrice: 0
+    }))
   ]);
 
   if (!data) {
@@ -114,9 +120,9 @@ export default async function CatalogPage({
   return (
     <div className="page-shell space-y-6 sm:space-y-8">
       <CatalogToolbar
-        currentQuery={currentQuery}
-        currentCategory={currentCategory}
         categories={categories}
+        facets={facets}
+        total={data.total}
       />
 
       {/* key: al cambiar los filtros React remonta el feed y su estado arranca
