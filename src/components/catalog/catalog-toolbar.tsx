@@ -58,6 +58,9 @@ export function CatalogToolbar({
               apply({ q: null });
             }}
           />
+          <button type="submit" className="sr-only">
+            Buscar
+          </button>
         </form>
       </div>
 
