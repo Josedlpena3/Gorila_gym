@@ -33,7 +33,18 @@ export async function generateMetadata({
   const product = await getProductCached(params.slug).catch(() => null);
 
   if (!product) {
-    return { title: "Producto no encontrado" };
+    // Bajo ISR en una ruta dinámica, `notFound()` renderiza la página de "no
+    // encontrado" pero Next la sirve con status 200, no 404 —verificado en
+    // producción, tanto con cache MISS como con HIT—. Forzar el 404 exigiría
+    // `dynamicParams: false`, y eso dejaría inaccesible todo producto creado
+    // después del último deploy, que es mucho peor.
+    //
+    // El daño concreto del soft 404 es que el buscador indexe URLs de
+    // productos que ya no existen; `noindex` lo corta de raíz.
+    return {
+      title: "Producto no encontrado",
+      robots: { index: false, follow: false }
+    };
   }
 
   const description = product.description.length > 155

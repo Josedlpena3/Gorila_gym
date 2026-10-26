@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api, getApiErrorMessage } from "@/lib/api-client";
 import { OBJECTIVE_LABELS } from "@/lib/constants";
+import { resolveDefaultCategoryId } from "@/components/admin/category-selection";
 import {
   useProductCategories,
   type ProductCategory
@@ -64,14 +65,21 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
   // Único efecto que queda: elegir una categoría por defecto cuando el producto
   // es nuevo y la lista llegó por fetch en vez de por prop.
+  //
+  // Antes este efecto además re-escribía `product.categoryId` en cada corrida.
+  // Como `selectedCategoryId` está entre sus dependencias, elegir otra
+  // categoría lo volvía a disparar y la pisaba con la original: la categoría no
+  // se podía cambiar. `useState` ya inicializa con la del producto, así que
+  // re-sincronizar nunca hizo falta.
   useEffect(() => {
-    if (product?.categoryId) {
-      setSelectedCategoryId(product.categoryId);
-      return;
-    }
+    const nextCategoryId = resolveDefaultCategoryId({
+      selectedCategoryId,
+      productCategoryId: product?.categoryId,
+      availableCategories
+    });
 
-    if (!selectedCategoryId && availableCategories[0]?.id) {
-      setSelectedCategoryId(availableCategories[0].id);
+    if (nextCategoryId) {
+      setSelectedCategoryId(nextCategoryId);
     }
   }, [availableCategories, product?.categoryId, selectedCategoryId]);
 

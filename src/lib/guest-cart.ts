@@ -113,11 +113,17 @@ export function addGuestCartItem(
     return;
   }
 
+  // Se usa `nextQuantity` igual que en la rama de arriba: sin producto previo
+  // vale `min(cantidad pedida, stock)`, que es justo lo que corresponde. Antes
+  // esta rama hacía `max(cantidad, 1)` sin mirar el stock, así que agregar por
+  // primera vez más unidades de las disponibles dejaba el carrito con una
+  // cantidad imposible —la otra rama sí la limitaba— y el error recién
+  // aparecía al confirmar el pedido.
   writeGuestCartItems([
     ...current,
     {
       ...item,
-      quantity: Math.max(item.quantity ?? 1, 1)
+      quantity: nextQuantity
     }
   ]);
 }
