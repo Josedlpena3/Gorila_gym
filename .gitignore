@@ -12,3 +12,12 @@ coverage
 prisma/dev.db
 generated
 public/uploads
+.vercel
+.env*
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/e2e/.auth/

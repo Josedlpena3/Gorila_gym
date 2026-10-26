@@ -94,8 +94,31 @@ export async function createTestUser(overrides?: { phone?: string }) {
   };
 }
 
+/**
+ * Administrador real: las mutaciones de producto escriben en `auditLog`, que
+ * tiene FK contra `users`, así que no alcanza con un id inventado.
+ */
+export async function createTestAdmin() {
+  const role = await createTestRole(RoleKey.ADMIN);
+
+  return prisma.user.create({
+    data: {
+      firstName: "Admin",
+      lastName: "Test",
+      email: `${unique("admin")}@test.local`,
+      emailVerified: true,
+      phone: "3511234500",
+      passwordHash: "not-a-real-hash",
+      roleId: role.id
+    }
+  });
+}
+
 /** Limpia solo lo que crean estos fixtures, en el orden correcto de FKs. */
 export async function cleanupTestData() {
+  await prisma.auditLog.deleteMany({
+    where: { adminUser: { email: { endsWith: "@test.local" } } }
+  });
   await prisma.orderItem.deleteMany({
     where: { order: { recipientName: { contains: "Test" } } }
   });
